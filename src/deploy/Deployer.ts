@@ -9,6 +9,7 @@ import inquirer = require("inquirer");
 
 export interface IDeployConfig {
     repositoryUrl:string;
+    volumePrefix:string;
     prevDeployPath?:string;
 }
 
@@ -39,6 +40,9 @@ export class Deployer {
         if (fs.existsSync(projectName)) {
             Util.fs.remove(projectName);
         }
+        if (!this.config.volumePrefix) {
+            this.config.volumePrefix = projectName.toLowerCase();
+        }
         GitGen.getRepoUrl(this.config.repositoryUrl)
             .then(url=>GitGen.clone(url, projectName, 'master'))
             .then(()=>Util.exec(`git submodule foreach git pull origin master`, projectName))
@@ -68,7 +72,7 @@ export class Deployer {
                 }
                 Util.exec(`rm -Rf ${projectName}`);
                 this.config.prevDeployPath = deployPath;
-                Util.fs.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 4));
+                Util.fs.writeFile(Deployer.ConfigFile, JSON.stringify(this.config));
             })
     }
 

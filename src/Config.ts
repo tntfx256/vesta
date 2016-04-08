@@ -1,12 +1,22 @@
 import {IRepositoryConfig} from "./gen/file/GitGen";
 
+interface IProjectConfigRepository extends IRepositoryConfig {
+    express:string;
+    ionic:string;
+    material:string;
+}
+
 export interface IProjectConfig {
-    repository:IRepositoryConfig;
+    repository:IProjectConfigRepository;
 }
 
 export var Config:IProjectConfig = {
-    repository: <IRepositoryConfig>{
-        baseRepoUrl: 'http://hbtb.ir:8080',
-        group: 'vesta'
+    repository: <IProjectConfigRepository>{
+        baseRepoUrl: 'https://github.com',
+        group: 'hbtb',
+        common: 'commonCodeTemplate',
+        express: 'expressJsTemplate',
+        ionic: 'ionicCordovaTemplate',
+        material: 'materialWebTemplate'
     }
 };

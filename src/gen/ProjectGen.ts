@@ -9,7 +9,6 @@ import {GitGen, IRepositoryConfig} from "./file/GitGen";
 import {IClientAppConfig, ClientAppGen} from "./app/client/ClientAppGen";
 import {ClientAppGenFactory} from "./app/ClientAppGenFactory";
 import {DockerGen} from "./code/DockerGen";
-import {Config} from "../Config";
 import {I18nGenConfig} from "./code/I18nGen";
 
 export interface IProjectGenConfig {
@@ -61,7 +60,8 @@ export class ProjectGen {
     public generate() {
         var dir = this.config.name,
             projectTemplateName,
-            replacement = {};
+            replacement = {},
+            projectRepo = this.vesta.getProjectConfig().repository;
         Util.fs.mkdir(dir);
         //
         this.initApp()
@@ -73,9 +73,9 @@ export class ProjectGen {
                 Util.fs.remove(`${dir}/fw`);
                 this.vesta.generate();
                 if (this.config.type == ProjectGen.Type.ClientSide) {
-                    projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? 'ionicCodeTemplate' : 'materialCodeTemplate';
+                    projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
                 } else {
-                    projectTemplateName = 'expressCodeTemplate';
+                    projectTemplateName = projectRepo.express;
                 }
                 replacement[projectTemplateName] = this.config.name;
                 Util.findInFileAndReplace(`${dir}/package.json`, replacement);
@@ -87,11 +87,9 @@ export class ProjectGen {
                 return Util.exec(`git add .`, dir)
                     .then(()=>Util.exec(`git commit -m Vesta`, dir))
                     .then(()=>this.commonApp.addSubModule())
-                    .then(()=> {
-                        return GitGen.getRepoUrl(Config.repository.baseRepoUrl, true)
-                            .then(url=>Util.exec(`git remote add origin ${url}:${this.config.repository.group}/${this.config.name}.git`, dir))
-                            .then(()=>Util.exec(`git push -u origin master`, dir))
-                    })
+                    .then(()=>GitGen.getRepoUrl(this.config.repository.baseRepoUrl, true)
+                        .then(url=>Util.exec(`git remote add origin ${url}:${this.config.repository.group}/${this.config.name}.git`, dir))
+                        .then(()=>Util.exec(`git push -u origin master`, dir)))
                     .then(()=>Util.exec(`git add .`, dir))
                     .then(()=>Util.exec(`git commit -m subModule`, dir))
                     .then(()=>Util.exec(`git checkout -b dev`, dir))
@@ -108,7 +106,7 @@ export class ProjectGen {
         appConfig.client = <IClientAppConfig>{};
         appConfig.server = <IServerAppConfig>{};
         appConfig.repository = <IRepositoryConfig>{
-            baseRepoUrl: Config.repository.baseRepoUrl,
+            baseRepoUrl: '',
             group: category,
             common: '',
             name: appConfig.name

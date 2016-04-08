@@ -1,6 +1,6 @@
 {
   "name": "vesta",
-  "version": "0.2.1",
+  "version": "0.5.2",
   "description": "Vesta Framework++",
   "keywords": [
     "Code Generator",
@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node node_modules/gulp/bin/gulp --gulpfile resources/gulp/run.js"
+    "dev": "node node_modules/gulp/bin/gulp"
   },
   "author": "hbtb <bishehsary@gmail.com>",
   "contributors": [
@@ -47,6 +47,7 @@
     "rxjs": "^5.0.0-beta.2",
     "shelljs": "^0.6.0",
     "speakeasy": "^1.0.3",
-    "xml-parser": "^1.2.1"
+    "xml-parser": "^1.2.1",
+    "yamljs": "^0.2.7"
   }
 }

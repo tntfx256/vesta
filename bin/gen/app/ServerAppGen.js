@@ -3,7 +3,6 @@ var inqurer = require("inquirer");
 var Vesta_1 = require("../file/Vesta");
 var DatabaseGen_1 = require("../core/DatabaseGen");
 var ExpressAppGen_1 = require("./server/ExpressAppGen");
-var Config_1 = require("../../Config");
 var GitGen_1 = require("../file/GitGen");
 var Util_1 = require("../../util/Util");
 var speakeasy = require('speakeasy');
@@ -21,10 +20,8 @@ var ServerAppGen = (function () {
         return 'master';
     };
     ServerAppGen.prototype.cloneTemplate = function () {
-        var _this = this;
-        var dir = this.config.name, repo = Config_1.Config.repository;
-        return GitGen_1.GitGen.getRepoUrl(Config_1.Config.repository.baseRepoUrl)
-            .then(function (url) { return GitGen_1.GitGen.clone(url + "/" + repo.group + "/expressCodeTemplate.git", dir, _this.getBranchName()); })
+        var dir = this.config.name, repo = this.vesta.getProjectConfig().repository;
+        return GitGen_1.GitGen.clone(repo.baseRepoUrl + "/" + repo.group + "/" + repo.express + ".git", dir, this.getBranchName())
             .then(function () { return GitGen_1.GitGen.cleanClonedRepo(dir); })
             .then(function () { return Util_1.Util.fs.copy(dir + "/resources/gitignore/src/config/setting.var.ts", dir + "/src/config/setting.var.ts"); });
     };

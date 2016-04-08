@@ -27,6 +27,9 @@ var Deployer = (function () {
         if (fs.existsSync(projectName)) {
             Util_1.Util.fs.remove(projectName);
         }
+        if (!this.config.volumePrefix) {
+            this.config.volumePrefix = projectName.toLowerCase();
+        }
         GitGen_1.GitGen.getRepoUrl(this.config.repositoryUrl)
             .then(function (url) { return GitGen_1.GitGen.clone(url, projectName, 'master'); })
             .then(function () { return Util_1.Util.exec("git submodule foreach git pull origin master", projectName); })
@@ -56,7 +59,7 @@ var Deployer = (function () {
             }
             Util_1.Util.exec("rm -Rf " + projectName);
             _this.config.prevDeployPath = deployPath;
-            Util_1.Util.fs.writeFile(Deployer.ConfigFile, JSON.stringify(_this.config, null, 4));
+            Util_1.Util.fs.writeFile(Deployer.ConfigFile, JSON.stringify(_this.config));
         });
     };
     Deployer.getDeployConfig = function (args) {

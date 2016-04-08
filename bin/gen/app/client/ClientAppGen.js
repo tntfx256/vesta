@@ -3,7 +3,6 @@ var inquirer = require("inquirer");
 var Vesta_1 = require("../../file/Vesta");
 var Util_1 = require("../../../util/Util");
 var GitGen_1 = require("../../file/GitGen");
-var Config_1 = require("../../../Config");
 var ClientAppGen = (function () {
     function ClientAppGen(config) {
         this.config = config;
@@ -11,20 +10,18 @@ var ClientAppGen = (function () {
         this.vesta = Vesta_1.Vesta.getInstance(config);
     }
     ClientAppGen.prototype.getRepoName = function () {
-        var name = '';
+        var name = '', repo = this.vesta.getProjectConfig().repository;
         if (this.config.client.platform == ClientAppGen.Platform.Cordova) {
-            name = 'ionicCordovaTemplate';
+            name = repo.ionic;
         }
         else {
-            name = 'materialWebTemplate';
+            name = repo.material;
         }
         return name;
     };
     ClientAppGen.prototype.cloneTemplate = function () {
-        var _this = this;
-        var dir = this.config.name;
-        return GitGen_1.GitGen.getRepoUrl(Config_1.Config.repository.baseRepoUrl)
-            .then(function (url) { return GitGen_1.GitGen.clone(url + "/" + Config_1.Config.repository.group + "/" + _this.getRepoName() + ".git", dir); })
+        var dir = this.config.name, repo = this.vesta.getProjectConfig().repository;
+        return GitGen_1.GitGen.clone(repo.baseRepoUrl + "/" + repo.group + "/" + this.getRepoName() + ".git", dir)
             .then(function () { return GitGen_1.GitGen.cleanClonedRepo(dir); });
     };
     ClientAppGen.prototype.generate = function () {
@@ -57,7 +54,7 @@ var ClientAppGen = (function () {
                 type: 'list',
                 name: 'type',
                 message: 'Client Side Type: ',
-                choices: [ClientAppGen.Type.Angular, ClientAppGen.Type.Angular2],
+                choices: [ClientAppGen.Type.Angular /*, ClientAppGen.Type.Angular2*/],
                 default: ClientAppGen.Type.Angular
             },
             {

@@ -123,7 +123,7 @@ var Util = (function () {
             //     resolve(stdout);
             // });
             var result = shell.exec(command, { cwd: wd }, function (code, output) {
-                resolve(result);
+                resolve(output);
             });
         });
     };

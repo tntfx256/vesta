@@ -1,5 +1,4 @@
 import {IProjectGenConfig, ProjectGen} from "../ProjectGen";
-import {Config} from "../../Config";
 import {Util} from "../../util/Util";
 import {ClientAppGen} from "../app/client/ClientAppGen";
 import {Question} from "inquirer";
@@ -80,8 +79,7 @@ export class GitGen {
                 var qs:Array<Question> = [<Question>{
                     type: 'input',
                     name: 'baseRepoUrl',
-                    message: 'Remote repository base url: ',
-                    default: appConfig.repository.baseRepoUrl
+                    message: 'Remote repository base url: (http://example.com:9000)'
                 }];
                 if (!appConfig.repository.group) {
                     qs.push(<Question>{
@@ -118,7 +116,7 @@ export class GitGen {
                     appConfig.name = answer['projectName'];
                     appConfig.repository = <IRepositoryConfig>{
                         firstTime: !answer['firstTime'],
-                        baseRepoUrl: Config.repository.baseRepoUrl,
+                        baseRepoUrl: answer['baseRepoUrl'],
                         group: answer['group'],
                         name: appConfig.name,
                         common: answer['common']

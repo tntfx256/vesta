@@ -4,7 +4,6 @@ import {Vesta} from "../../file/Vesta";
 import {IProjectGenConfig} from "../../ProjectGen";
 import {Util} from "../../../util/Util";
 import {GitGen} from "../../file/GitGen";
-import {Config} from "../../../Config";
 
 export interface IClientAppConfig {
     platform:string;
@@ -27,20 +26,21 @@ export abstract class ClientAppGen {
     }
 
     private getRepoName():string {
-        var name = '';
+        var name = '',
+            repo = this.vesta.getProjectConfig().repository;
         if (this.config.client.platform == ClientAppGen.Platform.Cordova) {
-            name = 'ionicCordovaTemplate';
+            name = repo.ionic;
         } else {
-            name = 'materialWebTemplate';
+            name = repo.material;
         }
         return name;
     }
 
     private cloneTemplate():Promise<any> {
-        var dir = this.config.name;
-        return GitGen.getRepoUrl(Config.repository.baseRepoUrl)
-            .then(url=>GitGen.clone(`${url}/${Config.repository.group}/${this.getRepoName()}.git`, dir))
-            .then(()=>GitGen.cleanClonedRepo(dir))
+        var dir = this.config.name,
+            repo = this.vesta.getProjectConfig().repository;
+        return GitGen.clone(`${repo.baseRepoUrl}/${repo.group}/${this.getRepoName()}.git`, dir)
+            .then(()=>GitGen.cleanClonedRepo(dir));
     }
 
     public generate():Promise<any> {
@@ -75,7 +75,7 @@ export abstract class ClientAppGen {
                     type: 'list',
                     name: 'type',
                     message: 'Client Side Type: ',
-                    choices: [ClientAppGen.Type.Angular, ClientAppGen.Type.Angular2],
+                    choices: [ClientAppGen.Type.Angular/*, ClientAppGen.Type.Angular2*/],
                     default: ClientAppGen.Type.Angular
                 },
                 <Question>{

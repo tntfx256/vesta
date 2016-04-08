@@ -1,6 +1,7 @@
 import * as fs from "fs-extra";
 import {IProjectGenConfig} from "../ProjectGen";
 import {Util} from "../../util/Util";
+import {IProjectConfig, Config} from "../../Config";
 
 export interface IProjectVersion {
     app:string;
@@ -18,6 +19,7 @@ export class Vesta {
     private json:IVesta;
     private path = 'vesta.json';
     private isUpdate:boolean = false;
+    private static projectConfig:IProjectConfig = Config;
 
     constructor(private config:IProjectGenConfig = null) {
         if (config) {
@@ -46,7 +48,7 @@ export class Vesta {
         } else {
             var path = this.config.name;
             delete this.config.repository['firstTime'];
-            Util.fs.writeFile(path + '/vesta.json', JSON.stringify(this.json, null, 4));
+            Util.fs.writeFile(path + '/vesta.json', JSON.stringify(this.json));
         }
     }
 
@@ -59,6 +61,10 @@ export class Vesta {
 
     public getConfig():IProjectGenConfig {
         return this.json.config;
+    }
+
+    public getProjectConfig():IProjectConfig {
+        return Vesta.projectConfig;
     }
 
     public getVersion() {

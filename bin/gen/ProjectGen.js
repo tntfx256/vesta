@@ -9,7 +9,6 @@ var GitGen_1 = require("./file/GitGen");
 var ClientAppGen_1 = require("./app/client/ClientAppGen");
 var ClientAppGenFactory_1 = require("./app/ClientAppGenFactory");
 var DockerGen_1 = require("./code/DockerGen");
-var Config_1 = require("../Config");
 var ProjectGen = (function () {
     function ProjectGen(config) {
         this.config = config;
@@ -38,7 +37,7 @@ var ProjectGen = (function () {
     };
     ProjectGen.prototype.generate = function () {
         var _this = this;
-        var dir = this.config.name, projectTemplateName, replacement = {};
+        var dir = this.config.name, projectTemplateName, replacement = {}, projectRepo = this.vesta.getProjectConfig().repository;
         Util_1.Util.fs.mkdir(dir);
         //
         this.initApp()
@@ -50,10 +49,10 @@ var ProjectGen = (function () {
             Util_1.Util.fs.remove(dir + "/fw");
             _this.vesta.generate();
             if (_this.config.type == ProjectGen.Type.ClientSide) {
-                projectTemplateName = _this.config.client.framework == ClientAppGen_1.ClientAppGen.Framework.Ionic ? 'ionicCodeTemplate' : 'materialCodeTemplate';
+                projectTemplateName = _this.config.client.framework == ClientAppGen_1.ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
             }
             else {
-                projectTemplateName = 'expressCodeTemplate';
+                projectTemplateName = projectRepo.express;
             }
             replacement[projectTemplateName] = _this.config.name;
             Util_1.Util.findInFileAndReplace(dir + "/package.json", replacement);
@@ -65,11 +64,9 @@ var ProjectGen = (function () {
             return Util_1.Util.exec("git add .", dir)
                 .then(function () { return Util_1.Util.exec("git commit -m Vesta", dir); })
                 .then(function () { return _this.commonApp.addSubModule(); })
-                .then(function () {
-                return GitGen_1.GitGen.getRepoUrl(Config_1.Config.repository.baseRepoUrl, true)
-                    .then(function (url) { return Util_1.Util.exec("git remote add origin " + url + ":" + _this.config.repository.group + "/" + _this.config.name + ".git", dir); })
-                    .then(function () { return Util_1.Util.exec("git push -u origin master", dir); });
-            })
+                .then(function () { return GitGen_1.GitGen.getRepoUrl(_this.config.repository.baseRepoUrl, true)
+                .then(function (url) { return Util_1.Util.exec("git remote add origin " + url + ":" + _this.config.repository.group + "/" + _this.config.name + ".git", dir); })
+                .then(function () { return Util_1.Util.exec("git push -u origin master", dir); }); })
                 .then(function () { return Util_1.Util.exec("git add .", dir); })
                 .then(function () { return Util_1.Util.exec("git commit -m subModule", dir); })
                 .then(function () { return Util_1.Util.exec("git checkout -b dev", dir); })
@@ -85,7 +82,7 @@ var ProjectGen = (function () {
         appConfig.client = {};
         appConfig.server = {};
         appConfig.repository = {
-            baseRepoUrl: Config_1.Config.repository.baseRepoUrl,
+            baseRepoUrl: '',
             group: category,
             common: '',
             name: appConfig.name

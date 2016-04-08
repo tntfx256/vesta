@@ -15,6 +15,7 @@ import {NGFilterGen} from "./gen/code/client/ng/NGFilterGen";
 import {SassGen} from "./gen/file/SassGen";
 import {CordovaGen} from "./gen/file/CordovaGen";
 import {Deployer} from "./deploy/Deployer";
+import {Backuper} from "./deploy/Backuper";
 
 var packageInfo = JSON.parse(fs.readFileSync('package.json', {encoding: 'utf8'}));
 program.version(`Vesta Framework++ v${packageInfo.version}`);
@@ -22,9 +23,10 @@ program.version(`Vesta Framework++ v${packageInfo.version}`);
 program
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
-    //.option('plugin', 'Adding a Cordova Plugin')
+    .option('plugin', 'Adding a Cordova Plugin')
     .option('gen [model, controller, directive, service, form] name', 'Generate code for mentioned type')
-    .option('deploy [httpRepoPath]');
+    .option('deploy [httpRepoPath]')
+    .option('backup [deployFileName]');
 //program
 //    .command('create [projectName]', 'Create new project by interactive CLI')
 //    .command('plugin [name]');
@@ -49,6 +51,9 @@ switch (command) {
         break;
     case 'deploy':
         deployProject(args);
+        break;
+    case 'backup':
+        backupProject(args);
         break;
     case 'init':
         initProject();
@@ -159,5 +164,13 @@ function deployProject(args:Array<string>) {
         .then(config=> {
             var deployer = new Deployer(config);
             deployer.deploy();
+        })
+}
+
+function backupProject(args:Array<string>) {
+    Backuper.getDeployConfig(args)
+        .then(config=> {
+            var backuper = new Backuper(config);
+            backuper.backup();
         })
 }

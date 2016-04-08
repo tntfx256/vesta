@@ -198,7 +198,7 @@ export class Util {
             //     resolve(stdout);
             // });
             var result = shell.exec(command, <ExecOptions>{cwd: wd}, (code, output)=> {
-                resolve(result);
+                resolve(output);
             });
         })
     }

@@ -73,6 +73,9 @@
         },
         "shelljs/shelljs.d.ts": {
             "commit": "e8f8e7471b8ca92ca417f8c878f64ae4d1067972"
+        },
+        "yamljs/yamljs.d.ts": {
+            "commit": "ec9eb4b28c74665a602c22db3457f0a76fa0fa23"
         }
     }
 }

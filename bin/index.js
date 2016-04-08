@@ -16,13 +16,16 @@ var NGFilterGen_1 = require("./gen/code/client/ng/NGFilterGen");
 var SassGen_1 = require("./gen/file/SassGen");
 var CordovaGen_1 = require("./gen/file/CordovaGen");
 var Deployer_1 = require("./deploy/Deployer");
+var Backuper_1 = require("./deploy/Backuper");
 var packageInfo = JSON.parse(fs.readFileSync('package.json', { encoding: 'utf8' }));
 program.version("Vesta Framework++ v" + packageInfo.version);
 program
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
+    .option('plugin', 'Adding a Cordova Plugin')
     .option('gen [model, controller, directive, service, form] name', 'Generate code for mentioned type')
-    .option('deploy [httpRepoPath]');
+    .option('deploy [httpRepoPath]')
+    .option('backup [deployFileName]');
 //program
 //    .command('create [projectName]', 'Create new project by interactive CLI')
 //    .command('plugin [name]');
@@ -43,6 +46,9 @@ switch (command) {
         break;
     case 'deploy':
         deployProject(args);
+        break;
+    case 'backup':
+        backupProject(args);
         break;
     case 'init':
         initProject();
@@ -148,5 +154,12 @@ function deployProject(args) {
         .then(function (config) {
         var deployer = new Deployer_1.Deployer(config);
         deployer.deploy();
+    });
+}
+function backupProject(args) {
+    Backuper_1.Backuper.getDeployConfig(args)
+        .then(function (config) {
+        var backuper = new Backuper_1.Backuper(config);
+        backuper.backup();
     });
 }

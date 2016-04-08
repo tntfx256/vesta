@@ -5,7 +5,6 @@ import {Vesta} from "../file/Vesta";
 import {DatabaseGen} from "../core/DatabaseGen";
 import {IProjectGenConfig} from "../ProjectGen";
 import {ExpressAppGen} from "./server/ExpressAppGen";
-import {Config} from "../../Config";
 import {GitGen} from "../file/GitGen";
 import {Util} from "../../util/Util";
 var speakeasy = require('speakeasy');
@@ -34,9 +33,8 @@ export class ServerAppGen implements IFileGenerator {
 
     private cloneTemplate():Promise<any> {
         var dir = this.config.name,
-            repo = Config.repository;
-        return GitGen.getRepoUrl(Config.repository.baseRepoUrl)
-            .then(url=> GitGen.clone(`${url}/${repo.group}/expressCodeTemplate.git`, dir, this.getBranchName()))
+            repo = this.vesta.getProjectConfig().repository;
+        return GitGen.clone(`${repo.baseRepoUrl}/${repo.group}/${repo.express}.git`, dir, this.getBranchName())
             .then(()=>GitGen.cleanClonedRepo(dir))
             .then(()=>Util.fs.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`))
     }

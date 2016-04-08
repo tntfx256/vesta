@@ -1,6 +1,7 @@
 "use strict";
 var fs = require("fs-extra");
 var Util_1 = require("../../util/Util");
+var Config_1 = require("../../Config");
 var Vesta = (function () {
     function Vesta(config) {
         if (config === void 0) { config = null; }
@@ -35,7 +36,7 @@ var Vesta = (function () {
         else {
             var path = this.config.name;
             delete this.config.repository['firstTime'];
-            Util_1.Util.fs.writeFile(path + '/vesta.json', JSON.stringify(this.json, null, 4));
+            Util_1.Util.fs.writeFile(path + '/vesta.json', JSON.stringify(this.json));
         }
     };
     Vesta.getInstance = function (config) {
@@ -48,9 +49,13 @@ var Vesta = (function () {
     Vesta.prototype.getConfig = function () {
         return this.json.config;
     };
+    Vesta.prototype.getProjectConfig = function () {
+        return Vesta.projectConfig;
+    };
     Vesta.prototype.getVersion = function () {
         return this.json.version;
     };
+    Vesta.projectConfig = Config_1.Config;
     return Vesta;
 }());
 exports.Vesta = Vesta;

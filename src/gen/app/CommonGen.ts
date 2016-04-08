@@ -2,12 +2,14 @@ import {ProjectGen, IProjectGenConfig} from "../ProjectGen";
 import {IFileGenerator} from "../core/IFileGenerator";
 import {Util} from "../../util/Util";
 import {GitGen} from "../file/GitGen";
-import {Config} from "../../Config";
+import {Vesta} from "../file/Vesta";
 import resolve = Promise.resolve;
 
 export class CommonGen implements IFileGenerator {
+    private vesta:Vesta;
 
     constructor(private config:IProjectGenConfig) {
+        this.vesta = Vesta.getInstance();
     }
 
     /**
@@ -20,10 +22,11 @@ export class CommonGen implements IFileGenerator {
      */
     private initFirstTimeCommonProject():Promise<any> {
         var repository = this.config.repository,
+            projectRepo = this.vesta.getProjectConfig().repository,
             cmnDir = repository.common;
-        return GitGen.getRepoUrl(Config.repository.baseRepoUrl)
+        return GitGen.getRepoUrl(projectRepo.baseRepoUrl)
             .then(url=> {
-                return GitGen.clone(`${url}/${Config.repository.group}/commonCodeTemplate.git`, cmnDir)
+                return GitGen.clone(`${url}/${projectRepo.group}/${projectRepo.common}.git`, cmnDir)
             })
             .then(()=> GitGen.cleanClonedRepo(cmnDir))
             .then(()=> Util.exec(`git init`, cmnDir))
@@ -39,17 +42,19 @@ export class CommonGen implements IFileGenerator {
     public addSubModule():Promise<any> {
         if (!this.config.repository.common) return resolve();
         var dir = this.config.name,
+            projectRepo = this.vesta.getProjectConfig().repository,
             destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
-        return GitGen.getRepoUrl(Config.repository.baseRepoUrl, true)
+        return GitGen.getRepoUrl(projectRepo.baseRepoUrl, true)
             .then(url=>Util.exec(`git submodule add -b dev ${url}:${this.config.repository.group}/${this.config.repository.common}.git ${destDir}`, dir));
     }
 
     private initWithoutSubModule():Promise<any> {
         var dir = this.config.name,
+            projectRepo = this.vesta.getProjectConfig().repository,
             destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
         Util.fs.mkdir(destDir, `${dir}/fw/common`);
-        return GitGen.getRepoUrl(Config.repository.baseRepoUrl)
-            .then(url=>GitGen.clone(`${url}/${Config.repository.group}/commonCodeTemplate.git`, `${dir}/fw/common`))
+        return GitGen.getRepoUrl(projectRepo.baseRepoUrl)
+            .then(url=>GitGen.clone(`${url}/${projectRepo.group}/${projectRepo.common}.git`, `${dir}/fw/common`))
             .then(()=>Util.fs.copy(`${dir}/fw/common`, destDir));
     }
 

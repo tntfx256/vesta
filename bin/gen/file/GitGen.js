@@ -1,6 +1,5 @@
 "use strict";
 var ProjectGen_1 = require("../ProjectGen");
-var Config_1 = require("../../Config");
 var Util_1 = require("../../util/Util");
 var ClientAppGen_1 = require("../app/client/ClientAppGen");
 var inquirer = require("inquirer");
@@ -66,8 +65,7 @@ var GitGen = (function () {
                 var qs = [{
                         type: 'input',
                         name: 'baseRepoUrl',
-                        message: 'Remote repository base url: ',
-                        default: appConfig.repository.baseRepoUrl
+                        message: 'Remote repository base url: (http://example.com:9000)'
                     }];
                 if (!appConfig.repository.group) {
                     qs.push({
@@ -105,7 +103,7 @@ var GitGen = (function () {
                     appConfig.name = answer['projectName'];
                     appConfig.repository = {
                         firstTime: !answer['firstTime'],
-                        baseRepoUrl: Config_1.Config.repository.baseRepoUrl,
+                        baseRepoUrl: answer['baseRepoUrl'],
                         group: answer['group'],
                         name: appConfig.name,
                         common: answer['common']

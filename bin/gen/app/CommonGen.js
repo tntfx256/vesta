@@ -2,11 +2,12 @@
 var ProjectGen_1 = require("../ProjectGen");
 var Util_1 = require("../../util/Util");
 var GitGen_1 = require("../file/GitGen");
-var Config_1 = require("../../Config");
+var Vesta_1 = require("../file/Vesta");
 var resolve = Promise.resolve;
 var CommonGen = (function () {
     function CommonGen(config) {
         this.config = config;
+        this.vesta = Vesta_1.Vesta.getInstance();
     }
     /**
      * git init
@@ -17,10 +18,10 @@ var CommonGen = (function () {
      * git push origin dev
      */
     CommonGen.prototype.initFirstTimeCommonProject = function () {
-        var repository = this.config.repository, cmnDir = repository.common;
-        return GitGen_1.GitGen.getRepoUrl(Config_1.Config.repository.baseRepoUrl)
+        var repository = this.config.repository, projectRepo = this.vesta.getProjectConfig().repository, cmnDir = repository.common;
+        return GitGen_1.GitGen.getRepoUrl(projectRepo.baseRepoUrl)
             .then(function (url) {
-            return GitGen_1.GitGen.clone(url + "/" + Config_1.Config.repository.group + "/commonCodeTemplate.git", cmnDir);
+            return GitGen_1.GitGen.clone(url + "/" + projectRepo.group + "/" + projectRepo.common + ".git", cmnDir);
         })
             .then(function () { return GitGen_1.GitGen.cleanClonedRepo(cmnDir); })
             .then(function () { return Util_1.Util.exec("git init", cmnDir); })
@@ -36,15 +37,15 @@ var CommonGen = (function () {
         var _this = this;
         if (!this.config.repository.common)
             return resolve();
-        var dir = this.config.name, destDir = this.config.type == ProjectGen_1.ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
-        return GitGen_1.GitGen.getRepoUrl(Config_1.Config.repository.baseRepoUrl, true)
+        var dir = this.config.name, projectRepo = this.vesta.getProjectConfig().repository, destDir = this.config.type == ProjectGen_1.ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
+        return GitGen_1.GitGen.getRepoUrl(projectRepo.baseRepoUrl, true)
             .then(function (url) { return Util_1.Util.exec("git submodule add -b dev " + url + ":" + _this.config.repository.group + "/" + _this.config.repository.common + ".git " + destDir, dir); });
     };
     CommonGen.prototype.initWithoutSubModule = function () {
-        var dir = this.config.name, destDir = this.config.type == ProjectGen_1.ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
+        var dir = this.config.name, projectRepo = this.vesta.getProjectConfig().repository, destDir = this.config.type == ProjectGen_1.ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
         Util_1.Util.fs.mkdir(destDir, dir + "/fw/common");
-        return GitGen_1.GitGen.getRepoUrl(Config_1.Config.repository.baseRepoUrl)
-            .then(function (url) { return GitGen_1.GitGen.clone(url + "/" + Config_1.Config.repository.group + "/commonCodeTemplate.git", dir + "/fw/common"); })
+        return GitGen_1.GitGen.getRepoUrl(projectRepo.baseRepoUrl)
+            .then(function (url) { return GitGen_1.GitGen.clone(url + "/" + projectRepo.group + "/" + projectRepo.common + ".git", dir + "/fw/common"); })
             .then(function () { return Util_1.Util.fs.copy(dir + "/fw/common", destDir); });
     };
     /**
