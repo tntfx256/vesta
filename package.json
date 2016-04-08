@@ -1,16 +1,38 @@
 {
   "name": "vesta",
   "version": "0.2.1",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "description": "Vesta Framework++",
+  "keywords": [
+    "Code Generator",
+    "NodeJS",
+    "Docker",
+    "Deploy",
+    "Backup"
+  ],
+  "main": "bin/index.js",
   "bin": {
     "vesta": "bin/index.js"
   },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node node_modules/gulp/bin/gulp --gulpfile resources/gulp/run.js"
+  },
   "author": "hbtb <bishehsary@gmail.com>",
-  "license": "VestaL1",
+  "contributors": [
+    {
+      "name": "Mohammd Javad Khalilian",
+      "email": "khalilian.javad@gmail.com"
+    }
+  ],
+  "bugs": {
+    "url": "https://github.com/hbtb/vesta/issues",
+    "email": "bishehsary@gmail.com"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hbtb/vesta.git"
+  },
   "devDependencies": {
     "gulp": "^3.9.0",
     "gulp-typescript": "^2.10.0"

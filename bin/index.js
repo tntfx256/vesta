@@ -2,6 +2,7 @@
 "use strict";
 var program = require("commander");
 var _ = require("lodash");
+var fs = require("fs-extra");
 var ProjectGen_1 = require("./gen/ProjectGen");
 var Vesta_1 = require("./gen/file/Vesta");
 var ExpressControllerGen_1 = require("./gen/code/server/express/ExpressControllerGen");
@@ -15,7 +16,8 @@ var NGFilterGen_1 = require("./gen/code/client/ng/NGFilterGen");
 var SassGen_1 = require("./gen/file/SassGen");
 var CordovaGen_1 = require("./gen/file/CordovaGen");
 var Deployer_1 = require("./deploy/Deployer");
-program.version('\nVesta Framework v0.5.2\n');
+var packageInfo = JSON.parse(fs.readFileSync('package.json', { encoding: 'utf8' }));
+program.version("Vesta Framework++ v" + packageInfo.version);
 program
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')

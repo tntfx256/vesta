@@ -1,7 +1,7 @@
 #! /usr/bin/env node
-
 import * as program from "commander";
 import * as _ from "lodash";
+import * as fs from "fs-extra";
 import {ProjectGen, IProjectGenConfig} from "./gen/ProjectGen";
 import {Vesta} from "./gen/file/Vesta";
 import {ExpressControllerGen} from "./gen/code/server/express/ExpressControllerGen";
@@ -16,7 +16,8 @@ import {SassGen} from "./gen/file/SassGen";
 import {CordovaGen} from "./gen/file/CordovaGen";
 import {Deployer} from "./deploy/Deployer";
 
-program.version('\nVesta Framework v0.5.2\n');
+var packageInfo = JSON.parse(fs.readFileSync('package.json', {encoding: 'utf8'}));
+program.version(`Vesta Framework++ v${packageInfo.version}`);
 
 program
     .option('create [projectName]', 'Create new project by interactive CLI')
