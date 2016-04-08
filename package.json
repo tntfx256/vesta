@@ -1,0 +1,30 @@
+{
+  "name": "vesta",
+  "version": "0.2.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "vesta": "bin/index.js"
+  },
+  "author": "hbtb <bishehsary@gmail.com>",
+  "license": "VestaL1",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-typescript": "^2.10.0"
+  },
+  "dependencies": {
+    "colors": "^1.1.2",
+    "commander": "^2.9.0",
+    "es6-promises": "^1.0.10",
+    "fs-extra": "^0.26.3",
+    "inquirer": "^0.11.0",
+    "lodash": "^3.10.1",
+    "rxjs": "^5.0.0-beta.2",
+    "shelljs": "^0.6.0",
+    "speakeasy": "^1.0.3",
+    "xml-parser": "^1.2.1"
+  }
+}
