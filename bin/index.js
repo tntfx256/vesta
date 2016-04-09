@@ -3,6 +3,7 @@
 var program = require("commander");
 var _ = require("lodash");
 var fs = require("fs-extra");
+var path = require("path");
 var ProjectGen_1 = require("./gen/ProjectGen");
 var Vesta_1 = require("./gen/file/Vesta");
 var ExpressControllerGen_1 = require("./gen/code/server/express/ExpressControllerGen");
@@ -17,13 +18,13 @@ var SassGen_1 = require("./gen/file/SassGen");
 var CordovaGen_1 = require("./gen/file/CordovaGen");
 var Deployer_1 = require("./deploy/Deployer");
 var Backuper_1 = require("./deploy/Backuper");
-var packageInfo = JSON.parse(fs.readFileSync('package.json', { encoding: 'utf8' }));
+var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), { encoding: 'utf8' }));
 program.version("Vesta Framework++ v" + packageInfo.version);
 program
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
     .option('plugin', 'Adding a Cordova Plugin')
-    .option('gen [model, controller, directive, service, form] name', 'Generate code for mentioned type')
+    .option('gen [model, controller, directive, service] name', 'Generate code for mentioned type')
     .option('deploy [httpRepoPath]')
     .option('backup [deployFileName]');
 //program
