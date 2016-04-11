@@ -10,7 +10,10 @@ var I18nGen = (function () {
             .then(function (answer) {
             if (!answer['enableI18n'])
                 return appConfig;
-            return Util_1.Util.prompt({ type: 'input', name: 'locales', message: 'Locales: ' });
+            return Util_1.Util.prompt([
+                { type: 'input', name: 'locales', message: 'Locales: ' },
+                { type: 'confirm', name: 'useOnModel', message: 'Use on Models: ' }
+            ]);
         })
             .then(function (answer) {
             var locales = answer['locales'].split(',');
@@ -24,7 +27,8 @@ var I18nGen = (function () {
             }
             appConfig.i18n = {
                 locales: locales,
-                default: locales[0]
+                default: locales[0],
+                useMultilingualModel: answer['useOnModel']
             };
             return appConfig;
         });

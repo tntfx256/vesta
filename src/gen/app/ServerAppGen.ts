@@ -31,15 +31,15 @@ export class ServerAppGen implements IFileGenerator {
         return 'master';
     }
 
-    private cloneTemplate():Promise<any> {
+    private cloneTemplate() {
         var dir = this.config.name,
             repo = this.vesta.getProjectConfig().repository;
-        return GitGen.clone(`${repo.baseRepoUrl}/${repo.group}/${repo.express}.git`, dir, this.getBranchName())
-            .then(()=>GitGen.cleanClonedRepo(dir))
-            .then(()=>Util.fs.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`))
+        GitGen.clone(`${repo.baseUrl}/${repo.group}/${repo.express}.git`, dir, this.getBranchName());
+        GitGen.cleanClonedRepo(dir);
+        Util.fs.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`);
     }
 
-    public generate():Promise<any> {
+    public generate() {
         return this.cloneTemplate();
     }
 
@@ -50,8 +50,8 @@ export class ServerAppGen implements IFileGenerator {
                 type: 'list',
                 name: 'database',
                 message: 'Database: ',
-                choices: [DatabaseGen.None, DatabaseGen.Mongodb, DatabaseGen.MySQL],
-                default: DatabaseGen.None
+                choices: [DatabaseGen.MySQL, DatabaseGen.Mongodb],
+                default: DatabaseGen.MySQL
             };
             inqurer.prompt(question, answer=> {
                 config.database = answer['database'];

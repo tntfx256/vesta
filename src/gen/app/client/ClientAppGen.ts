@@ -36,30 +36,28 @@ export abstract class ClientAppGen {
         return name;
     }
 
-    private cloneTemplate():Promise<any> {
+    private cloneTemplate() {
         var dir = this.config.name,
             repo = this.vesta.getProjectConfig().repository;
-        return GitGen.clone(`${repo.baseRepoUrl}/${repo.group}/${this.getRepoName()}.git`, dir)
-            .then(()=>GitGen.cleanClonedRepo(dir));
+        GitGen.clone(`${repo.baseUrl}/${repo.group}/${this.getRepoName()}.git`, dir);
+        GitGen.cleanClonedRepo(dir);
     }
 
-    public generate():Promise<any> {
-        return this.cloneTemplate()
-            .then(()=> {
-                var dir = this.config.name,
-                    templateProjectName = this.getRepoName(),
-                    replacePattern = {};
-                replacePattern[templateProjectName] = dir;
-                Util.findInFileAndReplace(`${dir}/src/app/config/setting.ts`, replacePattern);
-                Util.findInFileAndReplace(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, {
-                    'http://localhost:3000': this.config.endpoint
-                });
-                Util.fs.copy(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, `${dir}/src/app/config/setting.var.ts`);
-                if (this.isCordova) {
-                    Util.fs.mkdir(`${dir}/www`); // for installing plugins this folder must exist
-                    Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
-                }
-            })
+    public generate() {
+        this.cloneTemplate();
+        var dir = this.config.name,
+            templateProjectName = this.getRepoName(),
+            replacePattern = {};
+        replacePattern[templateProjectName] = dir;
+        Util.findInFileAndReplace(`${dir}/src/app/config/setting.ts`, replacePattern);
+        Util.findInFileAndReplace(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, {
+            'http://localhost:3000': this.config.endpoint
+        });
+        Util.fs.copy(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, `${dir}/src/app/config/setting.var.ts`);
+        if (this.isCordova) {
+            Util.fs.mkdir(`${dir}/www`); // for installing plugins this folder must exist
+            Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
+        }
     }
 
     public static getGeneratorConfig():Promise<IClientAppConfig> {

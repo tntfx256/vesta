@@ -2,9 +2,13 @@ import * as colors from "colors";
 import * as path from "path";
 import * as fse from "fs-extra";
 import * as shell from "shelljs";
-import {ExecOptions} from "shelljs";
+import {ExecOptions, ExecOutputReturnValue} from "shelljs";
 import {Question} from "inquirer";
 import inquirer = require("inquirer");
+
+export interface IExecSyncResult extends ExecOutputReturnValue {
+
+}
 
 export interface IExecOption {
     cwd?:string;
@@ -91,9 +95,9 @@ export class Util {
         }
     };
 
-    static prompt(questions:Question|Array<Question>):Promise<any> {
-        return new Promise<any>(resolve=> {
-            inquirer.prompt(questions, answer=>resolve(answer));
+    static prompt<T>(questions:Question|Array<Question>):Promise<T> {
+        return new Promise<T>(resolve=> {
+            inquirer.prompt(questions, (answer:T)=>resolve(answer));
         })
     }
 
@@ -172,34 +176,10 @@ export class Util {
         return false;
     }
 
-    static exec(command:string, wd:string = '.'):Promise<Buffer> {
-        return new Promise(resolve=> {
-            var commandArgs = command.trim().split(/\s+/),
-                commandExec = commandArgs.shift()/*,
-             cmd = childProcess.spawn(commandExec, commandArgs, {cwd: wd, env: process.env, detached: true})*/;
-            if (Util.config.mode == Util.Mode.Development) {
-                Util.log.info(`${wd}/> ${commandExec} ${commandArgs.join(' ')} `);
-            }
-            var result = shell.exec(command, <ExecOptions>{cwd: wd});
-            // cmd.stdout.on('data', data=>Util.log.simple('' + data));
-            // cmd.stderr.on('data', data=>Util.log.simple('' + data));
-            // cmd.on('close', data=>resolve(data));
-            resolve(result);
-        })
-    }
-
-    static run(command, wd:string = '.', alwaysResolve:boolean = false):Promise<Buffer> {
-        return new Promise((resolve, reject)=> {
-            if (Util.config.mode == Util.Mode.Development) {
-                Util.log.info(`${wd}/> ${command} `);
-            }
-            // childProcess.exec(command, {cwd: wd}, (err:Error, stdout:string, stderr:string)=> {
-            //     if (err) return alwaysResolve ? resolve(stdout) : reject(err);
-            //     resolve(stdout);
-            // });
-            var result = shell.exec(command, <ExecOptions>{cwd: wd}, (code, output)=> {
-                resolve(output);
-            });
-        })
+    static execSync(command, wd:string = '.'):IExecSyncResult {
+        if (Util.config.mode == Util.Mode.Development) {
+            Util.log.info(`${wd}/> ${command} `);
+        }
+        return <ExecOutputReturnValue>shell.exec(command, <ExecOptions>{cwd: wd, async: false});
     }
 }

@@ -1,18 +1,10 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as colors from 'colors';
-import * as inquirer from 'inquirer';
-import * as gulp from 'gulp';
-import * as ts from 'gulp-typescript';
-import {ClassGen} from "../../../core/ClassGen";
+import * as fs from "fs-extra";
+import * as path from "path";
+import * as _ from "lodash";
+import * as inquirer from "inquirer";
 import {Question} from "inquirer";
-import {NGDependencyInjector} from "./NGDependencyInjector";
-import {MethodGen} from "../../../core/MethodGen";
-import {Placeholder} from "../../../core/Placeholder";
 import {Model} from "../../../../cmn/Model";
 import {Schema} from "../../../../cmn/Schema";
-import {Field} from "../../../../cmn/Field";
 import {Util} from "../../../../util/Util";
 import {XMLGen} from "../../../core/XMLGen";
 import {Vesta} from "../../../file/Vesta";
@@ -21,23 +13,22 @@ import {MaterialFormGen} from "./form/MaterialFormGen";
 import {ModelGen} from "../../ModelGen";
 import {EmptyFormGen} from "./form/EmptyFormGen";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
-import {IProjectGenConfig} from "../../../ProjectGen";
 import {IonicFormGen} from "./form/IonicFormGen";
 
 export interface INGFormConfig {
-    name: string;
-    model: string;
-    module: string;
-    writeToFile?: boolean;
+    name:string;
+    model:string;
+    module:string;
+    writeToFile?:boolean;
 }
 
 export interface INGFormWrapperConfig {
-    type: string;
-    isModal: boolean;
-    formPath: string;
-    title: string;
-    ok: string;
-    cancel: string;
+    type:string;
+    isModal:boolean;
+    formPath:string;
+    title:string;
+    ok:string;
+    cancel:string;
 }
 
 export class NGFormGen {

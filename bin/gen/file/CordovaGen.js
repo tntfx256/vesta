@@ -19,7 +19,7 @@ var CordovaGen = (function () {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Util_1.Util.run("cordova plugin add " + plugins.join(' '));
+        Util_1.Util.execSync("cordova plugin add " + plugins.join(' '));
     };
     CordovaGen.prototype.uninstall = function () {
         var plugins = [];
@@ -29,7 +29,7 @@ var CordovaGen = (function () {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Util_1.Util.exec("cordova plugin rm " + plugins.join(' '));
+        Util_1.Util.execSync("cordova plugin rm " + plugins.join(' '));
     };
     CordovaGen.getPlugins = function () {
         var serviceNames = [];

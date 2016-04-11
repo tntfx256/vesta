@@ -43,14 +43,14 @@ export class CordovaGen {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Util.run(`cordova plugin add ${plugins.join(' ')}`);
+        Util.execSync(`cordova plugin add ${plugins.join(' ')}`);
     }
 
     public uninstall(...plugins:Array<string>) {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Util.exec(`cordova plugin rm ${plugins.join(' ')}`);
+        Util.execSync(`cordova plugin rm ${plugins.join(' ')}`);
     }
 
     public static getPlugins(...serviceNames:Array<string>):Array<string> {

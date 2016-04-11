@@ -34,9 +34,7 @@ var Vesta = (function () {
             Util_1.Util.log.error('Invalid operation');
         }
         else {
-            var path = this.config.name;
-            delete this.config.repository['firstTime'];
-            Util_1.Util.fs.writeFile(path + '/vesta.json', JSON.stringify(this.json));
+            Util_1.Util.fs.writeFile(this.config.name + "/vesta.json", JSON.stringify(this.json, null, 2));
         }
     };
     Vesta.getInstance = function (config) {

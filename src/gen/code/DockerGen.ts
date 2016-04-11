@@ -23,8 +23,7 @@ export class DockerGen {
                 '__DB_ROOT_PASSWORD__': speakeasy['generate_key']({length: 8, symbols: false}).ascii,
                 '__SALT__': speakeasy['generate_key']({length: 24}).ascii.replace(/\$/g, '-'),
                 '__SECRET_KEY__': speakeasy['generate_key']({length: 64}).ascii.replace(/\$/g, '-'),
-                'sampleDatabase': this.config.name,
-                'expressCodeTemplate': this.config.name,
+                'expressJsTemplate': this.config.name,
                 '3000': this.port, // api server
                 '3100': `31${devPort}`, // session database
                 '3200': `32${devPort}`, // app database

@@ -26,55 +26,39 @@ var ProjectGen = (function () {
         }
         ProjectGen.instance = this;
     }
-    ProjectGen.prototype.initApp = function () {
-        if (this.clientApp) {
-            return this.clientApp.generate();
-        }
-        else if (this.serverApp) {
-            return this.serverApp.generate();
-        }
-        return Promise.resolve();
-    };
     ProjectGen.prototype.generate = function () {
-        var _this = this;
-        var dir = this.config.name, projectTemplateName, replacement = {}, projectRepo = this.vesta.getProjectConfig().repository;
+        var dir = this.config.name;
+        var projectRepo = this.vesta.getProjectConfig().repository;
+        var projectTemplateName = projectRepo.express;
+        var repoInfo = this.config.repository;
+        var replacement = {};
+        var isClientSideProject = this.config.type == ProjectGen.Type.ClientSide;
+        if (isClientSideProject) {
+            projectTemplateName = this.config.client.framework == ClientAppGen_1.ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
+        }
         Util_1.Util.fs.mkdir(dir);
         //
-        this.initApp()
-            .then(function () { return _this.docker.compose(); })
-            .then(function () { return Util_1.Util.exec("git init", dir); })
-            .then(function () { return _this.commonApp.generate(); })
-            .then(function () {
-            // Removing cloned directory
-            Util_1.Util.fs.remove(dir + "/fw");
-            _this.vesta.generate();
-            if (_this.config.type == ProjectGen.Type.ClientSide) {
-                projectTemplateName = _this.config.client.framework == ClientAppGen_1.ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
-            }
-            else {
-                projectTemplateName = projectRepo.express;
-            }
-            replacement[projectTemplateName] = _this.config.name;
-            Util_1.Util.findInFileAndReplace(dir + "/package.json", replacement);
-            if (_this.config.type == ProjectGen.Type.ClientSide) {
-                Util_1.Util.findInFileAndReplace(dir + "/bower.json", replacement);
-            }
-            // Util.findInFileAndReplace(`${dir}/vesta.json`, replacement);
-            // Initiating the git repo -> create dev branch
-            return Util_1.Util.exec("git add .", dir)
-                .then(function () { return Util_1.Util.exec("git commit -m Vesta", dir); })
-                .then(function () { return _this.commonApp.addSubModule(); })
-                .then(function () { return GitGen_1.GitGen.getRepoUrl(_this.config.repository.baseRepoUrl, true)
-                .then(function (url) { return Util_1.Util.exec("git remote add origin " + url + ":" + _this.config.repository.group + "/" + _this.config.name + ".git", dir); })
-                .then(function () { return Util_1.Util.exec("git push -u origin master", dir); }); })
-                .then(function () { return Util_1.Util.exec("git add .", dir); })
-                .then(function () { return Util_1.Util.exec("git commit -m subModule", dir); })
-                .then(function () { return Util_1.Util.exec("git checkout -b dev", dir); })
-                .then(function () { return Util_1.Util.exec("git push -u origin dev", dir); });
-        })
-            .catch(function (reason) {
-            Util_1.Util.log.error(reason);
-        });
+        isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
+        this.docker.compose();
+        Util_1.Util.execSync("git init", dir);
+        this.vesta.generate();
+        replacement[projectTemplateName] = this.config.name;
+        Util_1.Util.findInFileAndReplace(dir + "/package.json", replacement);
+        if (this.config.type == ProjectGen.Type.ClientSide) {
+            Util_1.Util.findInFileAndReplace(dir + "/bower.json", replacement);
+        }
+        // Initiating the git repo -> create dev branch
+        Util_1.Util.execSync("git add .", dir);
+        Util_1.Util.execSync("git commit -m Vesta-init", dir);
+        this.commonApp.generate();
+        if (!repoInfo.baseUrl)
+            return;
+        Util_1.Util.execSync("git add .", dir);
+        Util_1.Util.execSync("git commit -m Vesta-common", dir);
+        Util_1.Util.execSync("git remote add origin " + repoInfo.baseUrl + ":" + repoInfo.group + "/" + repoInfo.name + ".git", dir);
+        Util_1.Util.execSync("git push -u origin master", dir);
+        Util_1.Util.execSync("git checkout -b dev", dir);
+        Util_1.Util.execSync("git push -u origin dev", dir);
     };
     ProjectGen.getGeneratorConfig = function (name, category) {
         var appConfig = {};
@@ -82,7 +66,7 @@ var ProjectGen = (function () {
         appConfig.client = {};
         appConfig.server = {};
         appConfig.repository = {
-            baseRepoUrl: '',
+            baseUrl: '',
             group: category,
             common: '',
             name: appConfig.name

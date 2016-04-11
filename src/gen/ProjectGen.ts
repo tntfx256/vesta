@@ -48,56 +48,38 @@ export class ProjectGen {
         ProjectGen.instance = this;
     }
 
-    private initApp():Promise<any> {
-        if (this.clientApp) {
-            return this.clientApp.generate();
-        } else if (this.serverApp) {
-            return this.serverApp.generate();
-        }
-        return Promise.resolve();
-    }
-
     public generate() {
-        var dir = this.config.name,
-            projectTemplateName,
-            replacement = {},
-            projectRepo = this.vesta.getProjectConfig().repository;
+        var dir = this.config.name;
+        var projectRepo = this.vesta.getProjectConfig().repository;
+        var projectTemplateName = projectRepo.express;
+        var repoInfo = this.config.repository;
+        var replacement = {};
+        var isClientSideProject = this.config.type == ProjectGen.Type.ClientSide;
+        if (isClientSideProject) {
+            projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
+        }
         Util.fs.mkdir(dir);
         //
-        this.initApp()
-            .then(()=>this.docker.compose())
-            .then(()=> Util.exec(`git init`, dir))
-            .then(()=> this.commonApp.generate())
-            .then(()=> {
-                // Removing cloned directory
-                Util.fs.remove(`${dir}/fw`);
-                this.vesta.generate();
-                if (this.config.type == ProjectGen.Type.ClientSide) {
-                    projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
-                } else {
-                    projectTemplateName = projectRepo.express;
-                }
-                replacement[projectTemplateName] = this.config.name;
-                Util.findInFileAndReplace(`${dir}/package.json`, replacement);
-                if (this.config.type == ProjectGen.Type.ClientSide) {
-                    Util.findInFileAndReplace(`${dir}/bower.json`, replacement);
-                }
-                // Util.findInFileAndReplace(`${dir}/vesta.json`, replacement);
-                // Initiating the git repo -> create dev branch
-                return Util.exec(`git add .`, dir)
-                    .then(()=>Util.exec(`git commit -m Vesta`, dir))
-                    .then(()=>this.commonApp.addSubModule())
-                    .then(()=>GitGen.getRepoUrl(this.config.repository.baseRepoUrl, true)
-                        .then(url=>Util.exec(`git remote add origin ${url}:${this.config.repository.group}/${this.config.name}.git`, dir))
-                        .then(()=>Util.exec(`git push -u origin master`, dir)))
-                    .then(()=>Util.exec(`git add .`, dir))
-                    .then(()=>Util.exec(`git commit -m subModule`, dir))
-                    .then(()=>Util.exec(`git checkout -b dev`, dir))
-                    .then(()=>Util.exec(`git push -u origin dev`, dir));
-            })
-            .catch(reason=> {
-                Util.log.error(reason);
-            });
+        isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
+        this.docker.compose();
+        Util.execSync(`git init`, dir);
+        this.vesta.generate();
+        replacement[projectTemplateName] = this.config.name;
+        Util.findInFileAndReplace(`${dir}/package.json`, replacement);
+        if (this.config.type == ProjectGen.Type.ClientSide) {
+            Util.findInFileAndReplace(`${dir}/bower.json`, replacement);
+        }
+        // Initiating the git repo -> create dev branch
+        Util.execSync(`git add .`, dir);
+        Util.execSync(`git commit -m Vesta-init`, dir);
+        this.commonApp.generate();
+        if (!repoInfo.baseUrl) return;
+        Util.execSync(`git add .`, dir);
+        Util.execSync(`git commit -m Vesta-common`, dir);
+        Util.execSync(`git remote add origin ${repoInfo.baseUrl}:${repoInfo.group}/${repoInfo.name}.git`, dir);
+        Util.execSync(`git push -u origin master`, dir);
+        Util.execSync(`git checkout -b dev`, dir);
+        Util.execSync(`git push -u origin dev`, dir);
     }
 
     public static getGeneratorConfig(name:string, category:string):Promise<IProjectGenConfig> {
@@ -106,7 +88,7 @@ export class ProjectGen {
         appConfig.client = <IClientAppConfig>{};
         appConfig.server = <IServerAppConfig>{};
         appConfig.repository = <IRepositoryConfig>{
-            baseRepoUrl: '',
+            baseUrl: '',
             group: category,
             common: '',
             name: appConfig.name

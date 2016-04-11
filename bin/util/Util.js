@@ -97,35 +97,12 @@ var Util = (function () {
         }
         return false;
     };
-    Util.exec = function (command, wd) {
+    Util.execSync = function (command, wd) {
         if (wd === void 0) { wd = '.'; }
-        return new Promise(function (resolve) {
-            var commandArgs = command.trim().split(/\s+/), commandExec = commandArgs.shift();
-            if (Util.config.mode == Util.Mode.Development) {
-                Util.log.info(wd + "/> " + commandExec + " " + commandArgs.join(' ') + " ");
-            }
-            var result = shell.exec(command, { cwd: wd });
-            // cmd.stdout.on('data', data=>Util.log.simple('' + data));
-            // cmd.stderr.on('data', data=>Util.log.simple('' + data));
-            // cmd.on('close', data=>resolve(data));
-            resolve(result);
-        });
-    };
-    Util.run = function (command, wd, alwaysResolve) {
-        if (wd === void 0) { wd = '.'; }
-        if (alwaysResolve === void 0) { alwaysResolve = false; }
-        return new Promise(function (resolve, reject) {
-            if (Util.config.mode == Util.Mode.Development) {
-                Util.log.info(wd + "/> " + command + " ");
-            }
-            // childProcess.exec(command, {cwd: wd}, (err:Error, stdout:string, stderr:string)=> {
-            //     if (err) return alwaysResolve ? resolve(stdout) : reject(err);
-            //     resolve(stdout);
-            // });
-            var result = shell.exec(command, { cwd: wd }, function (code, output) {
-                resolve(output);
-            });
-        });
+        if (Util.config.mode == Util.Mode.Development) {
+            Util.log.info(wd + "/> " + command + " ");
+        }
+        return shell.exec(command, { cwd: wd, async: false });
     };
     Util.Mode = {
         Development: 1,
