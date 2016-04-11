@@ -2,7 +2,6 @@ import {IProjectGenConfig, ProjectGen} from "../ProjectGen";
 import {Util, IExecSyncResult} from "../../util/Util";
 import {ClientAppGen} from "../app/client/ClientAppGen";
 import {Question} from "inquirer";
-import {Err} from "../../cmn/Err";
 import inquirer = require("inquirer");
 
 export interface IRepositoryConfig {
@@ -12,52 +11,18 @@ export interface IRepositoryConfig {
     common:string;
 }
 
-interface ICredentials {
-    username:string;
-    password:string;
-}
-
 export class GitGen {
-    private static credentials:ICredentials;
     public static commonProjectExists:boolean = true;
-
-    constructor(private config:IProjectGenConfig) {
-    }
 
     public static clone(repository:string, destination:string = '', branch:string = ''):IExecSyncResult {
         var branchCmd = branch ? ` -b ${branch} ` : ' ';
         return Util.execSync(`git clone${branchCmd}${repository} ${destination}`);
     }
 
-    private static getCredentials():Promise<ICredentials> {
-        if (GitGen.credentials) return Promise.resolve(GitGen.credentials);
-        return Util.prompt<ICredentials>([
-            <Question>{
-                type: 'input',
-                message: 'Username: ',
-                name: 'username'
-            },
-            <Question>{
-                type: 'password',
-                message: 'Password: ',
-                name: 'password'
-            }
-        ]).then(answer=> {
-            GitGen.credentials = {
-                username: answer['username'],
-                password: answer['password']
-            };
-            return GitGen.credentials
-        });
-    }
-
-    public static convertToSsh(httpUrl:string, useCredential:boolean = true):string {
-        var regExpArray = /^https?:\/\/([^:\/]+).*/.exec(httpUrl);
-        if (!regExpArray) {
-            Util.log.error(`Wrong repository base address: ${httpUrl}`);
-            Promise.reject(new Err(Err.Code.WrongInput));
-        }
-        return `git@${regExpArray[1]}`;
+    public static getRepoUrl(baseUrl:string, group:string, repository:string):string {
+        return /^git.+/.exec(baseUrl) ?
+            `${baseUrl}:${group}/${repository}.git` :
+            `${baseUrl}/${group}/${repository}.git`;
     }
 
     public static cleanClonedRepo(basePath:string) {

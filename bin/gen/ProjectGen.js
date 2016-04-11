@@ -14,7 +14,6 @@ var ProjectGen = (function () {
         this.config = config;
         //
         this.vesta = Vesta_1.Vesta.getInstance(config);
-        this.git = new GitGen_1.GitGen(config);
         this.docker = new DockerGen_1.DockerGen(config);
         //
         this.commonApp = new CommonGen_1.CommonGen(config);
@@ -55,7 +54,7 @@ var ProjectGen = (function () {
             return;
         Util_1.Util.execSync("git add .", dir);
         Util_1.Util.execSync("git commit -m Vesta-common", dir);
-        Util_1.Util.execSync("git remote add origin " + repoInfo.baseUrl + ":" + repoInfo.group + "/" + repoInfo.name + ".git", dir);
+        Util_1.Util.execSync("git remote add origin " + GitGen_1.GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name), dir);
         Util_1.Util.execSync("git push -u origin master", dir);
         Util_1.Util.execSync("git checkout -b dev", dir);
         Util_1.Util.execSync("git push -u origin dev", dir);

@@ -2,10 +2,8 @@
 var ProjectGen_1 = require("../ProjectGen");
 var Util_1 = require("../../util/Util");
 var ClientAppGen_1 = require("../app/client/ClientAppGen");
-var Err_1 = require("../../cmn/Err");
 var GitGen = (function () {
-    function GitGen(config) {
-        this.config = config;
+    function GitGen() {
     }
     GitGen.clone = function (repository, destination, branch) {
         if (destination === void 0) { destination = ''; }
@@ -13,36 +11,10 @@ var GitGen = (function () {
         var branchCmd = branch ? " -b " + branch + " " : ' ';
         return Util_1.Util.execSync("git clone" + branchCmd + repository + " " + destination);
     };
-    GitGen.getCredentials = function () {
-        if (GitGen.credentials)
-            return Promise.resolve(GitGen.credentials);
-        return Util_1.Util.prompt([
-            {
-                type: 'input',
-                message: 'Username: ',
-                name: 'username'
-            },
-            {
-                type: 'password',
-                message: 'Password: ',
-                name: 'password'
-            }
-        ]).then(function (answer) {
-            GitGen.credentials = {
-                username: answer['username'],
-                password: answer['password']
-            };
-            return GitGen.credentials;
-        });
-    };
-    GitGen.convertToSsh = function (httpUrl, useCredential) {
-        if (useCredential === void 0) { useCredential = true; }
-        var regExpArray = /^https?:\/\/([^:\/]+).*/.exec(httpUrl);
-        if (!regExpArray) {
-            Util_1.Util.log.error("Wrong repository base address: " + httpUrl);
-            Promise.reject(new Err_1.Err(Err_1.Err.Code.WrongInput));
-        }
-        return "git@" + regExpArray[1];
+    GitGen.getRepoUrl = function (baseUrl, group, repository) {
+        return /^git.+/.exec(baseUrl) ?
+            baseUrl + ":" + group + "/" + repository + ".git" :
+            baseUrl + "/" + group + "/" + repository + ".git";
     };
     GitGen.cleanClonedRepo = function (basePath) {
         Util_1.Util.fs.remove(basePath + "/.git");

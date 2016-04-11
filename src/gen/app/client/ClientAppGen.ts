@@ -39,7 +39,7 @@ export abstract class ClientAppGen {
     private cloneTemplate() {
         var dir = this.config.name,
             repo = this.vesta.getProjectConfig().repository;
-        GitGen.clone(`${repo.baseUrl}/${repo.group}/${this.getRepoName()}.git`, dir);
+        GitGen.clone(GitGen.getRepoUrl(repo.baseUrl, repo.group, this.getRepoName()), dir);
         GitGen.cleanClonedRepo(dir);
     }
 

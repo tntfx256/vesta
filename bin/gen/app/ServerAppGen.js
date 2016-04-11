@@ -21,7 +21,7 @@ var ServerAppGen = (function () {
     };
     ServerAppGen.prototype.cloneTemplate = function () {
         var dir = this.config.name, repo = this.vesta.getProjectConfig().repository;
-        GitGen_1.GitGen.clone(repo.baseUrl + "/" + repo.group + "/" + repo.express + ".git", dir, this.getBranchName());
+        GitGen_1.GitGen.clone(GitGen_1.GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
         GitGen_1.GitGen.cleanClonedRepo(dir);
         Util_1.Util.fs.copy(dir + "/resources/gitignore/src/config/setting.var.ts", dir + "/src/config/setting.var.ts");
     };

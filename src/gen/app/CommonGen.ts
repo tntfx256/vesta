@@ -18,7 +18,7 @@ export class CommonGen implements IFileGenerator {
         var dir = this.config.name;
         var destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
         var repo = this.config.repository;
-        return Util.execSync(`git submodule add -b dev ${repo.baseUrl}:${repo.group}/${repo.common}.git ${destDir}`, dir);
+        return Util.execSync(`git submodule add -b dev ${GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.common)} ${destDir}`, dir);
     }
 
     /**
@@ -33,12 +33,12 @@ export class CommonGen implements IFileGenerator {
         var repository = this.config.repository,
             templateRepo = this.vesta.getProjectConfig().repository,
             cmnDir = repository.common;
-        GitGen.clone(`${templateRepo.baseUrl}/${templateRepo.group}/${templateRepo.common}.git`, cmnDir);
+        GitGen.clone(GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), cmnDir);
         GitGen.cleanClonedRepo(cmnDir);
         Util.execSync(`git init`, cmnDir);
         Util.execSync(`git add .`, cmnDir);
         Util.execSync(`git commit -m Vesta-init`, cmnDir);
-        Util.execSync(`git remote add origin ${repository.baseUrl}/${repository.group}/${repository.common}.git`, cmnDir);
+        Util.execSync(`git remote add origin ${GitGen.getRepoUrl(repository.baseUrl, repository.group, repository.common)}`, cmnDir);
         Util.execSync(`git push -u origin master`, cmnDir);
         Util.execSync(`git checkout -b dev`, cmnDir);
         Util.execSync(`git push -u origin dev`, cmnDir);
@@ -49,7 +49,7 @@ export class CommonGen implements IFileGenerator {
             templateRepo = this.vesta.getProjectConfig().repository,
             destDir = path.join(dir, this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn');
         Util.fs.mkdir(destDir);
-        GitGen.clone(`${templateRepo.baseUrl}/${templateRepo.group}/${templateRepo.common}.git`, destDir);
+        GitGen.clone(GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), destDir);
         GitGen.cleanClonedRepo(destDir);
     }
 

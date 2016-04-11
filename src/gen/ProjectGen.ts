@@ -27,7 +27,6 @@ export class ProjectGen {
 
     private static instance:ProjectGen;
     public vesta:Vesta;
-    public git:GitGen;
     public serverApp:ServerAppGen;
     public clientApp:ClientAppGen;
     public commonApp:CommonGen;
@@ -36,7 +35,6 @@ export class ProjectGen {
     constructor(public config:IProjectGenConfig) {
         //
         this.vesta = Vesta.getInstance(config);
-        this.git = new GitGen(config);
         this.docker = new DockerGen(config);
         //
         this.commonApp = new CommonGen(config);
@@ -76,7 +74,7 @@ export class ProjectGen {
         if (!repoInfo.baseUrl) return;
         Util.execSync(`git add .`, dir);
         Util.execSync(`git commit -m Vesta-common`, dir);
-        Util.execSync(`git remote add origin ${repoInfo.baseUrl}:${repoInfo.group}/${repoInfo.name}.git`, dir);
+        Util.execSync(`git remote add origin ${GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name)}`, dir);
         Util.execSync(`git push -u origin master`, dir);
         Util.execSync(`git checkout -b dev`, dir);
         Util.execSync(`git push -u origin dev`, dir);

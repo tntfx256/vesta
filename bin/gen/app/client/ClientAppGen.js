@@ -21,7 +21,7 @@ var ClientAppGen = (function () {
     };
     ClientAppGen.prototype.cloneTemplate = function () {
         var dir = this.config.name, repo = this.vesta.getProjectConfig().repository;
-        GitGen_1.GitGen.clone(repo.baseUrl + "/" + repo.group + "/" + this.getRepoName() + ".git", dir);
+        GitGen_1.GitGen.clone(GitGen_1.GitGen.getRepoUrl(repo.baseUrl, repo.group, this.getRepoName()), dir);
         GitGen_1.GitGen.cleanClonedRepo(dir);
     };
     ClientAppGen.prototype.generate = function () {

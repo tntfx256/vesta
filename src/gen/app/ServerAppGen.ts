@@ -34,7 +34,7 @@ export class ServerAppGen implements IFileGenerator {
     private cloneTemplate() {
         var dir = this.config.name,
             repo = this.vesta.getProjectConfig().repository;
-        GitGen.clone(`${repo.baseUrl}/${repo.group}/${repo.express}.git`, dir, this.getBranchName());
+        GitGen.clone(GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
         GitGen.cleanClonedRepo(dir);
         Util.fs.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`);
     }
