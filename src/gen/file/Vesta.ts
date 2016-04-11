@@ -46,9 +46,7 @@ export class Vesta {
         if (this.isUpdate) {
             Util.log.error('Invalid operation');
         } else {
-            var path = this.config.name;
-            delete this.config.repository['firstTime'];
-            Util.fs.writeFile(path + '/vesta.json', JSON.stringify(this.json));
+            Util.fs.writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.json, null, 2));
         }
     }
 

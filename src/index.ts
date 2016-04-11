@@ -2,6 +2,7 @@
 import * as program from "commander";
 import * as _ from "lodash";
 import * as fs from "fs-extra";
+import * as path from "path";
 import {ProjectGen, IProjectGenConfig} from "./gen/ProjectGen";
 import {Vesta} from "./gen/file/Vesta";
 import {ExpressControllerGen} from "./gen/code/server/express/ExpressControllerGen";
@@ -17,14 +18,14 @@ import {CordovaGen} from "./gen/file/CordovaGen";
 import {Deployer} from "./deploy/Deployer";
 import {Backuper} from "./deploy/Backuper";
 
-var packageInfo = JSON.parse(fs.readFileSync('package.json', {encoding: 'utf8'}));
+var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
 program.version(`Vesta Framework++ v${packageInfo.version}`);
 
 program
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
     .option('plugin', 'Adding a Cordova Plugin')
-    .option('gen [model, controller, directive, service, form] name', 'Generate code for mentioned type')
+    .option('gen [model, controller, directive, service] name', 'Generate code for mentioned type')
     .option('deploy [httpRepoPath]')
     .option('backup [deployFileName]');
 //program

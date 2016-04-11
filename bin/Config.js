@@ -1,7 +1,7 @@
 "use strict";
 exports.Config = {
     repository: {
-        baseRepoUrl: 'https://github.com',
+        baseUrl: 'https://github.com',
         group: 'hbtb',
         common: 'commonCodeTemplate',
         express: 'expressJsTemplate',

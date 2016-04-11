@@ -6,6 +6,7 @@ import {Question} from "inquirer";
 export interface I18nGenConfig {
     locales:Array<string>;
     default:string;
+    useMultilingualModel:boolean;
 }
 export class I18nGen {
 
@@ -16,7 +17,10 @@ export class I18nGen {
         return Util.prompt(<Question>{type: 'confirm', name: 'enableI18n', message: 'Enable I18N support: '})
             .then(answer=> {
                 if (!answer['enableI18n']) return appConfig;
-                return Util.prompt(<Question>{type: 'input', name: 'locales', message: 'Locales: '})
+                return Util.prompt([
+                    <Question>{type: 'input', name: 'locales', message: 'Locales: '},
+                    <Question>{type: 'confirm', name: 'useOnModel', message: 'Use on Models: '}
+                ])
             })
             .then(answer=> {
                 var locales = answer['locales'].split(',');
@@ -29,7 +33,8 @@ export class I18nGen {
                 }
                 appConfig.i18n = <I18nGenConfig>{
                     locales: locales,
-                    default: locales[0]
+                    default: locales[0],
+                    useMultilingualModel: answer['useOnModel']
                 };
                 return appConfig;
             })

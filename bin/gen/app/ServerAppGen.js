@@ -21,9 +21,9 @@ var ServerAppGen = (function () {
     };
     ServerAppGen.prototype.cloneTemplate = function () {
         var dir = this.config.name, repo = this.vesta.getProjectConfig().repository;
-        return GitGen_1.GitGen.clone(repo.baseRepoUrl + "/" + repo.group + "/" + repo.express + ".git", dir, this.getBranchName())
-            .then(function () { return GitGen_1.GitGen.cleanClonedRepo(dir); })
-            .then(function () { return Util_1.Util.fs.copy(dir + "/resources/gitignore/src/config/setting.var.ts", dir + "/src/config/setting.var.ts"); });
+        GitGen_1.GitGen.clone(GitGen_1.GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
+        GitGen_1.GitGen.cleanClonedRepo(dir);
+        Util_1.Util.fs.copy(dir + "/resources/gitignore/src/config/setting.var.ts", dir + "/src/config/setting.var.ts");
     };
     ServerAppGen.prototype.generate = function () {
         return this.cloneTemplate();
@@ -35,8 +35,8 @@ var ServerAppGen = (function () {
                 type: 'list',
                 name: 'database',
                 message: 'Database: ',
-                choices: [DatabaseGen_1.DatabaseGen.None, DatabaseGen_1.DatabaseGen.Mongodb, DatabaseGen_1.DatabaseGen.MySQL],
-                default: DatabaseGen_1.DatabaseGen.None
+                choices: [DatabaseGen_1.DatabaseGen.MySQL, DatabaseGen_1.DatabaseGen.Mongodb],
+                default: DatabaseGen_1.DatabaseGen.MySQL
             };
             inqurer.prompt(question, function (answer) {
                 config.database = answer['database'];

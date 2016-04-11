@@ -1,15 +1,15 @@
 "use strict";
-var fs = require('fs-extra');
-var path = require('path');
-var _ = require('lodash');
-var inquirer = require('inquirer');
+var fs = require("fs-extra");
+var path = require("path");
+var _ = require("lodash");
+var inquirer = require("inquirer");
 var ClassGen_1 = require("../../../core/ClassGen");
 var TSFileGen_1 = require("../../../core/TSFileGen");
 var DatabaseGen_1 = require("../../../core/DatabaseGen");
 var Vesta_1 = require("../../../file/Vesta");
 var Util_1 = require("../../../../util/Util");
 var Placeholder_1 = require("../../../core/Placeholder");
-var ModelGen_1 = require('../../ModelGen');
+var ModelGen_1 = require("../../ModelGen");
 var DatabaseCodeGenFactory_1 = require("../database/DatabaseCodeGenFactory");
 var ExpressControllerGen = (function () {
     function ExpressControllerGen(config) {
@@ -35,8 +35,6 @@ var ExpressControllerGen = (function () {
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({ name: 'router', type: 'Router' });
-        this.db = DatabaseGen_1.DatabaseGen.getDatabaseType(this.vesta.getConfig().server.database);
-        this.controllerFile.addImport(this.db.import, this.db.from);
         this.controllerClass.addMethod('init', ClassGen_1.ClassGen.Access.Protected);
         try {
             fs.mkdirpSync(this.path);

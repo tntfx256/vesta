@@ -1,8 +1,8 @@
 "use strict";
-var fs = require('fs-extra');
-var path = require('path');
-var _ = require('lodash');
-var inquirer = require('inquirer');
+var fs = require("fs-extra");
+var path = require("path");
+var _ = require("lodash");
+var inquirer = require("inquirer");
 var Util_1 = require("../../../../util/Util");
 var Vesta_1 = require("../../../file/Vesta");
 var MaterialFormGen_1 = require("./form/MaterialFormGen");

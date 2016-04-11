@@ -1,3 +1,4 @@
+import * as path from "path";
 import {ProjectGen, IProjectGenConfig} from "../ProjectGen";
 import {IFileGenerator} from "../core/IFileGenerator";
 import {Util} from "../../util/Util";
@@ -12,6 +13,14 @@ export class CommonGen implements IFileGenerator {
         this.vesta = Vesta.getInstance();
     }
 
+    private addSubModule() {
+        if (!this.config.repository.common) return;
+        var dir = this.config.name;
+        var destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
+        var repo = this.config.repository;
+        return Util.execSync(`git submodule add -b dev ${GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.common)} ${destDir}`, dir);
+    }
+
     /**
      * git init
      * git commit --message=""
@@ -20,42 +29,28 @@ export class CommonGen implements IFileGenerator {
      * git checkout -b dev
      * git push origin dev
      */
-    private initFirstTimeCommonProject():Promise<any> {
+    private createCommonProject() {
         var repository = this.config.repository,
-            projectRepo = this.vesta.getProjectConfig().repository,
+            templateRepo = this.vesta.getProjectConfig().repository,
             cmnDir = repository.common;
-        return GitGen.getRepoUrl(projectRepo.baseRepoUrl)
-            .then(url=> {
-                return GitGen.clone(`${url}/${projectRepo.group}/${projectRepo.common}.git`, cmnDir)
-            })
-            .then(()=> GitGen.cleanClonedRepo(cmnDir))
-            .then(()=> Util.exec(`git init`, cmnDir))
-            .then(()=>Util.exec(`git add .`, cmnDir))
-            .then(()=>Util.exec(`git commit -m Vesta`, cmnDir))
-            .then(()=>GitGen.getRepoUrl(repository.baseRepoUrl, true))
-            .then((sshUrl)=>Util.exec(`git remote add origin ${sshUrl}:${repository.group}/${repository.common}.git`, cmnDir))
-            .then(()=>Util.exec(`git push -u origin master`, cmnDir))
-            .then(()=>Util.exec(`git checkout -b dev`, cmnDir))
-            .then(()=>Util.exec(`git push -u origin dev`, cmnDir));
+        GitGen.clone(GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), cmnDir);
+        GitGen.cleanClonedRepo(cmnDir);
+        Util.execSync(`git init`, cmnDir);
+        Util.execSync(`git add .`, cmnDir);
+        Util.execSync(`git commit -m Vesta-init`, cmnDir);
+        Util.execSync(`git remote add origin ${GitGen.getRepoUrl(repository.baseUrl, repository.group, repository.common)}`, cmnDir);
+        Util.execSync(`git push -u origin master`, cmnDir);
+        Util.execSync(`git checkout -b dev`, cmnDir);
+        Util.execSync(`git push -u origin dev`, cmnDir);
     }
 
-    public addSubModule():Promise<any> {
-        if (!this.config.repository.common) return resolve();
+    private initWithoutSubModule() {
         var dir = this.config.name,
-            projectRepo = this.vesta.getProjectConfig().repository,
-            destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
-        return GitGen.getRepoUrl(projectRepo.baseRepoUrl, true)
-            .then(url=>Util.exec(`git submodule add -b dev ${url}:${this.config.repository.group}/${this.config.repository.common}.git ${destDir}`, dir));
-    }
-
-    private initWithoutSubModule():Promise<any> {
-        var dir = this.config.name,
-            projectRepo = this.vesta.getProjectConfig().repository,
-            destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
-        Util.fs.mkdir(destDir, `${dir}/fw/common`);
-        return GitGen.getRepoUrl(projectRepo.baseRepoUrl)
-            .then(url=>GitGen.clone(`${url}/${projectRepo.group}/${projectRepo.common}.git`, `${dir}/fw/common`))
-            .then(()=>Util.fs.copy(`${dir}/fw/common`, destDir));
+            templateRepo = this.vesta.getProjectConfig().repository,
+            destDir = path.join(dir, this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn');
+        Util.fs.mkdir(destDir);
+        GitGen.clone(GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), destDir);
+        GitGen.cleanClonedRepo(destDir);
     }
 
     /**
@@ -67,13 +62,13 @@ export class CommonGen implements IFileGenerator {
      * SubModule must be added after the init & commit of main project,
      * so it's function addSubModule is called from ProjectGen
      */
-    public generate():Promise<any> {
+    public generate() {
         if (this.config.repository.common) {
-            if (this.config.repository['firstTime']) {
-                return this.initFirstTimeCommonProject();
+            if (!GitGen.commonProjectExists) {
+                this.createCommonProject()
             }
-            return Promise.resolve();
+            return this.addSubModule();
         }
-        return this.initWithoutSubModule();
+        this.initWithoutSubModule();
     }
 }

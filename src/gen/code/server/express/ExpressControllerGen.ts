@@ -1,29 +1,23 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as colors from 'colors';
-import * as inquirer from 'inquirer';
+import * as fs from "fs-extra";
+import * as path from "path";
+import * as _ from "lodash";
+import * as inquirer from "inquirer";
+import {Question} from "inquirer";
 import {ClassGen} from "../../../core/ClassGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {MethodGen} from "../../../core/MethodGen";
-import {IDatabaseInfo} from "../../../core/DatabaseGen";
 import {DatabaseGen} from "../../../core/DatabaseGen";
-import {Model} from "../../../../cmn/Model";
 import {Vesta} from "../../../file/Vesta";
 import {Util} from "../../../../util/Util";
-import {Question} from "inquirer";
 import {Placeholder} from "../../../core/Placeholder";
-import {ModelGen as ModelGen} from '../../ModelGen';
+import {ModelGen as ModelGen} from "../../ModelGen";
 import {DatabaseCodeGen} from "../database/DatabaseCodeGen";
-import {MySQLCodeGen} from "../database/MySQLCodeGen";
 import {DatabaseCodeGenFactory} from "../database/DatabaseCodeGenFactory";
-import {IProjectVersion} from "../../../file/Vesta";
-import {IProjectGenConfig} from "../../../ProjectGen";
 
 export interface IExpressControllerConfig {
-    route: string;
-    name: string;
-    model: string;
+    route:string;
+    name:string;
+    model:string;
 }
 
 export class ExpressControllerGen {
@@ -33,7 +27,6 @@ export class ExpressControllerGen {
     private routeMethod:MethodGen;
     private path:string = 'src/api';
     private routingPath:string = '/';
-    private db:IDatabaseInfo;
     private vesta:Vesta;
     private apiVersion:string;
 
@@ -58,8 +51,6 @@ export class ExpressControllerGen {
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({name: 'router', type: 'Router'});
-        this.db = DatabaseGen.getDatabaseType(this.vesta.getConfig().server.database);
-        this.controllerFile.addImport(this.db.import, this.db.from);
         this.controllerClass.addMethod('init', ClassGen.Access.Protected);
         try {
             fs.mkdirpSync(this.path);

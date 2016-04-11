@@ -9,7 +9,7 @@ var Model = (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             fieldNames[_i - 0] = arguments[_i];
         }
-        var result = Validator_1.Validator.validate(this.getValues(), this._schema.validateSchema);
+        var result = Validator_1.Validator.validate(this.getValues.apply(this, [null].concat(fieldNames)), this._schema.validateSchema);
         if (!result)
             return result;
         if (fieldNames.length) {
@@ -45,7 +45,7 @@ var Model = (function () {
         collection = collection || this;
         for (var i = fieldsNames.length; i--;) {
             fieldName = fieldsNames[i];
-            if (collection[fieldName].getValues) {
+            if (collection[fieldName] && collection[fieldName].getValues) {
                 values[fieldName] = collection[fieldName].getValues();
             }
             else {

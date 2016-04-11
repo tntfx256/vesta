@@ -1,6 +1,7 @@
-import {IRepositoryConfig} from "./gen/file/GitGen";
-
-interface IProjectConfigRepository extends IRepositoryConfig {
+interface IProjectConfigRepository {
+    baseUrl:string;
+    group:string;
+    common:string;
     express:string;
     ionic:string;
     material:string;
@@ -11,8 +12,8 @@ export interface IProjectConfig {
 }
 
 export var Config:IProjectConfig = {
-    repository: <IProjectConfigRepository>{
-        baseRepoUrl: 'https://github.com',
+    repository: {
+        baseUrl: 'https://github.com',
         group: 'hbtb',
         common: 'commonCodeTemplate',
         express: 'expressJsTemplate',

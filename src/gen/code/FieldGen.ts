@@ -8,7 +8,7 @@ import {TsFileGen} from "../core/TSFileGen";
 import {Vesta} from "../file/Vesta";
 
 export class FieldGen {
-    private isMultilingual:boolean=false;
+    private isMultilingual:boolean = false;
     private properties:IFieldProperties = <IFieldProperties>{};
     private needImport:boolean = false;
     private enumName:string;
@@ -20,7 +20,7 @@ export class FieldGen {
     }
 
     public getProperties(callback) {
-        var question:Question = {
+        var question:Question = <Question>{
             name: 'fieldType',
             type: 'list',
             message: 'Field Type: ',
@@ -97,25 +97,25 @@ export class FieldGen {
     private getRequiredPropertyQuestionsBasedOnFieldType():Array<Question> {
         var askForDefaultValue = false,
             qs:Array<Question> = [
-                {name: 'required', type: 'confirm', message: 'Is Required: ', default: false}
+                <Question>{name: 'required', type: 'confirm', message: 'Is Required: ', default: false}
             ];
 
         switch (this.properties.type) {
             case FieldType.String:
-                qs.push({name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
+                qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
             case FieldType.Text:
-                qs.push({name: 'minLength', type: 'input', message: 'Min Length: '});
-                qs.push({name: 'maxLength', type: 'input', message: 'Max Length: '});
-                qs.push({name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
+                qs.push(<Question>{name: 'minLength', type: 'input', message: 'Min Length: '});
+                qs.push(<Question>{name: 'maxLength', type: 'input', message: 'Max Length: '});
+                qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
                 break;
             case FieldType.Password:
-                qs.push({name: 'minLength', type: 'input', message: 'Min Length: '});
+                qs.push(<Question>{name: 'minLength', type: 'input', message: 'Min Length: '});
                 break;
             case FieldType.Tel:
-                qs.push({name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
+                qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
                 break;
             case FieldType.EMail:
-                qs.push({name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
+                qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
                 break;
             case FieldType.URL:
                 break;
@@ -123,12 +123,12 @@ export class FieldGen {
             case FieldType.Integer:
             case FieldType.Float:
                 askForDefaultValue = true;
-                qs.push({name: 'min', type: 'input', message: 'Min Value: '});
-                qs.push({name: 'max', type: 'input', message: 'Max Value: '});
+                qs.push(<Question>{name: 'min', type: 'input', message: 'Min Value: '});
+                qs.push(<Question>{name: 'max', type: 'input', message: 'Max Value: '});
                 break;
             case FieldType.File:
-                qs.push({name: 'maxSize', type: 'input', message: 'Max File Size (KB): '});
-                qs.push({name: 'fileType', type: 'input', message: 'Valid File Extensions: )'});
+                qs.push(<Question>{name: 'maxSize', type: 'input', message: 'Max File Size (KB): '});
+                qs.push(<Question>{name: 'fileType', type: 'input', message: 'Valid File Extensions: )'});
                 break;
             case FieldType.Boolean:
                 askForDefaultValue = true;
@@ -138,11 +138,11 @@ export class FieldGen {
                 break;
             case FieldType.Enum:
                 askForDefaultValue = true;
-                qs.push({name: 'enum', type: 'input', message: 'Valid Options: '});
+                qs.push(<Question>{name: 'enum', type: 'input', message: 'Valid Options: '});
                 break;
         }
         if (askForDefaultValue) {
-            qs.push({name: 'default', type: 'input', message: 'Default Value: '});
+            qs.push(<Question>{name: 'default', type: 'input', message: 'Default Value: '});
         }
         return qs;
     }

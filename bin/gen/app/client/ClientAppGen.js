@@ -21,25 +21,22 @@ var ClientAppGen = (function () {
     };
     ClientAppGen.prototype.cloneTemplate = function () {
         var dir = this.config.name, repo = this.vesta.getProjectConfig().repository;
-        return GitGen_1.GitGen.clone(repo.baseRepoUrl + "/" + repo.group + "/" + this.getRepoName() + ".git", dir)
-            .then(function () { return GitGen_1.GitGen.cleanClonedRepo(dir); });
+        GitGen_1.GitGen.clone(GitGen_1.GitGen.getRepoUrl(repo.baseUrl, repo.group, this.getRepoName()), dir);
+        GitGen_1.GitGen.cleanClonedRepo(dir);
     };
     ClientAppGen.prototype.generate = function () {
-        var _this = this;
-        return this.cloneTemplate()
-            .then(function () {
-            var dir = _this.config.name, templateProjectName = _this.getRepoName(), replacePattern = {};
-            replacePattern[templateProjectName] = dir;
-            Util_1.Util.findInFileAndReplace(dir + "/src/app/config/setting.ts", replacePattern);
-            Util_1.Util.findInFileAndReplace(dir + "/resources/gitignore/src/app/config/setting.var.ts", {
-                'http://localhost:3000': _this.config.endpoint
-            });
-            Util_1.Util.fs.copy(dir + "/resources/gitignore/src/app/config/setting.var.ts", dir + "/src/app/config/setting.var.ts");
-            if (_this.isCordova) {
-                Util_1.Util.fs.mkdir(dir + "/www"); // for installing plugins this folder must exist
-                Util_1.Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
-            }
+        this.cloneTemplate();
+        var dir = this.config.name, templateProjectName = this.getRepoName(), replacePattern = {};
+        replacePattern[templateProjectName] = dir;
+        Util_1.Util.findInFileAndReplace(dir + "/src/app/config/setting.ts", replacePattern);
+        Util_1.Util.findInFileAndReplace(dir + "/resources/gitignore/src/app/config/setting.var.ts", {
+            'http://localhost:3000': this.config.endpoint
         });
+        Util_1.Util.fs.copy(dir + "/resources/gitignore/src/app/config/setting.var.ts", dir + "/src/app/config/setting.var.ts");
+        if (this.isCordova) {
+            Util_1.Util.fs.mkdir(dir + "/www"); // for installing plugins this folder must exist
+            Util_1.Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
+        }
     };
     ClientAppGen.getGeneratorConfig = function () {
         var qs = [
