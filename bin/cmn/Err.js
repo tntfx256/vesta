@@ -76,8 +76,8 @@ var Err = (function () {
         DBDelete: 16,
         DBInvalidDriver: 17,
         // acl
-        Unauthorized: 21,
-        Forbidden: 22,
+        Unauthorized: 401,
+        Forbidden: 403,
         Token: 23,
         // logical
         WrongInput: 31,

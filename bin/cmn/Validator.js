@@ -77,10 +77,10 @@ var Validator = (function () {
             return regex.exec(value);
         },
         min: function (value, min) {
-            return value && value >= min;
+            return value !== undefined && value >= min;
         },
         max: function (value, max) {
-            return value && value <= max;
+            return value !== undefined && value <= max;
         },
         assert: function (value, cb, allValues) {
             return cb(value, allValues);
@@ -132,7 +132,7 @@ var Validator = (function () {
             return (bool === true || bool === false);
         },
         timestamp: function (timestamp) {
-            return timestamp > 0;
+            return timestamp !== undefined;
         },
         relation: function (value) {
             return true;
@@ -151,6 +151,9 @@ var Validator = (function () {
             return true;
         },
         string: function (value) {
+            return true;
+        },
+        text: function (value) {
             return true;
         },
         password: function (value) {
