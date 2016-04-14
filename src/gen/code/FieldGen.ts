@@ -1,16 +1,16 @@
 import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import * as _ from "lodash";
-import {IFieldProperties, FieldType} from "../../cmn/Field";
+import {IFieldProperties, FieldType, Relationship} from "../../cmn/Field";
 import {Util} from "../../util/Util";
 import {FileMemeType} from "../../cmn/FileMemeType";
 import {TsFileGen} from "../core/TSFileGen";
 import {Vesta} from "../file/Vesta";
+import {ModelGen} from "./ModelGen";
 
 export class FieldGen {
     private isMultilingual:boolean = false;
     private properties:IFieldProperties = <IFieldProperties>{};
-    private needImport:boolean = false;
     private enumName:string;
 
     constructor(private modelFile:TsFileGen, private name:string) {
@@ -42,52 +42,80 @@ export class FieldGen {
                 FieldType.Boolean,
                 FieldType.Object,
                 FieldType.Enum,
+                new inquirer.Separator(),
+                FieldType.Relation,
                 new inquirer.Separator()
             ]
         };
-        inquirer.prompt(question, answer => {
-            this.properties.type = <string>answer['fieldType'];
+        inquirer.prompt(question, fieldTypeAnswer => {
+            this.properties.type = <string>fieldTypeAnswer['fieldType'];
             var questions = this.getRequiredPropertyQuestionsBasedOnFieldType();
             inquirer.prompt(questions, answers => {
-                var arr = [];
-                for (var property in answers) {
-                    if (answers.hasOwnProperty(property)) {
-                        if (property == 'enum') {
-                            arr = (<string>answers[property]).split(',');
-                            for (var i = arr.length; i--;) {
-                                arr[i] = _.trim(arr[i]);
-                            }
-                            this.properties.enum = arr;
-                        } else if (property == 'fileType') {
-                            arr = (<string>answers[property]).split(',');
-                            for (var i = arr.length; i--;) {
-                                var meme = [];
-                                arr[i] = _.trim(arr[i]);
-                                if (arr[i].indexOf('/') > 0) {
-                                    if (FileMemeType.isValid(arr[i])) {
-                                        meme = [arr[i]];
-                                    }
-                                } else {
-                                    meme = FileMemeType.getMeme(arr[i]);
-                                }
-                                if (meme.length) {
-                                    for (var j = meme.length; j--;) {
-                                        if (this.properties.fileType.indexOf(meme[j]) < 0) {
-                                            this.properties.fileType.push(meme[j]);
-                                        }
-                                    }
-                                } else {
-                                    Util.log.error(`Unknown type ${arr[i]}`);
-                                }
-                            }
-                        } else {
-                            this.properties[property] = answers[property];
-                        }
+                var properties = Object.keys(answers);
+                for (var i = 0, il = properties.length; i < il; ++i) {
+                    var property = properties[i];
+                    if (['relatedModel'].indexOf(property) >= 0) continue;
+                    if (property == 'enum') {
+                        this.properties.enum = (<string>answers[property]).split(',').map(item=>_.trim(item));
+                    } else if (property == 'fileType') {
+                        this.properties.fileType = this.getFileTypes(answers['fileType']);
+                    } else if (property == 'relationType') {
+                        this.properties.relation = new Relationship(this.getRelationNumberFromCode(answers[property]));
+                        this.properties.relation.relatedModel(answers['relatedModel']);
+                    } else {
+                        this.properties[property] = answers[property];
                     }
                 }
                 callback();
             });
         })
+    }
+
+    private getFileTypes(answer:string):Array<string> {
+        let arr = answer.split(','),
+            fileTypes = [];
+        for (var i = arr.length; i--;) {
+            var meme = [];
+            arr[i] = _.trim(arr[i]);
+            if (arr[i].indexOf('/') > 0) {
+                if (FileMemeType.isValid(arr[i])) {
+                    meme = [arr[i]];
+                }
+            } else {
+                meme = FileMemeType.getMeme(arr[i]);
+            }
+            if (meme.length) {
+                for (var j = meme.length; j--;) {
+                    if (fileTypes.indexOf(meme[j]) < 0) {
+                        fileTypes.push(meme[j]);
+                    }
+                }
+            } else {
+                Util.log.error(`Unknown type ${arr[i]}`);
+            }
+        }
+        return fileTypes;
+    }
+
+    private getRelationCodeFromNumber(type:number, model:string):string {
+        switch (type) {
+            case Relationship.Type.Many2Many:
+                return `.areManyOf(${model})`;
+            case Relationship.Type.One2One:
+                return `.isPartOf(${model})`;
+            default:
+                return `.isOneOf(${model})`;
+        }
+    }
+
+    private getRelationNumberFromCode(type:string):number {
+        switch (type) {
+            case 'One2One':
+                return Relationship.Type.One2One;
+            case 'Many2Many':
+                return Relationship.Type.Many2Many;
+        }
+        return Relationship.Type.One2Many;
     }
 
     public setAsPrimary() {
@@ -103,10 +131,12 @@ export class FieldGen {
         switch (this.properties.type) {
             case FieldType.String:
                 qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
-            case FieldType.Text:
                 qs.push(<Question>{name: 'minLength', type: 'input', message: 'Min Length: '});
                 qs.push(<Question>{name: 'maxLength', type: 'input', message: 'Max Length: '});
-                qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
+                // qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
+                break;
+            case FieldType.Text:
+                // qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
                 break;
             case FieldType.Password:
                 qs.push(<Question>{name: 'minLength', type: 'input', message: 'Min Length: '});
@@ -128,17 +158,22 @@ export class FieldGen {
                 break;
             case FieldType.File:
                 qs.push(<Question>{name: 'maxSize', type: 'input', message: 'Max File Size (KB): '});
-                qs.push(<Question>{name: 'fileType', type: 'input', message: 'Valid File Extensions: )'});
+                qs.push(<Question>{name: 'fileType', type: 'input', message: 'Valid File Extensions: '});
                 break;
             case FieldType.Boolean:
                 askForDefaultValue = true;
                 break;
             case FieldType.Object:
-
                 break;
             case FieldType.Enum:
                 askForDefaultValue = true;
                 qs.push(<Question>{name: 'enum', type: 'input', message: 'Valid Options: '});
+                break;
+            case FieldType.Relation:
+                let types = ['One2One', 'One2Many', 'Many2Many'];
+                let models = Object.keys(ModelGen.getModelsList());
+                qs.push(<Question>{name: 'relationType', type: 'list', choices: types, message: 'Relation Type: '});
+                qs.push(<Question>{name: 'relatedModel', type: 'list', choices: models, message: 'Target Model: '});
                 break;
         }
         if (askForDefaultValue) {
@@ -167,6 +202,12 @@ export class FieldGen {
                 return 'File|string';
             case FieldType.Boolean:
                 return 'boolean';
+            case FieldType.Relation:
+                let types = `number|I${this.properties.relation.model}|${this.properties.relation.model}`;
+                if (this.properties.relation.type == Relationship.Type.Many2Many) {
+                    return `Array<${types}>`;
+                }
+                return types;
             //case FieldType.Object:
             //case FieldType.Enum:
             //    return 'any';
@@ -176,6 +217,7 @@ export class FieldGen {
     }
 
     private getCodeForFieldType():string {
+        if (this.properties.primary) return 'FieldType.Integer';
         switch (this.properties.type) {
             case FieldType.String:
                 return 'FieldType.String';
@@ -209,6 +251,8 @@ export class FieldGen {
                 return 'FieldType.Object';
             case FieldType.Enum:
                 return 'FieldType.Enum';
+            case FieldType.Relation:
+                return 'FieldType.Relation';
         }
         return 'FieldType.String';
     }
@@ -223,45 +267,39 @@ export class FieldGen {
         if (this.properties.min) code += `.min(${this.properties.min})`;
         if (this.properties.max) code += `.max(${this.properties.max})`;
         if (this.properties.maxSize) code += `.maxSize(${this.properties.maxSize})`;
-        if (this.properties.fileType.length) {
-            code += `.fileType('${this.properties.fileType.join("', '")}')`;
-        }
-        if (this.properties.enum.length) {
-            var enumArray = [],
-                firstEnum:string = this.properties.enum[0];
-            if (firstEnum.indexOf('.') > 0) {
-                this.enumName = firstEnum.substr(0, firstEnum.indexOf('.'));
-                this.needImport = true;
-                enumArray = this.properties.enum;
-            } else {
-                this.enumName = _.capitalize(this.modelFile.name) + _.capitalize(this.name);
-                var enumField = this.modelFile.addEnum(this.enumName);
-                enumField.shouldExport(true);
-                firstEnum = `${this.enumName}.${firstEnum}`;
-                for (var i = 0, il = this.properties.enum.length; i < il; ++i) {
-                    enumField.addProperty(this.properties.enum[i]);
-                    var v = _.capitalize(this.properties.enum[i]);
-                    enumArray.push(`${this.enumName}.${v}`);
-                    if (i == 0) {
-                        firstEnum = enumArray[0];
-                    }
-                }
-            }
-            code += `.enum(${enumArray.join(", ")})`;
-        }
-        if (this.properties.default) {
-            if (this.properties.enum.length) {
-                code += `.default(${firstEnum})`;
-            } else {
-                code += `.default('${this.properties.default}')`;
-            }
-        } else if (firstEnum) {
-            code += `.default(${firstEnum})`;
-        }
-        if (this.needImport) {
-            Util.log.warning(`Do not forget to import the (${this.enumName})`);
+        if (this.properties.fileType.length) code += `.fileType('${this.properties.fileType.join("', '")}')`;
+        if (this.properties.enum.length) code += this.genCodeForEnumField();
+        if (this.properties.default) code += `.default('${this.properties.default}')`;
+        if (this.properties.relation) {
+            let {type, model} = this.properties.relation;
+            this.modelFile.addImport(`{I${model}, ${model}}`, model.toString());
+            code += this.getRelationCodeFromNumber(type, model.toString());
         }
         return code + ';';
+    }
+
+    private genCodeForEnumField():string {
+        var enumArray = [],
+            firstEnum:string = this.properties.enum[0];
+        if (firstEnum.indexOf('.') > 0) {
+            this.enumName = firstEnum.substr(0, firstEnum.indexOf('.'));
+            enumArray = this.properties.enum;
+            Util.log.warning(`Do not forget to import the (${this.enumName})`);
+        } else {
+            this.enumName = _.capitalize(this.modelFile.name) + _.capitalize(this.name);
+            var enumField = this.modelFile.addEnum(this.enumName);
+            enumField.shouldExport(true);
+            firstEnum = `${this.enumName}.${firstEnum}`;
+            for (var i = 0, il = this.properties.enum.length; i < il; ++i) {
+                enumField.addProperty(this.properties.enum[i]);
+                var v = _.capitalize(this.properties.enum[i]);
+                enumArray.push(`${this.enumName}.${v}`);
+                if (i == 0) {
+                    firstEnum = enumArray[0];
+                }
+            }
+        }
+        return `.enum(${enumArray.join(", ")})`;
     }
 
     public getNameTypePair():{fieldName:string, fieldType:string, interfaceFieldType:string, defaultValue:string} {

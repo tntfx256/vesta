@@ -31,7 +31,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hbtb/vesta.git"
+    "url": "git+https://github.com/hbtb/vesta.git"
   },
   "devDependencies": {
     "gulp": "^3.9.0",
@@ -42,6 +42,7 @@
     "commander": "^2.9.0",
     "fs-extra": "^0.26.3",
     "inquirer": "^0.11.0",
+    "is-root": "^1.0.0",
     "lodash": "^3.10.1",
     "shelljs": "^0.6.0",
     "speakeasy": "^1.0.3",

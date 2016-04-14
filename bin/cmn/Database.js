@@ -1,5 +1,8 @@
 "use strict";
 var Err_1 = require("./Err");
+/**
+ * Abstract Database class for drivers
+ */
 var Database = (function () {
     function Database() {
     }
