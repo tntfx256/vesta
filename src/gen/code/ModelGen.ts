@@ -1,26 +1,19 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as colors from 'colors';
-import * as inquirer from 'inquirer';
-import {ClassGen} from "../core/ClassGen";
-import {MethodGen} from "../core/MethodGen";
-import {Vesta} from "../file/Vesta";
+import * as fs from "fs-extra";
+import * as path from "path";
+import * as _ from "lodash";
+import * as inquirer from "inquirer";
 import {Question} from "inquirer";
-import {FieldType} from "../../cmn/Field";
+import {ClassGen} from "../core/ClassGen";
+import {Vesta} from "../file/Vesta";
 import {FieldGen as FieldGen} from "./FieldGen";
 import {Util} from "../../util/Util";
 import {Model} from "../../cmn/Model";
-import {DatabaseGen} from "../core/DatabaseGen";
-import {Placeholder} from "../core/Placeholder";
 import {TsFileGen} from "../core/TSFileGen";
 import {InterfaceGen} from "../core/InterfaceGen";
-import {IProjectGenConfig} from "../ProjectGen";
-import {IProjectVersion} from "../file/Vesta";
 import {ProjectGen} from "../ProjectGen";
 
 interface IFields {
-    [name:string]: FieldGen
+    [name:string]:FieldGen
 }
 
 export class ModelGen {
@@ -64,7 +57,7 @@ export class ModelGen {
     }
 
     private getFields() {
-        var question:Question = {
+        var question:Question = <Question>{
             name: 'fieldName',
             type: 'input',
             message: 'Field Name: '
@@ -107,15 +100,6 @@ export class ModelGen {
             this.modelInterface.addProperty(property);
         }
         Util.fs.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
-        if (this.vesta.getConfig().server.database == DatabaseGen.MySQL) {
-            var modelsFilePath = path.join('src/api', this.vesta.getVersion().api, 'models.ts');
-            var modelsCode = fs.readFileSync(modelsFilePath, {encoding: 'utf8'});
-            var defCode = `models['${this.modelFile.name}'] = ${this.modelFile.name};`;
-            if (modelsCode.indexOf(defCode) < 0) {
-                modelsCode = modelsCode.replace(Placeholder.ModelDefinition, `${defCode}\n${Placeholder.ModelDefinition}`);
-                Util.fs.writeFile(modelsFilePath, `import {${this.modelFile.name}} from '../../cmn/models/${this.modelFile.name}';\n${modelsCode}`);
-            }
-        }
     }
 
     static getModelsList():any {

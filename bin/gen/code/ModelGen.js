@@ -1,14 +1,12 @@
 "use strict";
-var fs = require('fs-extra');
-var path = require('path');
-var _ = require('lodash');
-var inquirer = require('inquirer');
+var fs = require("fs-extra");
+var path = require("path");
+var _ = require("lodash");
+var inquirer = require("inquirer");
 var ClassGen_1 = require("../core/ClassGen");
 var Vesta_1 = require("../file/Vesta");
 var FieldGen_1 = require("./FieldGen");
 var Util_1 = require("../../util/Util");
-var DatabaseGen_1 = require("../core/DatabaseGen");
-var Placeholder_1 = require("../core/Placeholder");
 var TSFileGen_1 = require("../core/TSFileGen");
 var ProjectGen_1 = require("../ProjectGen");
 var ModelGen = (function () {
@@ -86,15 +84,6 @@ var ModelGen = (function () {
             this.modelInterface.addProperty(property);
         }
         Util_1.Util.fs.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
-        if (this.vesta.getConfig().server.database == DatabaseGen_1.DatabaseGen.MySQL) {
-            var modelsFilePath = path.join('src/api', this.vesta.getVersion().api, 'models.ts');
-            var modelsCode = fs.readFileSync(modelsFilePath, { encoding: 'utf8' });
-            var defCode = "models['" + this.modelFile.name + "'] = " + this.modelFile.name + ";";
-            if (modelsCode.indexOf(defCode) < 0) {
-                modelsCode = modelsCode.replace(Placeholder_1.Placeholder.ModelDefinition, defCode + "\n" + Placeholder_1.Placeholder.ModelDefinition);
-                Util_1.Util.fs.writeFile(modelsFilePath, "import {" + this.modelFile.name + "} from '../../cmn/models/" + this.modelFile.name + "';\n" + modelsCode);
-            }
-        }
     };
     ModelGen.getModelsList = function () {
         var vesta = Vesta_1.Vesta.getInstance(), config = vesta.getConfig(), modelDirectory = path.join(process.cwd(), config.type == ProjectGen_1.ProjectGen.Type.ServerSide ? 'src/cmn/models' : 'src/app/cmn/models'), models = {};

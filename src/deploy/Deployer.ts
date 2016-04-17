@@ -5,8 +5,9 @@ import {Err} from "../cmn/Err";
 import {GitGen} from "../gen/file/GitGen";
 import {GregorianDate} from "../cmn/date/GregorianDate";
 import {IVesta} from "../gen/file/Vesta";
-import inquirer = require("inquirer");
 import {ProjectGen} from "../gen/ProjectGen";
+import inquirer = require("inquirer");
+var isRoot = require('is-root');
 
 export interface IDeployHistory {
     date:string;
@@ -76,6 +77,10 @@ export class Deployer {
     }
 
     public static getDeployConfig(args:Array<string>):Promise<IDeployConfig> {
+        if (!isRoot()) {
+            Util.log.error('You must run this command as root!');
+            return Promise.reject(new Err(Err.Code.OperationFailed));
+        }
         var config:IDeployConfig = <IDeployConfig>{
             history: [],
             deployPath: `app`

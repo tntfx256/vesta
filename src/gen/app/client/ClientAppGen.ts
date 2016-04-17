@@ -61,34 +61,20 @@ export abstract class ClientAppGen {
     }
 
     public static getGeneratorConfig():Promise<IClientAppConfig> {
+        var config:IClientAppConfig = <IClientAppConfig>{};
         var qs:Array<Question> = [
-                <Question>{
-                    type: 'list',
-                    name: 'platform',
-                    message: 'Platform: ',
-                    choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova],
-                    default: ClientAppGen.Platform.Browser
-                },
-                <Question>{
-                    type: 'list',
-                    name: 'type',
-                    message: 'Client Side Type: ',
-                    choices: [ClientAppGen.Type.Angular/*, ClientAppGen.Type.Angular2*/],
-                    default: ClientAppGen.Type.Angular
-                },
-                <Question>{
-                    type: 'list',
-                    name: 'framework',
-                    message: 'Framework: ',
-                    choices: [ClientAppGen.Framework.Material, ClientAppGen.Framework.Ionic],
-                    default: ClientAppGen.Framework.Material
-                }],
-            config:IClientAppConfig = <IClientAppConfig>{};
+            <Question>{
+                type: 'list',
+                name: 'platform',
+                message: 'Platform: ',
+                choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova]
+            }];
+        Util.log.info(`For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)`);
         return new Promise<IClientAppConfig>((resolve)=> {
             inquirer.prompt(qs, answer=> {
+                config.type = ClientAppGen.Type.Angular;
                 config.platform = answer['platform'];
-                config.type = answer['type'];
-                config.framework = answer['framework'];
+                config.framework = config.platform == ClientAppGen.Platform.Browser ? ClientAppGen.Framework.Material : ClientAppGen.Framework.Ionic;
                 resolve(config);
             });
         });

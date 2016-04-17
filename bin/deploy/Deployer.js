@@ -6,6 +6,7 @@ var Err_1 = require("../cmn/Err");
 var GitGen_1 = require("../gen/file/GitGen");
 var GregorianDate_1 = require("../cmn/date/GregorianDate");
 var ProjectGen_1 = require("../gen/ProjectGen");
+var isRoot = require('is-root');
 var Deployer = (function () {
     function Deployer(config) {
         this.config = config;
@@ -56,6 +57,10 @@ var Deployer = (function () {
         return group + "-" + project;
     };
     Deployer.getDeployConfig = function (args) {
+        if (!isRoot()) {
+            Util_1.Util.log.error('You must run this command as root!');
+            return Promise.reject(new Err_1.Err(Err_1.Err.Code.OperationFailed));
+        }
         var config = {
             history: [],
             deployPath: "app"
