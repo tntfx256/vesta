@@ -1,4 +1,12 @@
 "use strict";
+/**
+ *
+ * Handles the relationship between models. The driver decides how to implement the physical database
+ *
+ * type     One to One, One to Many, Many to May
+ * type     The related model
+ * isWeek   For noSQL databases, if the related model is a new collection, treat it as a nested document
+ */
 var Relationship = (function () {
     function Relationship(relationType) {
         this.isWeek = false;
@@ -6,10 +14,6 @@ var Relationship = (function () {
     }
     Relationship.prototype.relatedModel = function (model) {
         this.model = model;
-        return this;
-    };
-    Relationship.prototype.relatedModelField = function (field) {
-        this.field = field;
         return this;
     };
     Relationship.Type = {
@@ -133,28 +137,28 @@ var Field = (function () {
         this._properties.multilingual = true;
         return this;
     };
-    Field.prototype.setRelation = function (type, model, field) {
+    Field.prototype.setRelation = function (type, model) {
         this._properties.relation = new Relationship(type);
-        this._properties.relation.relatedModel(model).relatedModelField(field);
+        this._properties.relation.relatedModel(model);
         return this;
     };
     /**
      *  for one to one relationship
      */
-    Field.prototype.isPartOf = function (model, field) {
-        return this.setRelation(Relationship.Type.One2One, model, field);
+    Field.prototype.isPartOf = function (model) {
+        return this.setRelation(Relationship.Type.One2One, model);
     };
     /**
      *  for one to many relationship
      */
-    Field.prototype.isOneOf = function (model, field) {
-        return this.setRelation(Relationship.Type.One2Many, model, field);
+    Field.prototype.isOneOf = function (model) {
+        return this.setRelation(Relationship.Type.One2Many, model);
     };
     /**
      *  for many to many relationship
      */
-    Field.prototype.areManyOf = function (model, field) {
-        return this.setRelation(Relationship.Type.Many2Many, model, field);
+    Field.prototype.areManyOf = function (model) {
+        return this.setRelation(Relationship.Type.Many2Many, model);
     };
     return Field;
 }());
