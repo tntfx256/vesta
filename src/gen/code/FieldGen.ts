@@ -166,7 +166,7 @@ export class FieldGen {
             case FieldType.Object:
                 break;
             case FieldType.Enum:
-                askForDefaultValue = true;
+                // askForDefaultValue = true;
                 qs.push(<Question>{name: 'enum', type: 'input', message: 'Valid Options: '});
                 break;
             case FieldType.Relation:
@@ -269,13 +269,39 @@ export class FieldGen {
         if (this.properties.maxSize) code += `.maxSize(${this.properties.maxSize})`;
         if (this.properties.fileType.length) code += `.fileType('${this.properties.fileType.join("', '")}')`;
         if (this.properties.enum.length) code += this.genCodeForEnumField();
-        if (this.properties.default) code += `.default('${this.properties.default}')`;
+        if (this.properties.default) code += this.getDefaultValueCode();
         if (this.properties.relation) {
             let {type, model} = this.properties.relation;
             this.modelFile.addImport(`{I${model}, ${model}}`, model.toString());
             code += this.getRelationCodeFromNumber(type, model.toString());
         }
         return code + ';';
+    }
+
+    private getDefaultValueCode() {
+        var value = this.properties.default;
+        switch (this.properties.type) {
+            case FieldType.String:
+            case FieldType.Text:
+            case FieldType.Password:
+            case FieldType.Tel:
+            case FieldType.EMail:
+            case FieldType.URL:
+                value = `'${this.properties.default}'`;
+                break;
+            case FieldType.Number:
+            case FieldType.Integer:
+            case FieldType.Float:
+                value = +this.properties.default;
+                break;
+            // case FieldType.File:
+            // case FieldType.Enum:
+            // case FieldType.Object:
+            // case FieldType.Timestamp:
+            // case FieldType.Boolean:
+            //     value = this.properties.default;
+        }
+        return `.default(${value})`;
     }
 
     private genCodeForEnumField():string {
@@ -299,6 +325,7 @@ export class FieldGen {
                 }
             }
         }
+        this.properties.default = enumArray[0];
         return `.enum(${enumArray.join(", ")})`;
     }
 

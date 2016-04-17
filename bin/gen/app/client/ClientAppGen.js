@@ -39,33 +39,20 @@ var ClientAppGen = (function () {
         }
     };
     ClientAppGen.getGeneratorConfig = function () {
+        var config = {};
         var qs = [
             {
                 type: 'list',
                 name: 'platform',
                 message: 'Platform: ',
-                choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova],
-                default: ClientAppGen.Platform.Browser
-            },
-            {
-                type: 'list',
-                name: 'type',
-                message: 'Client Side Type: ',
-                choices: [ClientAppGen.Type.Angular /*, ClientAppGen.Type.Angular2*/],
-                default: ClientAppGen.Type.Angular
-            },
-            {
-                type: 'list',
-                name: 'framework',
-                message: 'Framework: ',
-                choices: [ClientAppGen.Framework.Material, ClientAppGen.Framework.Ionic],
-                default: ClientAppGen.Framework.Material
-            }], config = {};
+                choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova]
+            }];
+        Util_1.Util.log.info("For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)");
         return new Promise(function (resolve) {
             inquirer.prompt(qs, function (answer) {
+                config.type = ClientAppGen.Type.Angular;
                 config.platform = answer['platform'];
-                config.type = answer['type'];
-                config.framework = answer['framework'];
+                config.framework = config.platform == ClientAppGen.Platform.Browser ? ClientAppGen.Framework.Material : ClientAppGen.Framework.Ionic;
                 resolve(config);
             });
         });

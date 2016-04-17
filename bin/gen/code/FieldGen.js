@@ -162,7 +162,7 @@ var FieldGen = (function () {
             case Field_1.FieldType.Object:
                 break;
             case Field_1.FieldType.Enum:
-                askForDefaultValue = true;
+                // askForDefaultValue = true;
                 qs.push({ name: 'enum', type: 'input', message: 'Valid Options: ' });
                 break;
             case Field_1.FieldType.Relation:
@@ -272,13 +272,32 @@ var FieldGen = (function () {
         if (this.properties.enum.length)
             code += this.genCodeForEnumField();
         if (this.properties.default)
-            code += ".default('" + this.properties.default + "')";
+            code += this.getDefaultValueCode();
         if (this.properties.relation) {
             var _a = this.properties.relation, type = _a.type, model = _a.model;
             this.modelFile.addImport("{I" + model + ", " + model + "}", model.toString());
             code += this.getRelationCodeFromNumber(type, model.toString());
         }
         return code + ';';
+    };
+    FieldGen.prototype.getDefaultValueCode = function () {
+        var value = this.properties.default;
+        switch (this.properties.type) {
+            case Field_1.FieldType.String:
+            case Field_1.FieldType.Text:
+            case Field_1.FieldType.Password:
+            case Field_1.FieldType.Tel:
+            case Field_1.FieldType.EMail:
+            case Field_1.FieldType.URL:
+                value = "'" + this.properties.default + "'";
+                break;
+            case Field_1.FieldType.Number:
+            case Field_1.FieldType.Integer:
+            case Field_1.FieldType.Float:
+                value = +this.properties.default;
+                break;
+        }
+        return ".default(" + value + ")";
     };
     FieldGen.prototype.genCodeForEnumField = function () {
         var enumArray = [], firstEnum = this.properties.enum[0];
@@ -301,6 +320,7 @@ var FieldGen = (function () {
                 }
             }
         }
+        this.properties.default = enumArray[0];
         return ".enum(" + enumArray.join(", ") + ")";
     };
     FieldGen.prototype.getNameTypePair = function () {
