@@ -1,9 +1,10 @@
 "use strict";
 var path = require("path");
 var ProjectGen_1 = require("../ProjectGen");
-var Util_1 = require("../../util/Util");
 var GitGen_1 = require("../file/GitGen");
 var Vesta_1 = require("../file/Vesta");
+var Fs_1 = require("../../util/Fs");
+var Cmd_1 = require("../../util/Cmd");
 var CommonGen = (function () {
     function CommonGen(config) {
         this.config = config;
@@ -15,7 +16,7 @@ var CommonGen = (function () {
         var dir = this.config.name;
         var destDir = this.config.type == ProjectGen_1.ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
         var repo = this.config.repository;
-        return Util_1.Util.execSync("git submodule add -b dev " + GitGen_1.GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.common) + " " + destDir, dir);
+        return Cmd_1.Cmd.execSync("git submodule add -b dev " + GitGen_1.GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.common) + " " + destDir, dir);
     };
     /**
      * git init
@@ -29,17 +30,17 @@ var CommonGen = (function () {
         var repository = this.config.repository, templateRepo = this.vesta.getProjectConfig().repository, cmnDir = repository.common;
         GitGen_1.GitGen.clone(GitGen_1.GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), cmnDir);
         GitGen_1.GitGen.cleanClonedRepo(cmnDir);
-        Util_1.Util.execSync("git init", cmnDir);
-        Util_1.Util.execSync("git add .", cmnDir);
-        Util_1.Util.execSync("git commit -m Vesta-init", cmnDir);
-        Util_1.Util.execSync("git remote add origin " + GitGen_1.GitGen.getRepoUrl(repository.baseUrl, repository.group, repository.common), cmnDir);
-        Util_1.Util.execSync("git push -u origin master", cmnDir);
-        Util_1.Util.execSync("git checkout -b dev", cmnDir);
-        Util_1.Util.execSync("git push -u origin dev", cmnDir);
+        Cmd_1.Cmd.execSync("git init", cmnDir);
+        Cmd_1.Cmd.execSync("git add .", cmnDir);
+        Cmd_1.Cmd.execSync("git commit -m Vesta-init", cmnDir);
+        Cmd_1.Cmd.execSync("git remote add origin " + GitGen_1.GitGen.getRepoUrl(repository.baseUrl, repository.group, repository.common), cmnDir);
+        Cmd_1.Cmd.execSync("git push -u origin master", cmnDir);
+        Cmd_1.Cmd.execSync("git checkout -b dev", cmnDir);
+        Cmd_1.Cmd.execSync("git push -u origin dev", cmnDir);
     };
     CommonGen.prototype.initWithoutSubModule = function () {
         var dir = this.config.name, templateRepo = this.vesta.getProjectConfig().repository, destDir = path.join(dir, this.config.type == ProjectGen_1.ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn');
-        Util_1.Util.fs.mkdir(destDir);
+        Fs_1.Fs.mkdir(destDir);
         GitGen_1.GitGen.clone(GitGen_1.GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), destDir);
         GitGen_1.GitGen.cleanClonedRepo(destDir);
     };

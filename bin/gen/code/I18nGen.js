@@ -1,6 +1,7 @@
 "use strict";
 var _ = require("lodash");
 var Util_1 = require("../../util/Util");
+var Log_1 = require("../../util/Log");
 var I18nGen = (function () {
     function I18nGen(config) {
         this.config = config;
@@ -22,7 +23,7 @@ var I18nGen = (function () {
             for (var i = locales.length; i--;) {
                 locales[i] = _.trim(locales[i]);
                 if (!/[a-z]{2}\-[A-Z]{2}/.exec(locales[i])) {
-                    Util_1.Util.log.error("Invalid locale '" + locales[i] + "'");
+                    Log_1.Log.error("Invalid locale '" + locales[i] + "'");
                 }
             }
             appConfig.i18n = {

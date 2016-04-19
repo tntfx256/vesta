@@ -1,7 +1,8 @@
 import * as fs from "fs-extra";
 import {IProjectGenConfig} from "../ProjectGen";
-import {Util} from "../../util/Util";
 import {IProjectConfig, Config} from "../../Config";
+import {Fs} from "../../util/Fs";
+import {Log} from "../../util/Log";
 
 export interface IProjectVersion {
     app:string;
@@ -31,12 +32,12 @@ export class Vesta {
             this.isUpdate = true;
             try {
                 if (!fs.existsSync(this.path)) {
-                    Util.log.error('`vesta.json` not found. Make sure you are in the correct directory');
+                    Log.error('`vesta.json` not found. Make sure you are in the correct directory');
                     process.exit();
                 }
                 this.json = JSON.parse(fs.readFileSync(this.path, {encoding: 'utf8'}));
             } catch (e) {
-                Util.log.error(e);
+                Log.error(e);
                 process.exit();
             }
         }
@@ -44,9 +45,9 @@ export class Vesta {
 
     public generate() {
         if (this.isUpdate) {
-            Util.log.error('Invalid operation');
+            Log.error('Invalid operation');
         } else {
-            Util.fs.writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.json, null, 2));
+            Fs.writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.json, null, 2));
         }
     }
 

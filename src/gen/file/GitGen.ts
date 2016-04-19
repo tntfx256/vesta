@@ -1,7 +1,9 @@
 import {IProjectGenConfig, ProjectGen} from "../ProjectGen";
-import {Util, IExecSyncResult} from "../../util/Util";
 import {ClientAppGen} from "../app/client/ClientAppGen";
 import {Question} from "inquirer";
+import {Fs} from "../../util/Fs";
+import {IExecSyncResult, Cmd} from "../../util/Cmd";
+import {Util} from "../../util/Util";
 import inquirer = require("inquirer");
 
 export interface IRepositoryConfig {
@@ -16,7 +18,7 @@ export class GitGen {
 
     public static clone(repository:string, destination:string = '', branch:string = ''):IExecSyncResult {
         var branchCmd = branch ? ` -b ${branch} ` : ' ';
-        return Util.execSync(`git clone${branchCmd}${repository} ${destination}`);
+        return Cmd.execSync(`git clone${branchCmd}${repository} ${destination}`);
     }
 
     public static getRepoUrl(baseUrl:string, group:string, repository:string):string {
@@ -26,10 +28,10 @@ export class GitGen {
     }
 
     public static cleanClonedRepo(basePath:string) {
-        Util.fs.remove(`${basePath}/.git`);
-        Util.fs.remove(`${basePath}/.gitmodule`);
-        Util.fs.remove(`${basePath}/src/cmn`);
-        Util.fs.remove(`${basePath}/src/app/cmn`);
+        Fs.remove(`${basePath}/.git`);
+        Fs.remove(`${basePath}/.gitmodule`);
+        Fs.remove(`${basePath}/src/cmn`);
+        Fs.remove(`${basePath}/src/app/cmn`);
     }
 
     public static getGeneratorConfig(appConfig:IProjectGenConfig):Promise<IProjectGenConfig> {

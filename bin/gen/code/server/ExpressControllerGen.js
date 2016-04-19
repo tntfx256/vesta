@@ -3,14 +3,15 @@ var fs = require("fs-extra");
 var path = require("path");
 var _ = require("lodash");
 var inquirer = require("inquirer");
-var ClassGen_1 = require("../../../core/ClassGen");
-var TSFileGen_1 = require("../../../core/TSFileGen");
-var DatabaseGen_1 = require("../../../core/DatabaseGen");
-var Vesta_1 = require("../../../file/Vesta");
-var Util_1 = require("../../../../util/Util");
-var Placeholder_1 = require("../../../core/Placeholder");
-var ModelGen_1 = require("../../ModelGen");
-var DatabaseCodeGenFactory_1 = require("../database/DatabaseCodeGenFactory");
+var ClassGen_1 = require("../../core/ClassGen");
+var TSFileGen_1 = require("../../core/TSFileGen");
+var Vesta_1 = require("../../file/Vesta");
+var Util_1 = require("../../../util/Util");
+var DatabaseCodeGen_1 = require("./DatabaseCodeGen");
+var Placeholder_1 = require("../../core/Placeholder");
+var ModelGen_1 = require("../ModelGen");
+var Fs_1 = require("../../../util/Fs");
+var Log_1 = require("../../../util/Log");
 var ExpressControllerGen = (function () {
     function ExpressControllerGen(config) {
         this.config = config;
@@ -21,7 +22,7 @@ var ExpressControllerGen = (function () {
     }
     ExpressControllerGen.prototype.init = function (version) {
         if (!version) {
-            return Util_1.Util.log.error('Unable to obtain the API version!');
+            return Log_1.Log.error('Unable to obtain the API version!');
         }
         this.apiVersion = version;
         this.path = path.join(this.path, version, 'controller', this.config.route);
@@ -51,29 +52,11 @@ var ExpressControllerGen = (function () {
         return method;
     };
     ExpressControllerGen.prototype.addCRUDOperations = function () {
-        var config = this.vesta.getConfig(), modelInstanceName = _.camelCase(this.config.model), modelClassName = _.capitalize(modelInstanceName), db = DatabaseCodeGenFactory_1.DatabaseCodeGenFactory.create(config.server.database, modelClassName);
-        this.controllerClass.getMethod('init').appendContent(db.getInitCode());
+        var modelInstanceName = _.camelCase(this.config.model), modelClassName = _.capitalize(modelInstanceName), db = new DatabaseCodeGen_1.DatabaseCodeGen();
         this.controllerFile.addImport("{Err}", Util_1.Util.genRelativePath(this.path, "src/cmn/Err"));
         this.controllerFile.addImport("{DatabaseError}", Util_1.Util.genRelativePath(this.path, "src/cmn/error/DatabaseError"));
         this.controllerFile.addImport("{ValidationError}", Util_1.Util.genRelativePath(this.path, "src/cmn/error/ValidationError"));
         this.controllerFile.addImport("{" + modelClassName + ", I" + modelClassName + "}", Util_1.Util.genRelativePath(this.path, "src/cmn/models/" + modelClassName));
-        if (config.server.database == DatabaseGen_1.DatabaseGen.MySQL) {
-            this.controllerFile.addImport('* as orm', 'orm');
-            this.controllerClass.addProperty({
-                name: modelClassName + "Model",
-                type: 'orm.Model',
-                access: ClassGen_1.ClassGen.Access.Private
-            });
-        }
-        else if (config.server.database == DatabaseGen_1.DatabaseGen.Mongodb) {
-            this.controllerFile.addImport('{Collection, ObjectID, Cursor}', 'mongodb');
-            this.controllerFile.addImport('{IInsertOneWriteOpResult, IFindAndModifyWriteOpResult, IDeleteWriteOpResult}', 'mongodb');
-            this.controllerClass.addProperty({
-                name: modelClassName + "Model",
-                type: 'Collection',
-                access: ClassGen_1.ClassGen.Access.Private
-            });
-        }
         this.controllerFile.addImport("{IQueryResult, IUpsertResult, IDeleteResult}", Util_1.Util.genRelativePath(this.path, "src/cmn/ICRUDResult"));
         var middleWares = " this.acl('__ACL__'),", acl = this.routingPath.replace(/\/+/g, '.');
         //
@@ -105,7 +88,7 @@ var ExpressControllerGen = (function () {
         if (this.config.model) {
             this.addCRUDOperations();
         }
-        Util_1.Util.fs.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
+        Fs_1.Fs.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
         var filePath = 'src/api/ApiFactory.ts';
         var code = fs.readFileSync(filePath, { encoding: 'utf8' });
         if (code.search(Placeholder_1.Placeholder.Router)) {
@@ -116,7 +99,7 @@ var ExpressControllerGen = (function () {
             var controllerCamel = _.camelCase(this.controllerClass.name);
             var embedCode = "var " + controllerCamel + " = new " + this.controllerClass.name + "(setting, database);\n        " + controllerCamel + ".route(router);\n        " + Placeholder_1.Placeholder.Router;
             code = importCode + '\n' + code.replace(Placeholder_1.Placeholder.Router, embedCode);
-            Util_1.Util.fs.writeFile(filePath, code);
+            Fs_1.Fs.writeFile(filePath, code);
         }
     };
     ExpressControllerGen.prototype.normalizeRoutingPath = function () {
@@ -130,13 +113,15 @@ var ExpressControllerGen = (function () {
     ExpressControllerGen.getGeneratorConfig = function (name, callback) {
         var config = {}, models = Object.keys(ModelGen_1.ModelGen.getModelsList());
         models.unshift('None');
-        var q = [{
+        var q = [
+            {
                 name: 'routingPath',
                 type: 'input',
                 message: 'Routing Path: ',
                 choices: models,
                 default: '/'
-            }, {
+            },
+            {
                 name: 'model',
                 type: 'list',
                 message: 'Model for CRUD: ',

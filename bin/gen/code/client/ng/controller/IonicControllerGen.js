@@ -4,12 +4,12 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var path = require('path');
-var _ = require('lodash');
+var path = require("path");
+var _ = require("lodash");
 var BaseNGControllerGen_1 = require("./BaseNGControllerGen");
 var XMLGen_1 = require("../../../../core/XMLGen");
 var SassGen_1 = require("../../../../file/SassGen");
-var Util_1 = require("../../../../../util/Util");
+var Fs_1 = require("../../../../../util/Fs");
 var IonicControllerGen = (function (_super) {
     __extends(IonicControllerGen, _super);
     function IonicControllerGen() {
@@ -22,7 +22,7 @@ var IonicControllerGen = (function (_super) {
         template.html("<h1>" + pageName + " Page</h1>");
         var sass = new SassGen_1.SassGen(this.config.name, SassGen_1.SassGen.Type.Page);
         sass.generate();
-        Util_1.Util.fs.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
+        Fs_1.Fs.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
     };
     IonicControllerGen.prototype.setAsListController = function () {
     };

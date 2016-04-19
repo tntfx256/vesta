@@ -9,6 +9,8 @@ var GitGen_1 = require("./file/GitGen");
 var ClientAppGen_1 = require("./app/client/ClientAppGen");
 var ClientAppGenFactory_1 = require("./app/ClientAppGenFactory");
 var DockerGen_1 = require("./code/DockerGen");
+var Fs_1 = require("../util/Fs");
+var Cmd_1 = require("../util/Cmd");
 var ProjectGen = (function () {
     function ProjectGen(config) {
         this.config = config;
@@ -35,11 +37,11 @@ var ProjectGen = (function () {
         if (isClientSideProject) {
             projectTemplateName = this.config.client.framework == ClientAppGen_1.ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
         }
-        Util_1.Util.fs.mkdir(dir);
+        Fs_1.Fs.mkdir(dir);
         //
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
-        Util_1.Util.execSync("git init", dir);
+        Cmd_1.Cmd.execSync("git init", dir);
         this.vesta.generate();
         replacement[projectTemplateName] = this.config.name;
         Util_1.Util.findInFileAndReplace(dir + "/package.json", replacement);
@@ -47,17 +49,17 @@ var ProjectGen = (function () {
             Util_1.Util.findInFileAndReplace(dir + "/bower.json", replacement);
         }
         // Initiating the git repo -> create dev branch
-        Util_1.Util.execSync("git add .", dir);
-        Util_1.Util.execSync("git commit -m Vesta-init", dir);
+        Cmd_1.Cmd.execSync("git add .", dir);
+        Cmd_1.Cmd.execSync("git commit -m Vesta-init", dir);
         this.commonApp.generate();
         if (!repoInfo.baseUrl)
             return;
-        Util_1.Util.execSync("git add .", dir);
-        Util_1.Util.execSync("git commit -m Vesta-common", dir);
-        Util_1.Util.execSync("git remote add origin " + GitGen_1.GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name), dir);
-        Util_1.Util.execSync("git push -u origin master", dir);
-        Util_1.Util.execSync("git checkout -b dev", dir);
-        Util_1.Util.execSync("git push -u origin dev", dir);
+        Cmd_1.Cmd.execSync("git add .", dir);
+        Cmd_1.Cmd.execSync("git commit -m Vesta-common", dir);
+        Cmd_1.Cmd.execSync("git remote add origin " + GitGen_1.GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name), dir);
+        Cmd_1.Cmd.execSync("git push -u origin master", dir);
+        Cmd_1.Cmd.execSync("git checkout -b dev", dir);
+        Cmd_1.Cmd.execSync("git push -u origin dev", dir);
     };
     ProjectGen.getGeneratorConfig = function (name, category) {
         var appConfig = {};

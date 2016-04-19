@@ -1,7 +1,9 @@
 "use strict";
 var ProjectGen_1 = require("../ProjectGen");
-var Util_1 = require("../../util/Util");
 var ClientAppGen_1 = require("../app/client/ClientAppGen");
+var Fs_1 = require("../../util/Fs");
+var Cmd_1 = require("../../util/Cmd");
+var Util_1 = require("../../util/Util");
 var GitGen = (function () {
     function GitGen() {
     }
@@ -9,7 +11,7 @@ var GitGen = (function () {
         if (destination === void 0) { destination = ''; }
         if (branch === void 0) { branch = ''; }
         var branchCmd = branch ? " -b " + branch + " " : ' ';
-        return Util_1.Util.execSync("git clone" + branchCmd + repository + " " + destination);
+        return Cmd_1.Cmd.execSync("git clone" + branchCmd + repository + " " + destination);
     };
     GitGen.getRepoUrl = function (baseUrl, group, repository) {
         return /^git.+/.exec(baseUrl) ?
@@ -17,10 +19,10 @@ var GitGen = (function () {
             baseUrl + "/" + group + "/" + repository + ".git";
     };
     GitGen.cleanClonedRepo = function (basePath) {
-        Util_1.Util.fs.remove(basePath + "/.git");
-        Util_1.Util.fs.remove(basePath + "/.gitmodule");
-        Util_1.Util.fs.remove(basePath + "/src/cmn");
-        Util_1.Util.fs.remove(basePath + "/src/app/cmn");
+        Fs_1.Fs.remove(basePath + "/.git");
+        Fs_1.Fs.remove(basePath + "/.gitmodule");
+        Fs_1.Fs.remove(basePath + "/src/cmn");
+        Fs_1.Fs.remove(basePath + "/src/app/cmn");
     };
     GitGen.getGeneratorConfig = function (appConfig) {
         return Util_1.Util.prompt({

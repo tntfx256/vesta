@@ -1,11 +1,13 @@
 import * as fs from "fs-extra";
 import * as _ from "lodash";
-import {Util} from "../util/Util";
 import {Err} from "../cmn/Err";
 import {GitGen} from "../gen/file/GitGen";
 import {GregorianDate} from "../cmn/date/GregorianDate";
 import {IVesta} from "../gen/file/Vesta";
 import {ProjectGen} from "../gen/ProjectGen";
+import {Fs} from "../util/Fs";
+import {Log} from "../util/Log";
+import {Cmd} from "../util/Cmd";
 import inquirer = require("inquirer");
 var isRoot = require('is-root');
 
@@ -29,8 +31,8 @@ export class Deployer {
         var date = new GregorianDate();
         this.config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy'});
         this.stagingPath = config.projectName;
-        Util.fs.remove(this.stagingPath);
-        Util.fs.mkdir(config.deployPath);
+        Fs.remove(this.stagingPath);
+        Fs.mkdir(config.deployPath);
     }
 
     public deploy() {
@@ -39,36 +41,36 @@ export class Deployer {
         try {
             this.vesta = <IVesta>JSON.parse(fs.readFileSync(vestaJsonFile, {encoding: 'utf8'}));
         } catch (e) {
-            Util.fs.remove(this.stagingPath);
-            return Util.log.error(`${vestaJsonFile} not found`);
+            Fs.remove(this.stagingPath);
+            return Log.error(`${vestaJsonFile} not found`);
         }
         this.vesta.config.type == ProjectGen.Type.ClientSide ?
             this.deployClientSideProject() :
             this.deployServerSideProject();
-        Util.fs.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
+        Fs.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
     }
 
     private deployServerSideProject() {
         var deployPath = `${this.config.deployPath}/${this.config.projectName}`;
         var isAlreadyRunning = fs.existsSync(deployPath);
-        Util.execSync(`git submodule update --init src/cmn`, this.stagingPath);
-        Util.fs.copy(`${this.stagingPath}/resources/gitignore/src/config/setting.var.ts`, `${this.stagingPath}/src/config/setting.var.ts`);
-        Util.fs.copy(`${this.stagingPath}/package.json`, `${this.stagingPath}/build/api/src/package.json`);
-        Util.execSync(`npm install`, this.stagingPath);
-        Util.execSync(`gulp prod`, this.stagingPath);
-        Util.execSync(`npm install --production`, `${this.stagingPath}/build/api/src`);
+        Cmd.execSync(`git submodule update --init src/cmn`, this.stagingPath);
+        Fs.copy(`${this.stagingPath}/resources/gitignore/src/config/setting.var.ts`, `${this.stagingPath}/src/config/setting.var.ts`);
+        Fs.copy(`${this.stagingPath}/package.json`, `${this.stagingPath}/build/api/src/package.json`);
+        Cmd.execSync(`npm install`, this.stagingPath);
+        Cmd.execSync(`gulp prod`, this.stagingPath);
+        Cmd.execSync(`npm install --production`, `${this.stagingPath}/build/api/src`);
         if (isAlreadyRunning) {
-            Util.execSync(`docker-compose stop -t 5`, deployPath);
-            Util.execSync(`docker-compose down`, deployPath);
-            Util.execSync(`rm -Rf ${deployPath}`);
+            Cmd.execSync(`docker-compose stop -t 5`, deployPath);
+            Cmd.execSync(`docker-compose down`, deployPath);
+            Cmd.execSync(`rm -Rf ${deployPath}`);
         }
-        Util.fs.rename(`${this.stagingPath}/build`, deployPath);
-        Util.execSync(`docker-compose up -d`, deployPath);
-        Util.execSync(`rm -Rf ${this.stagingPath}`);
+        Fs.rename(`${this.stagingPath}/build`, deployPath);
+        Cmd.execSync(`docker-compose up -d`, deployPath);
+        Cmd.execSync(`rm -Rf ${this.stagingPath}`);
     }
 
     private deployClientSideProject() {
-        // Util.fs.copy(`${this.projectName}/resources/gitignore/src/app/config/setting.var.ts`, `${this.projectName}/src/app/config/setting.var.ts`);
+        // Fs.copy(`${this.projectName}/resources/gitignore/src/app/config/setting.var.ts`, `${this.projectName}/src/app/config/setting.var.ts`);
     }
 
     private static getProjectName(url:string) {
@@ -78,7 +80,7 @@ export class Deployer {
 
     public static getDeployConfig(args:Array<string>):Promise<IDeployConfig> {
         if (!isRoot()) {
-            Util.log.error('You must run this command as root!');
+            Log.error('You must run this command as root!');
             return Promise.reject(new Err(Err.Code.OperationFailed));
         }
         var config:IDeployConfig = <IDeployConfig>{
@@ -86,10 +88,10 @@ export class Deployer {
             deployPath: `app`
         };
         if (!args[0]) {
-            Util.log.error('Invalid HTTP url of remote repository');
+            Log.error('Invalid HTTP url of remote repository');
             return Promise.reject(new Err(Err.Code.WrongInput));
         }
-        Util.log.warning('\nWARNING: Make sure that your `master` branch is updated and contains the final changes!\n');
+        Log.warning('\nWARNING: Make sure that your `master` branch is updated and contains the final changes!\n');
         if (fs.existsSync(args[0])) {
             _.assign(config, Deployer.fetchConfig(args[0]));
         } else {
@@ -103,12 +105,12 @@ export class Deployer {
         return Promise.resolve(config);
     }
 
-    private static fetchConfig(filename:string):IDeployConfig {
+    public static fetchConfig(filename:string):IDeployConfig {
         var config:IDeployConfig = <IDeployConfig>{};
         try {
             config = JSON.parse(fs.readFileSync(filename, {encoding: 'utf8'}));
         } catch (e) {
-            Util.log.error(`Deploy config file -${filename}- is corrupted!`);
+            Log.error(`Deploy config file -${filename}- is corrupted!`);
             return null;
         }
         return config;

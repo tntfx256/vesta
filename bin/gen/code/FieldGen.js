@@ -2,10 +2,10 @@
 var inquirer = require("inquirer");
 var _ = require("lodash");
 var Field_1 = require("../../cmn/Field");
-var Util_1 = require("../../util/Util");
 var FileMemeType_1 = require("../../cmn/FileMemeType");
 var Vesta_1 = require("../file/Vesta");
 var ModelGen_1 = require("./ModelGen");
+var Log_1 = require("../../util/Log");
 var FieldGen = (function () {
     function FieldGen(modelFile, name) {
         this.modelFile = modelFile;
@@ -93,7 +93,7 @@ var FieldGen = (function () {
                 }
             }
             else {
-                Util_1.Util.log.error("Unknown type " + arr[i]);
+                Log_1.Log.error("Unknown type " + arr[i]);
             }
         }
         return fileTypes;
@@ -304,7 +304,7 @@ var FieldGen = (function () {
         if (firstEnum.indexOf('.') > 0) {
             this.enumName = firstEnum.substr(0, firstEnum.indexOf('.'));
             enumArray = this.properties.enum;
-            Util_1.Util.log.warning("Do not forget to import the (" + this.enumName + ")");
+            Log_1.Log.warning("Do not forget to import the (" + this.enumName + ")");
         }
         else {
             this.enumName = _.capitalize(this.modelFile.name) + _.capitalize(this.name);

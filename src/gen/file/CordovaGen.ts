@@ -1,11 +1,10 @@
-import * as fs from 'fs-extra';
-import {ProjectGen} from "../ProjectGen";
-import {Vesta} from "../file/Vesta";
-import {Util} from "../../util/Util";
+import * as fs from "fs-extra";
+import {Log} from "../../util/Log";
+import {Cmd} from "../../util/Cmd";
 
 export interface ICordova {
-    plugins: Array<string>;
-    platforms: Array<string>;
+    plugins:Array<string>;
+    platforms:Array<string>;
 }
 
 export class CordovaGen {
@@ -35,7 +34,7 @@ export class CordovaGen {
         try {
             this.json = JSON.parse(fs.readFileSync(this.path, {encoding: 'utf8'}))
         } catch (e) {
-            Util.log.error(e.message);
+            Log.error(e.message);
         }
     }
 
@@ -43,14 +42,14 @@ export class CordovaGen {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Util.execSync(`cordova plugin add ${plugins.join(' ')}`);
+        Cmd.execSync(`cordova plugin add ${plugins.join(' ')}`);
     }
 
     public uninstall(...plugins:Array<string>) {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Util.execSync(`cordova plugin rm ${plugins.join(' ')}`);
+        Cmd.execSync(`cordova plugin rm ${plugins.join(' ')}`);
     }
 
     public static getPlugins(...serviceNames:Array<string>):Array<string> {

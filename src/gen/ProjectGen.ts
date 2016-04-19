@@ -10,6 +10,8 @@ import {IClientAppConfig, ClientAppGen} from "./app/client/ClientAppGen";
 import {ClientAppGenFactory} from "./app/ClientAppGenFactory";
 import {DockerGen} from "./code/DockerGen";
 import {I18nGenConfig} from "./code/I18nGen";
+import {Fs} from "../util/Fs";
+import {Cmd} from "../util/Cmd";
 
 export interface IProjectGenConfig {
     name:string;
@@ -56,11 +58,11 @@ export class ProjectGen {
         if (isClientSideProject) {
             projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
         }
-        Util.fs.mkdir(dir);
+        Fs.mkdir(dir);
         //
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
-        Util.execSync(`git init`, dir);
+        Cmd.execSync(`git init`, dir);
         this.vesta.generate();
         replacement[projectTemplateName] = this.config.name;
         Util.findInFileAndReplace(`${dir}/package.json`, replacement);
@@ -68,16 +70,16 @@ export class ProjectGen {
             Util.findInFileAndReplace(`${dir}/bower.json`, replacement);
         }
         // Initiating the git repo -> create dev branch
-        Util.execSync(`git add .`, dir);
-        Util.execSync(`git commit -m Vesta-init`, dir);
+        Cmd.execSync(`git add .`, dir);
+        Cmd.execSync(`git commit -m Vesta-init`, dir);
         this.commonApp.generate();
         if (!repoInfo.baseUrl) return;
-        Util.execSync(`git add .`, dir);
-        Util.execSync(`git commit -m Vesta-common`, dir);
-        Util.execSync(`git remote add origin ${GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name)}`, dir);
-        Util.execSync(`git push -u origin master`, dir);
-        Util.execSync(`git checkout -b dev`, dir);
-        Util.execSync(`git push -u origin dev`, dir);
+        Cmd.execSync(`git add .`, dir);
+        Cmd.execSync(`git commit -m Vesta-common`, dir);
+        Cmd.execSync(`git remote add origin ${GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name)}`, dir);
+        Cmd.execSync(`git push -u origin master`, dir);
+        Cmd.execSync(`git checkout -b dev`, dir);
+        Cmd.execSync(`git push -u origin dev`, dir);
     }
 
     public static getGeneratorConfig(name:string, category:string):Promise<IProjectGenConfig> {

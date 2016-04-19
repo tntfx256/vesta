@@ -5,18 +5,18 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import {ProjectGen, IProjectGenConfig} from "./gen/ProjectGen";
 import {Vesta} from "./gen/file/Vesta";
-import {ExpressControllerGen} from "./gen/code/server/express/ExpressControllerGen";
 import {ModelGen} from "./gen/code/ModelGen";
 import {NGControllerGen} from "./gen/code/client/ng/NGControllerGen";
 import {NGDirectiveGen} from "./gen/code/client/ng/NGDirectiveGen";
 import {NGServiceGen} from "./gen/code/client/ng/NGServiceGen";
-import {Util} from "./util/Util";
 import {NGFormGen} from "./gen/code/client/ng/NGFormGen";
 import {NGFilterGen} from "./gen/code/client/ng/NGFilterGen";
 import {SassGen} from "./gen/file/SassGen";
 import {CordovaGen} from "./gen/file/CordovaGen";
 import {Deployer} from "./deploy/Deployer";
 import {Backuper} from "./deploy/Backuper";
+import {ExpressControllerGen} from "./gen/code/server/ExpressControllerGen";
+import {Log} from "./util/Log";
 
 var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
 program.version(`Vesta Framework++ v${packageInfo.version}`);
@@ -60,7 +60,7 @@ switch (command) {
         initProject();
         break;
     default:
-        Util.log.error('Invalid operation');
+        Log.error('Invalid operation');
 }
 
 function createProject() {
@@ -94,7 +94,7 @@ function generateCode(args:Array<string>) {
     var type = args.shift().toLowerCase();
     var name = args[0];
     if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
-        return Util.log.error('Please enter a valid name');
+        return Log.error('Please enter a valid name');
     }
     var vesta = Vesta.getInstance(),
         projectConfig = vesta.getConfig();
@@ -151,13 +151,13 @@ function generateCode(args:Array<string>) {
             sass.generate();
             break;
         default:
-            Util.log.error(`Invalid generator option ${type}`);
+            Log.error(`Invalid generator option ${type}`);
     }
 }
 
 function initProject() {
     var vesta = Vesta.getInstance(<IProjectGenConfig>{});
-    Util.log.error('In progress...');
+    Log.error('In progress...');
 }
 
 function deployProject(args:Array<string>) {

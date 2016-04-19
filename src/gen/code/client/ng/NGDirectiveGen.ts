@@ -1,26 +1,23 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as colors from 'colors';
-import * as inquirer from 'inquirer';
+import * as fs from "fs-extra";
+import * as path from "path";
+import * as _ from "lodash";
+import * as inquirer from "inquirer";
 import {ClassGen} from "../../../core/ClassGen";
 import {TsFileGen} from "../../../core/TSFileGen";
-import {Question} from "inquirer";
-import {NGDependencyInjector} from "./NGDependencyInjector";
+import {NGDependencyInjector, INGInjectable} from "./NGDependencyInjector";
 import {MethodGen} from "../../../core/MethodGen";
 import {Placeholder} from "../../../core/Placeholder";
 import {Util} from "../../../../util/Util";
-import {IStructureProperty} from "../../../core/AbstractStructureGen";
-import {INGInjectable} from "./NGDependencyInjector";
 import {InterfaceGen} from "../../../core/InterfaceGen";
-import {IMethodParameter} from "../../../core/MethodGen";
 import {SassGen} from "../../../file/SassGen";
+import {Fs} from "../../../../util/Fs";
+import {Log} from "../../../../util/Log";
 
 export interface INGDirectiveConfig {
-    name: string;
-    injects: Array<INGInjectable>;
-    externalTemplate: boolean;
-    generateSass: boolean;
+    name:string;
+    injects:Array<INGInjectable>;
+    externalTemplate:boolean;
+    generateSass:boolean;
 }
 
 export class NGDirectiveGen {
@@ -102,12 +99,12 @@ export class NGDirectiveGen {
         try {
             fs.mkdirpSync(tplPath);
         } catch (e) {
-            Util.log.error(e.message);
+            Log.error(e.message);
         }
         var templateCode = `<div class="${this.tplFileName}"></div>`;
         if (this.config.externalTemplate) {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `templateUrl: 'tpl/directive/${this.tplFileName}.html',`));
-            Util.fs.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
+            Fs.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
         } else {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `template: '${templateCode}',`));
         }

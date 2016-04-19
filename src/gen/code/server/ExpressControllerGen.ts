@@ -3,16 +3,16 @@ import * as path from "path";
 import * as _ from "lodash";
 import * as inquirer from "inquirer";
 import {Question} from "inquirer";
-import {ClassGen} from "../../../core/ClassGen";
-import {TsFileGen} from "../../../core/TSFileGen";
-import {MethodGen} from "../../../core/MethodGen";
-import {DatabaseGen} from "../../../core/DatabaseGen";
-import {Vesta} from "../../../file/Vesta";
-import {Util} from "../../../../util/Util";
-import {Placeholder} from "../../../core/Placeholder";
-import {ModelGen as ModelGen} from "../../ModelGen";
-import {DatabaseCodeGen} from "../database/DatabaseCodeGen";
-import {DatabaseCodeGenFactory} from "../database/DatabaseCodeGenFactory";
+import {ClassGen} from "../../core/ClassGen";
+import {TsFileGen} from "../../core/TSFileGen";
+import {MethodGen} from "../../core/MethodGen";
+import {Vesta} from "../../file/Vesta";
+import {Util} from "../../../util/Util";
+import {DatabaseCodeGen} from "./DatabaseCodeGen";
+import {Placeholder} from "../../core/Placeholder";
+import {ModelGen} from "../ModelGen";
+import {Fs} from "../../../util/Fs";
+import {Log} from "../../../util/Log";
 
 export interface IExpressControllerConfig {
     route:string;
@@ -37,7 +37,7 @@ export class ExpressControllerGen {
 
     private init(version:string) {
         if (!version) {
-            return Util.log.error('Unable to obtain the API version!');
+            return Log.error('Unable to obtain the API version!');
         }
         this.apiVersion = version;
         this.path = path.join(this.path, version, 'controller', this.config.route);
@@ -68,31 +68,13 @@ export class ExpressControllerGen {
     }
 
     private addCRUDOperations() {
-        var config = this.vesta.getConfig(),
-            modelInstanceName = _.camelCase(this.config.model),
+        var modelInstanceName = _.camelCase(this.config.model),
             modelClassName = _.capitalize(modelInstanceName),
-            db:DatabaseCodeGen = DatabaseCodeGenFactory.create(config.server.database, modelClassName);
-        this.controllerClass.getMethod('init').appendContent(db.getInitCode());
+            db:DatabaseCodeGen = new DatabaseCodeGen();
         this.controllerFile.addImport(`{Err}`, Util.genRelativePath(this.path, `src/cmn/Err`));
         this.controllerFile.addImport(`{DatabaseError}`, Util.genRelativePath(this.path, `src/cmn/error/DatabaseError`));
         this.controllerFile.addImport(`{ValidationError}`, Util.genRelativePath(this.path, `src/cmn/error/ValidationError`));
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${modelClassName}`));
-        if (config.server.database == DatabaseGen.MySQL) {
-            this.controllerFile.addImport('* as orm', 'orm');
-            this.controllerClass.addProperty({
-                name: `${modelClassName}Model`,
-                type: 'orm.Model',
-                access: ClassGen.Access.Private
-            });
-        } else if (config.server.database == DatabaseGen.Mongodb) {
-            this.controllerFile.addImport('{Collection, ObjectID, Cursor}', 'mongodb');
-            this.controllerFile.addImport('{IInsertOneWriteOpResult, IFindAndModifyWriteOpResult, IDeleteWriteOpResult}', 'mongodb');
-            this.controllerClass.addProperty({
-                name: `${modelClassName}Model`,
-                type: 'Collection',
-                access: ClassGen.Access.Private
-            });
-        }
         this.controllerFile.addImport(`{IQueryResult, IUpsertResult, IDeleteResult}`, Util.genRelativePath(this.path, `src/cmn/ICRUDResult`));
         var middleWares = ` this.acl('__ACL__'),`,
             acl = this.routingPath.replace(/\/+/g, '.');
@@ -127,7 +109,7 @@ export class ExpressControllerGen {
         if (this.config.model) {
             this.addCRUDOperations();
         }
-        Util.fs.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
+        Fs.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
         var filePath = 'src/api/ApiFactory.ts';
         var code = fs.readFileSync(filePath, {encoding: 'utf8'});
         if (code.search(Placeholder.Router)) {
@@ -139,7 +121,7 @@ export class ExpressControllerGen {
         ${controllerCamel}.route(router);
         ${Placeholder.Router}`;
             code = importCode + '\n' + code.replace(Placeholder.Router, embedCode);
-            Util.fs.writeFile(filePath, code);
+            Fs.writeFile(filePath, code);
         }
     }
 
@@ -155,19 +137,21 @@ export class ExpressControllerGen {
         var config:IExpressControllerConfig = <IExpressControllerConfig>{},
             models = Object.keys(ModelGen.getModelsList());
         models.unshift('None');
-        var q:Array<Question> = [{
-            name: 'routingPath',
-            type: 'input',
-            message: 'Routing Path: ',
-            choices: models,
-            default: '/'
-        }, {
-            name: 'model',
-            type: 'list',
-            message: 'Model for CRUD: ',
-            choices: models,
-            default: 'None'
-        }];
+        var q:Array<Question> = [
+            <Question>{
+                name: 'routingPath',
+                type: 'input',
+                message: 'Routing Path: ',
+                choices: models,
+                default: '/'
+            },
+            <Question>{
+                name: 'model',
+                type: 'list',
+                message: 'Model for CRUD: ',
+                choices: models,
+                default: 'None'
+            }];
         config.name = name;
         inquirer.prompt(q, answer => {
             var modelName = answer['model'];

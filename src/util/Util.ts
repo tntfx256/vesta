@@ -1,99 +1,10 @@
-import * as colors from "colors";
 import * as path from "path";
 import * as fse from "fs-extra";
-import * as shell from "shelljs";
-import {ExecOptions, ExecOutputReturnValue} from "shelljs";
 import {Question} from "inquirer";
+import {Log} from "./Log";
 import inquirer = require("inquirer");
 
-export interface IExecSyncResult extends ExecOutputReturnValue {
-
-}
-
-export interface IExecOption {
-    cwd?:string;
-    stdio?:any;
-    customFds?:any;
-    env?:any;
-    encoding?:string;
-    timeout?:number;
-    maxBuffer?:number;
-    killSignal?:string;
-}
-
 export class Util {
-    public static Mode = {
-        Development: 1,
-        Production: 2
-    };
-    private static config = {
-        mode: Util.Mode.Development
-    };
-
-    public static setMode(mode:number) {
-        Util.config.mode = mode;
-    }
-
-    static log = {
-        simple: (message:string)=> {
-            console.log(message);
-        },
-        info: (message:string)=> {
-            Util.log.color('cyan', message);
-        },
-        error: (message:string)=> {
-            Util.log.color('red', message);
-        },
-        warning: (message:string)=> {
-            Util.log.color('yellow', message);
-        },
-        success: (message:string)=> {
-            Util.log.color('green', message);
-        },
-        color: (color:string, message:string)=> {
-            console.log(colors[color](message));
-        }
-    };
-
-    static fs = {
-        mkdir(...dirs:Array<string>): void {
-            dirs.forEach(dir=> {
-                try {
-                    fse.mkdirpSync(dir);
-                } catch (e) {
-                    Util.log.error(`mkdir: ${e.message}`);
-                }
-            })
-        },
-        writeFile(path:string, content:string){
-            try {
-                fse.writeFileSync(path, content);
-            } catch (e) {
-                Util.log.error(`writeFile: ${e.message}`);
-            }
-        },
-        copy(src:string, dest:string){
-            try {
-                fse.copySync(src, dest);
-            } catch (e) {
-                Util.log.error(`copy: ${e.message}`);
-            }
-        },
-        rename(src:string, dest:string){
-            try {
-                fse.renameSync(src, dest);
-            } catch (e) {
-                Util.log.error(`rename: ${e.message}`);
-            }
-        },
-        remove(path:string){
-            try {
-                fse.removeSync(path);
-            } catch (e) {
-                Util.log.error(`remove: ${e.message}`);
-            }
-        }
-    };
 
     static prompt<T>(questions:Question|Array<Question>):Promise<T> {
         return new Promise<T>(resolve=> {
@@ -165,7 +76,7 @@ export class Util {
             fse.writeFileSync(filePath, code);
             return;
         }
-        Util.log.error(`File not found @${filePath}`);
+        Log.error(`File not found @${filePath}`);
     }
 
     static fileHasContent(filePath:string, pattern:string):boolean {
@@ -174,12 +85,5 @@ export class Util {
             return code.indexOf(pattern) >= 0;
         }
         return false;
-    }
-
-    static execSync(command, wd:string = '.'):IExecSyncResult {
-        if (Util.config.mode == Util.Mode.Development) {
-            Util.log.info(`${wd}/> ${command} `);
-        }
-        return <ExecOutputReturnValue>shell.exec(command, <ExecOptions>{cwd: wd, async: false});
     }
 }

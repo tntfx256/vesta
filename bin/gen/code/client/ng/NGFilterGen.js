@@ -1,10 +1,10 @@
 "use strict";
-var fs = require('fs-extra');
-var _ = require('lodash');
+var fs = require("fs-extra");
+var _ = require("lodash");
 var NGDependencyInjector_1 = require("./NGDependencyInjector");
 var Placeholder_1 = require("../../../core/Placeholder");
 var TSFileGen_1 = require("../../../core/TSFileGen");
-var Util_1 = require("../../../../util/Util");
+var Fs_1 = require("../../../../util/Fs");
 var NGFilterGen = (function () {
     function NGFilterGen(config) {
         this.path = 'src/app/filter';
@@ -17,7 +17,7 @@ var NGFilterGen = (function () {
         this.method.shouldExport(true);
         this.method.setContent("return (input: string, ...args: Array<string>):string => {\n            return input;\n        }");
         this.file.addMixin(this.file.name + ".$inject = [];", TSFileGen_1.TsFileGen.CodeLocation.AfterMethod);
-        Util_1.Util.fs.mkdir(this.path);
+        Fs_1.Fs.mkdir(this.path);
     }
     NGFilterGen.prototype.generate = function () {
         var tplPath = 'src/templates/filter';

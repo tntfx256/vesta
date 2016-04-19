@@ -4,6 +4,7 @@ var fs = require('fs-extra');
 var path = require('path');
 var Util_1 = require("../../util/Util");
 var Placeholder_1 = require("../core/Placeholder");
+var Fs_1 = require("../../util/Fs");
 var SassGen = (function () {
     function SassGen(name, type) {
         if (type === void 0) { type = SassGen.Type.Page; }
@@ -20,7 +21,7 @@ var SassGen = (function () {
         }
         catch (e) {
         }
-        Util_1.Util.fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
+        Fs_1.Fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
         pattern[Placeholder_1.Placeholder.SassFont] = Placeholder_1.Placeholder.SassFont + "\n@import 'fonts/" + this.name + "';";
         Util_1.Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     };
@@ -32,7 +33,7 @@ var SassGen = (function () {
         }
         catch (e) {
         }
-        Util_1.Util.fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
+        Fs_1.Fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
         pattern[Placeholder_1.Placeholder.SassPage] = Placeholder_1.Placeholder.SassPage + "\n@import 'pages/" + this.name + "';";
         Util_1.Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     };
@@ -44,7 +45,7 @@ var SassGen = (function () {
         }
         catch (e) {
         }
-        Util_1.Util.fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
+        Fs_1.Fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
         pattern[Placeholder_1.Placeholder.SassComponent] = Placeholder_1.Placeholder.SassComponent + "\n@import 'components/" + this.name + "';";
         Util_1.Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     };
@@ -56,7 +57,7 @@ var SassGen = (function () {
         }
         catch (e) {
         }
-        Util_1.Util.fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
+        Fs_1.Fs.writeFile(path.join(dir, "_" + this.name + ".scss"), code);
         pattern[Placeholder_1.Placeholder.SassDirective] = Placeholder_1.Placeholder.SassDirective + "\n@import 'directives/" + this.name + "';";
         Util_1.Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     };

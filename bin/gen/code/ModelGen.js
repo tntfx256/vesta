@@ -6,9 +6,10 @@ var inquirer = require("inquirer");
 var ClassGen_1 = require("../core/ClassGen");
 var Vesta_1 = require("../file/Vesta");
 var FieldGen_1 = require("./FieldGen");
-var Util_1 = require("../../util/Util");
 var TSFileGen_1 = require("../core/TSFileGen");
 var ProjectGen_1 = require("../ProjectGen");
+var Fs_1 = require("../../util/Fs");
+var Log_1 = require("../../util/Log");
 var ModelGen = (function () {
     function ModelGen(args) {
         this.args = args;
@@ -38,7 +39,7 @@ var ModelGen = (function () {
         if (this.vesta.getConfig().type == ProjectGen_1.ProjectGen.Type.ClientSide) {
             this.path = 'src/app/cmn/models';
         }
-        Util_1.Util.fs.mkdir(this.path);
+        Fs_1.Fs.mkdir(this.path);
     }
     ModelGen.prototype.getFields = function () {
         var _this = this;
@@ -47,7 +48,7 @@ var ModelGen = (function () {
             type: 'input',
             message: 'Field Name: '
         };
-        Util_1.Util.log.success('\n:: New field (press enter with no fieldName to exit)\n');
+        Log_1.Log.success('\n:: New field (press enter with no fieldName to exit)\n');
         var idField = new FieldGen_1.FieldGen(this.modelFile, 'id');
         idField.setAsPrimary();
         this.fields['id'] = idField;
@@ -83,7 +84,7 @@ var ModelGen = (function () {
             property.type = interfaceFieldType;
             this.modelInterface.addProperty(property);
         }
-        Util_1.Util.fs.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
+        Fs_1.Fs.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     };
     ModelGen.getModelsList = function () {
         var vesta = Vesta_1.Vesta.getInstance(), config = vesta.getConfig(), modelDirectory = path.join(process.cwd(), config.type == ProjectGen_1.ProjectGen.Type.ServerSide ? 'src/cmn/models' : 'src/app/cmn/models'), models = {};

@@ -1,13 +1,14 @@
 "use strict";
 var Util_1 = require("../../util/Util");
 var ProjectGen_1 = require("../ProjectGen");
+var Log_1 = require("../../util/Log");
 var speakeasy = require('speakeasy');
 var DockerGen = (function () {
     function DockerGen(config) {
         this.config = config;
         var _a = /(http.+):(\d+)$/.exec(this.config.endpoint), host = _a[1], port = _a[2];
         if (!host) {
-            Util_1.Util.log.error('Invalid host name');
+            Log_1.Log.error('Invalid host name');
         }
         this.port = +port || 3000;
     }

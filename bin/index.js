@@ -6,18 +6,18 @@ var fs = require("fs-extra");
 var path = require("path");
 var ProjectGen_1 = require("./gen/ProjectGen");
 var Vesta_1 = require("./gen/file/Vesta");
-var ExpressControllerGen_1 = require("./gen/code/server/express/ExpressControllerGen");
 var ModelGen_1 = require("./gen/code/ModelGen");
 var NGControllerGen_1 = require("./gen/code/client/ng/NGControllerGen");
 var NGDirectiveGen_1 = require("./gen/code/client/ng/NGDirectiveGen");
 var NGServiceGen_1 = require("./gen/code/client/ng/NGServiceGen");
-var Util_1 = require("./util/Util");
 var NGFormGen_1 = require("./gen/code/client/ng/NGFormGen");
 var NGFilterGen_1 = require("./gen/code/client/ng/NGFilterGen");
 var SassGen_1 = require("./gen/file/SassGen");
 var CordovaGen_1 = require("./gen/file/CordovaGen");
 var Deployer_1 = require("./deploy/Deployer");
 var Backuper_1 = require("./deploy/Backuper");
+var ExpressControllerGen_1 = require("./gen/code/server/ExpressControllerGen");
+var Log_1 = require("./util/Log");
 var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), { encoding: 'utf8' }));
 program.version("Vesta Framework++ v" + packageInfo.version);
 program
@@ -55,7 +55,7 @@ switch (command) {
         initProject();
         break;
     default:
-        Util_1.Util.log.error('Invalid operation');
+        Log_1.Log.error('Invalid operation');
 }
 function createProject() {
     var _a = program['create'].split('/'), projectCategory = _a[0], projectName = _a[1];
@@ -86,7 +86,7 @@ function generateCode(args) {
     var type = args.shift().toLowerCase();
     var name = args[0];
     if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
-        return Util_1.Util.log.error('Please enter a valid name');
+        return Log_1.Log.error('Please enter a valid name');
     }
     var vesta = Vesta_1.Vesta.getInstance(), projectConfig = vesta.getConfig();
     switch (type) {
@@ -143,12 +143,12 @@ function generateCode(args) {
             sass.generate();
             break;
         default:
-            Util_1.Util.log.error("Invalid generator option " + type);
+            Log_1.Log.error("Invalid generator option " + type);
     }
 }
 function initProject() {
     var vesta = Vesta_1.Vesta.getInstance({});
-    Util_1.Util.log.error('In progress...');
+    Log_1.Log.error('In progress...');
 }
 function deployProject(args) {
     Deployer_1.Deployer.getDeployConfig(args)

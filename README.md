@@ -1,5 +1,5 @@
 # vesta
-**[Vesta Rayan Afzar](http://vestarayanafzar.ir) Framework++**
+**[Vesta Rayan Afzar](http://vestarayanafzar.ir) Platform**
 
 ## Installation
     npm install -g vesta
@@ -33,7 +33,7 @@ which will be copied/submoduled  into a sub directory of generated project. Even
 
 If you want to init git repository you have to create them on your remote git repository server before using `vesta create`. 
 The most important repository is the commonCode repository. 
-### `vesta gen (sass | controller | directive | filter) [options]`
+### `vesta gen (sass | controller | directive | filter) name`
 Generate each of the mentioned
 * **sass** `vesta gen sass (font|component|directive|page) name`
 * **controller** `vesta gen controller name` Based on the type of project this will generate a server side (express) or 

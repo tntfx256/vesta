@@ -1,7 +1,7 @@
 {
   "name": "vesta",
-  "version": "0.5.6",
-  "description": "Vesta Framework++",
+  "version": "0.5.9",
+  "description": "Vesta Platform",
   "keywords": [
     "Code Generator",
     "NodeJS",
@@ -33,10 +33,6 @@
     "type": "git",
     "url": "git+https://github.com/hbtb/vesta.git"
   },
-  "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-typescript": "^2.10.0"
-  },
   "dependencies": {
     "colors": "^1.1.2",
     "commander": "^2.9.0",
@@ -47,5 +43,9 @@
     "shelljs": "^0.6.0",
     "speakeasy": "^1.0.3",
     "yamljs": "^0.2.7"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-typescript": "^2.10.0"
   }
 }

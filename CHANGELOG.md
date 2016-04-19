@@ -1,6 +1,11 @@
+# 0.5.9
+### Features
+* backup volumes by `docker-compose.yml` file
+* instead of exporting container, only the mounted directories are compressed as tar file
+
 # 0.5.4
 ### Features
-* Deploy history
+* deploy history
 
 ### Bug Fixes
 * updating docker-compose production in order to be testable in windows

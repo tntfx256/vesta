@@ -3,6 +3,8 @@ var inquirer = require("inquirer");
 var Vesta_1 = require("../../file/Vesta");
 var Util_1 = require("../../../util/Util");
 var GitGen_1 = require("../../file/GitGen");
+var Fs_1 = require("../../../util/Fs");
+var Log_1 = require("../../../util/Log");
 var ClientAppGen = (function () {
     function ClientAppGen(config) {
         this.config = config;
@@ -32,9 +34,13 @@ var ClientAppGen = (function () {
         Util_1.Util.findInFileAndReplace(dir + "/resources/gitignore/src/app/config/setting.var.ts", {
             'http://localhost:3000': this.config.endpoint
         });
-        Util_1.Util.fs.copy(dir + "/resources/gitignore/src/app/config/setting.var.ts", dir + "/src/app/config/setting.var.ts");
+        Util_1.Util.findInFileAndReplace(dir + "/resources/gitignore/resources/gulp/setting.js", {
+            'http://localhost': /(https?:\/\/[^:]+).*/.exec(this.config.endpoint)[1]
+        });
+        Fs_1.Fs.copy(dir + "/resources/gitignore/resources/gulp/setting.js", dir + "/resources/gulp/setting.js");
+        Fs_1.Fs.copy(dir + "/resources/gitignore/src/app/config/setting.var.ts", dir + "/src/app/config/setting.var.ts");
         if (this.isCordova) {
-            Util_1.Util.fs.mkdir(dir + "/www"); // for installing plugins this folder must exist
+            Fs_1.Fs.mkdir(dir + "/www"); // for installing plugins this folder must exist
             Util_1.Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
         }
     };
@@ -47,7 +53,7 @@ var ClientAppGen = (function () {
                 message: 'Platform: ',
                 choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova]
             }];
-        Util_1.Util.log.info("For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)");
+        Log_1.Log.info("For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)");
         return new Promise(function (resolve) {
             inquirer.prompt(qs, function (answer) {
                 config.type = ClientAppGen.Type.Angular;
