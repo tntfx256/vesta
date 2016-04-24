@@ -7,7 +7,7 @@ import {IProjectGenConfig} from "../ProjectGen";
 import {ExpressAppGen} from "./server/ExpressAppGen";
 import {GitGen} from "../file/GitGen";
 import {Util} from "../../util/Util";
-import {Fs} from "../../util/Fs";
+import {FsUtil} from "../../util/FsUtil";
 var speakeasy = require('speakeasy');
 
 export interface IServerAppConfig {
@@ -37,7 +37,7 @@ export class ServerAppGen implements IFileGenerator {
             repo = this.vesta.getProjectConfig().repository;
         GitGen.clone(GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
         GitGen.cleanClonedRepo(dir);
-        Fs.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`);
+        FsUtil.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`);
     }
 
     public generate() {

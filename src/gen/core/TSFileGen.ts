@@ -4,7 +4,7 @@ import {ClassGen} from "./ClassGen";
 import {InterfaceGen} from "./InterfaceGen";
 import {EnumGen} from "./EnumGen";
 import {MethodGen} from "./MethodGen";
-import {Fs} from "../../util/Fs";
+import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 
 export interface IImportStatement {
@@ -209,7 +209,7 @@ export class TsFileGen {
 
     public write(directory:string, ext:string = 'ts'):void {
         try {
-            Fs.writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
+            FsUtil.writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
         } catch (e) {
             Log.error(e.message);
         }

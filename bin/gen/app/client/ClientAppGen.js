@@ -3,7 +3,7 @@ var inquirer = require("inquirer");
 var Vesta_1 = require("../../file/Vesta");
 var Util_1 = require("../../../util/Util");
 var GitGen_1 = require("../../file/GitGen");
-var Fs_1 = require("../../../util/Fs");
+var FsUtil_1 = require("../../../util/FsUtil");
 var Log_1 = require("../../../util/Log");
 var ClientAppGen = (function () {
     function ClientAppGen(config) {
@@ -37,10 +37,10 @@ var ClientAppGen = (function () {
         Util_1.Util.findInFileAndReplace(dir + "/resources/gitignore/resources/gulp/setting.js", {
             'http://localhost': /(https?:\/\/[^:]+).*/.exec(this.config.endpoint)[1]
         });
-        Fs_1.Fs.copy(dir + "/resources/gitignore/resources/gulp/setting.js", dir + "/resources/gulp/setting.js");
-        Fs_1.Fs.copy(dir + "/resources/gitignore/src/app/config/setting.var.ts", dir + "/src/app/config/setting.var.ts");
+        FsUtil_1.FsUtil.copy(dir + "/resources/gitignore/resources/gulp/setting.js", dir + "/resources/gulp/setting.js");
+        FsUtil_1.FsUtil.copy(dir + "/resources/gitignore/src/app/config/setting.var.ts", dir + "/src/app/config/setting.var.ts");
         if (this.isCordova) {
-            Fs_1.Fs.mkdir(dir + "/www"); // for installing plugins this folder must exist
+            FsUtil_1.FsUtil.mkdir(dir + "/www"); // for installing plugins this folder must exist
             Util_1.Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
         }
     };

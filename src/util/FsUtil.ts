@@ -1,7 +1,7 @@
 import * as fse from "fs-extra";
 import {Log} from "./Log";
 
-export class Fs {
+export class FsUtil {
     public static mkdir(...dirs:Array<string>):void {
         dirs.forEach(dir=> {
             try {

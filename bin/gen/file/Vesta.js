@@ -1,7 +1,7 @@
 "use strict";
 var fs = require("fs-extra");
 var Config_1 = require("../../Config");
-var Fs_1 = require("../../util/Fs");
+var FsUtil_1 = require("../../util/FsUtil");
 var Log_1 = require("../../util/Log");
 var Vesta = (function () {
     function Vesta(config) {
@@ -35,7 +35,7 @@ var Vesta = (function () {
             Log_1.Log.error('Invalid operation');
         }
         else {
-            Fs_1.Fs.writeFile(this.config.name + "/vesta.json", JSON.stringify(this.json, null, 2));
+            FsUtil_1.FsUtil.writeFile(this.config.name + "/vesta.json", JSON.stringify(this.json, null, 2));
         }
     };
     Vesta.getInstance = function (config) {

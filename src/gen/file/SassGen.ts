@@ -3,7 +3,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import {Util} from "../../util/Util";
 import {Placeholder} from "../core/Placeholder";
-import {Fs} from "../../util/Fs";
+import {FsUtil} from "../../util/FsUtil";
 
 export class SassGen {
     static Type = {Font: 'font', Component: 'component', Directive: 'directive', Page: 'page'};
@@ -31,7 +31,7 @@ export class SassGen {
             fs.mkdirpSync(dir);
         } catch (e) {
         }
-        Fs.writeFile(path.join(dir, `_${this.name}.scss`), code);
+        FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
         pattern[Placeholder.SassFont] = `${Placeholder.SassFont}\n@import 'fonts/${this.name}';`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }
@@ -46,7 +46,7 @@ export class SassGen {
             fs.mkdirpSync(dir);
         } catch (e) {
         }
-        Fs.writeFile(path.join(dir, `_${this.name}.scss`), code);
+        FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
         pattern[Placeholder.SassPage] = `${Placeholder.SassPage}\n@import 'pages/${this.name}';`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }
@@ -61,7 +61,7 @@ export class SassGen {
             fs.mkdirpSync(dir);
         } catch (e) {
         }
-        Fs.writeFile(path.join(dir, `_${this.name}.scss`), code);
+        FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
         pattern[Placeholder.SassComponent] = `${Placeholder.SassComponent}\n@import 'components/${this.name}';`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }
@@ -76,7 +76,7 @@ export class SassGen {
             fs.mkdirpSync(dir);
         } catch (e) {
         }
-        Fs.writeFile(path.join(dir, `_${this.name}.scss`), code);
+        FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
         pattern[Placeholder.SassDirective] = `${Placeholder.SassDirective}\n@import 'directives/${this.name}';`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }

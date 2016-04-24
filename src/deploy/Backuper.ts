@@ -5,9 +5,9 @@ import * as _ from "lodash";
 import {IDeployConfig, Deployer} from "./Deployer";
 import {GregorianDate} from "../cmn/date/GregorianDate";
 import {Err} from "../cmn/Err";
-import {Fs} from "../util/Fs";
+import {FsUtil} from "../util/FsUtil";
 import {Log} from "../util/Log";
-import {Cmd} from "../util/Cmd";
+import {CmdUtil} from "../util/CmdUtil";
 
 
 export class Backuper {
@@ -52,10 +52,10 @@ export class Backuper {
                 dirsToBackup.push(volumeDirectoryMap[volume]);
             }
         }
-        Cmd.execSync(`docker run ${volumeOption.join(' ')} --name ${this.backupName} busybox tar -cvf ${this.backupName}.tar ${dirsToBackup.join(' ')}`);
-        Cmd.execSync(`docker cp ${this.backupName}:/${this.backupName}.tar ./${this.backupName}.tar`);
-        Cmd.execSync(`docker rm -fv ${this.backupName}`);
-        Fs.writeFile(Backuper.ConfigFile, JSON.stringify(this.config, null, 2));
+        CmdUtil.execSync(`docker run ${volumeOption.join(' ')} --name ${this.backupName} busybox tar -cvf ${this.backupName}.tar ${dirsToBackup.join(' ')}`);
+        CmdUtil.execSync(`docker cp ${this.backupName}:/${this.backupName}.tar ./${this.backupName}.tar`);
+        CmdUtil.execSync(`docker rm -fv ${this.backupName}`);
+        FsUtil.writeFile(Backuper.ConfigFile, JSON.stringify(this.config, null, 2));
         Log.info(`\n\nBackup was create to ${this.backupName}.tar`);
     }
 

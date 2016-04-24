@@ -10,7 +10,7 @@ import {Util} from "../../../../../util/Util";
 import {Placeholder} from "../../../../core/Placeholder";
 import {XMLGen} from "../../../../core/XMLGen";
 import {SassGen} from "../../../../file/SassGen";
-import {Fs} from "../../../../../util/Fs";
+import {FsUtil} from "../../../../../util/FsUtil";
 
 export abstract class BaseNGControllerGen {
     protected controllerFile:TsFileGen;
@@ -38,7 +38,7 @@ export abstract class BaseNGControllerGen {
             this.templatePath = path.join(this.templatePath, ctrlName);
             this.setModelRequiredInjections();
         }
-        Fs.mkdir(this.path, this.templatePath);
+        FsUtil.mkdir(this.path, this.templatePath);
         for (var i = config.injects.length; i--;) {
             if (config.injects[i].name == '$scope') {
                 config.injects.splice(i, 1);
@@ -105,7 +105,7 @@ export abstract class BaseNGControllerGen {
     });\n    ${Placeholder.NGRouter}`;
         var routerFile = 'src/app/config/route.ts';
         var routeCode = fs.readFileSync(routerFile, {encoding: 'utf8'});
-        Fs.writeFile(routerFile, routeCode.replace(Placeholder.NGRouter, code));
+        FsUtil.writeFile(routerFile, routeCode.replace(Placeholder.NGRouter, code));
     }
 
     protected generateForm() {
@@ -114,18 +114,18 @@ export abstract class BaseNGControllerGen {
             includePath = Util.joinPath('tpl', this.config.module, ctrlName),
             config:INGFormWrapperConfig = <INGFormWrapperConfig>{};
         config.formPath = Util.joinPath(includePath, `${formName}.html`);
-        Fs.writeFile(path.join(this.templatePath, `${ctrlName}Form.html`), this.form.generate());
+        FsUtil.writeFile(path.join(this.templatePath, `${ctrlName}Form.html`), this.form.generate());
         config.isModal = true;
         config.type = NGFormGen.Type.Add;
         config.title = `Add ${this.config.model}`;
         config.cancel = 'Cancel';
         config.ok = 'Save';
         var addForm = this.form.wrap(config);
-        Fs.writeFile(path.join(this.templatePath, `${ctrlName}AddForm.html`), addForm.generate());
+        FsUtil.writeFile(path.join(this.templatePath, `${ctrlName}AddForm.html`), addForm.generate());
         config.type = NGFormGen.Type.Edit;
         config.title = `Edit ${this.config.model}`;
         var editForm = this.form.wrap(config);
-        Fs.writeFile(path.join(this.templatePath, `${ctrlName}EditForm.html`), editForm.generate());
+        FsUtil.writeFile(path.join(this.templatePath, `${ctrlName}EditForm.html`), editForm.generate());
         //
         var addController = new NGControllerGen(this.config);
         addController.setAsAddController();
@@ -150,7 +150,7 @@ export abstract class BaseNGControllerGen {
         template.html(`<h1>${pageName} Page</h1>`);
         var sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
-        Fs.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
+        FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
     }
 
     protected createScope() {

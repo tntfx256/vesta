@@ -1,7 +1,7 @@
 "use strict";
 var fs = require("fs-extra");
 var Log_1 = require("../../util/Log");
-var Cmd_1 = require("../../util/Cmd");
+var CmdUtil_1 = require("../../util/CmdUtil");
 var CordovaGen = (function () {
     function CordovaGen() {
         this.path = 'cordova.json';
@@ -20,7 +20,7 @@ var CordovaGen = (function () {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Cmd_1.Cmd.execSync("cordova plugin add " + plugins.join(' '));
+        CmdUtil_1.CmdUtil.execSync("cordova plugin add " + plugins.join(' '));
     };
     CordovaGen.prototype.uninstall = function () {
         var plugins = [];
@@ -30,7 +30,7 @@ var CordovaGen = (function () {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        Cmd_1.Cmd.execSync("cordova plugin rm " + plugins.join(' '));
+        CmdUtil_1.CmdUtil.execSync("cordova plugin rm " + plugins.join(' '));
     };
     CordovaGen.getPlugins = function () {
         var serviceNames = [];

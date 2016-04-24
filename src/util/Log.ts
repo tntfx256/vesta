@@ -1,5 +1,4 @@
 import * as colors from "colors";
-import {Util} from "./Util";
 
 export class Log {
     public static simple(message:string) {

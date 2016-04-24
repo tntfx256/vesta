@@ -11,7 +11,7 @@ import {Util} from "../../../util/Util";
 import {DatabaseCodeGen} from "./DatabaseCodeGen";
 import {Placeholder} from "../../core/Placeholder";
 import {ModelGen} from "../ModelGen";
-import {Fs} from "../../../util/Fs";
+import {FsUtil} from "../../../util/FsUtil";
 import {Log} from "../../../util/Log";
 
 export interface IExpressControllerConfig {
@@ -70,7 +70,7 @@ export class ExpressControllerGen {
     private addCRUDOperations() {
         var modelInstanceName = _.camelCase(this.config.model),
             modelClassName = _.capitalize(modelInstanceName),
-            db:DatabaseCodeGen = new DatabaseCodeGen();
+            dbCodeGen:DatabaseCodeGen = new DatabaseCodeGen(modelClassName);
         this.controllerFile.addImport(`{Err}`, Util.genRelativePath(this.path, `src/cmn/Err`));
         this.controllerFile.addImport(`{DatabaseError}`, Util.genRelativePath(this.path, `src/cmn/error/DatabaseError`));
         this.controllerFile.addImport(`{ValidationError}`, Util.genRelativePath(this.path, `src/cmn/error/ValidationError`));
@@ -81,27 +81,27 @@ export class ExpressControllerGen {
         //
         var methodName = 'get' + modelClassName,
             methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.getAll');
-        this.addResponseMethod(methodName).setContent(db.getQueryCode(true));
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getQueryCode(true));
         this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'get' + Util.plural(modelClassName);
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.get');
-        this.addResponseMethod(methodName).setContent(db.getQueryCode(false));
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getQueryCode(false));
         this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'add' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.add');
-        this.addResponseMethod(methodName).setContent(db.getInsertCode());
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getInsertCode());
         this.routeMethod.appendContent(`router.post('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'update' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.update');
-        this.addResponseMethod(methodName).setContent(db.getUpdateCode());
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getUpdateCode());
         this.routeMethod.appendContent(`router.put('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'remove' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.delete');
-        this.addResponseMethod(methodName).setContent(db.getDeleteCode());
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getDeleteCode());
         this.routeMethod.appendContent(`router.delete('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
     }
 
@@ -109,7 +109,7 @@ export class ExpressControllerGen {
         if (this.config.model) {
             this.addCRUDOperations();
         }
-        Fs.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
+        FsUtil.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
         var filePath = 'src/api/ApiFactory.ts';
         var code = fs.readFileSync(filePath, {encoding: 'utf8'});
         if (code.search(Placeholder.Router)) {
@@ -121,7 +121,7 @@ export class ExpressControllerGen {
         ${controllerCamel}.route(router);
         ${Placeholder.Router}`;
             code = importCode + '\n' + code.replace(Placeholder.Router, embedCode);
-            Fs.writeFile(filePath, code);
+            FsUtil.writeFile(filePath, code);
         }
     }
 

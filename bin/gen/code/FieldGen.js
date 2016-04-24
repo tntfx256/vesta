@@ -275,7 +275,7 @@ var FieldGen = (function () {
             code += this.getDefaultValueCode();
         if (this.properties.relation) {
             var _a = this.properties.relation, type = _a.type, model = _a.model;
-            this.modelFile.addImport("{I" + model + ", " + model + "}", model.toString());
+            this.modelFile.addImport("{I" + model + ", " + model + "}", "./" + model.toString());
             code += this.getRelationCodeFromNumber(type, model.toString());
         }
         return code + ';';

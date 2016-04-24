@@ -1,10 +1,10 @@
 "use strict";
 var fse = require("fs-extra");
 var Log_1 = require("./Log");
-var Fs = (function () {
-    function Fs() {
+var FsUtil = (function () {
+    function FsUtil() {
     }
-    Fs.mkdir = function () {
+    FsUtil.mkdir = function () {
         var dirs = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             dirs[_i - 0] = arguments[_i];
@@ -19,7 +19,7 @@ var Fs = (function () {
         });
     };
     ;
-    Fs.writeFile = function (path, content) {
+    FsUtil.writeFile = function (path, content) {
         try {
             fse.writeFileSync(path, content);
         }
@@ -27,7 +27,7 @@ var Fs = (function () {
             Log_1.Log.error("writeFile: " + e.message);
         }
     };
-    Fs.copy = function (src, dest) {
+    FsUtil.copy = function (src, dest) {
         try {
             fse.copySync(src, dest);
         }
@@ -35,7 +35,7 @@ var Fs = (function () {
             Log_1.Log.error("copy: " + e.message);
         }
     };
-    Fs.rename = function (src, dest) {
+    FsUtil.rename = function (src, dest) {
         try {
             fse.renameSync(src, dest);
         }
@@ -43,7 +43,7 @@ var Fs = (function () {
             Log_1.Log.error("rename: " + e.message);
         }
     };
-    Fs.remove = function (path) {
+    FsUtil.remove = function (path) {
         try {
             fse.removeSync(path);
         }
@@ -51,6 +51,6 @@ var Fs = (function () {
             Log_1.Log.error("remove: " + e.message);
         }
     };
-    return Fs;
+    return FsUtil;
 }());
-exports.Fs = Fs;
+exports.FsUtil = FsUtil;

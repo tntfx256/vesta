@@ -5,9 +5,9 @@ var Err_1 = require("../cmn/Err");
 var GitGen_1 = require("../gen/file/GitGen");
 var GregorianDate_1 = require("../cmn/date/GregorianDate");
 var ProjectGen_1 = require("../gen/ProjectGen");
-var Fs_1 = require("../util/Fs");
+var FsUtil_1 = require("../util/FsUtil");
 var Log_1 = require("../util/Log");
-var Cmd_1 = require("../util/Cmd");
+var CmdUtil_1 = require("../util/CmdUtil");
 var isRoot = require('is-root');
 var Deployer = (function () {
     function Deployer(config) {
@@ -15,8 +15,8 @@ var Deployer = (function () {
         var date = new GregorianDate_1.GregorianDate();
         this.config.history.push({ date: date.format('Y/m/d H:i:s'), type: 'deploy' });
         this.stagingPath = config.projectName;
-        Fs_1.Fs.remove(this.stagingPath);
-        Fs_1.Fs.mkdir(config.deployPath);
+        FsUtil_1.FsUtil.remove(this.stagingPath);
+        FsUtil_1.FsUtil.mkdir(config.deployPath);
     }
     Deployer.prototype.deploy = function () {
         GitGen_1.GitGen.clone(this.config.repositoryUrl, this.stagingPath);
@@ -25,34 +25,36 @@ var Deployer = (function () {
             this.vesta = JSON.parse(fs.readFileSync(vestaJsonFile, { encoding: 'utf8' }));
         }
         catch (e) {
-            Fs_1.Fs.remove(this.stagingPath);
+            FsUtil_1.FsUtil.remove(this.stagingPath);
             return Log_1.Log.error(vestaJsonFile + " not found");
         }
         this.vesta.config.type == ProjectGen_1.ProjectGen.Type.ClientSide ?
             this.deployClientSideProject() :
             this.deployServerSideProject();
-        Fs_1.Fs.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
+        FsUtil_1.FsUtil.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
     };
     Deployer.prototype.deployServerSideProject = function () {
         var deployPath = this.config.deployPath + "/" + this.config.projectName;
         var isAlreadyRunning = fs.existsSync(deployPath);
-        Cmd_1.Cmd.execSync("git submodule update --init src/cmn", this.stagingPath);
-        Fs_1.Fs.copy(this.stagingPath + "/resources/gitignore/src/config/setting.var.ts", this.stagingPath + "/src/config/setting.var.ts");
-        Fs_1.Fs.copy(this.stagingPath + "/package.json", this.stagingPath + "/build/api/src/package.json");
-        Cmd_1.Cmd.execSync("npm install", this.stagingPath);
-        Cmd_1.Cmd.execSync("gulp prod", this.stagingPath);
-        Cmd_1.Cmd.execSync("npm install --production", this.stagingPath + "/build/api/src");
+        var execOption = { cwd: this.stagingPath };
+        CmdUtil_1.CmdUtil.execSync("git submodule update --init src/cmn", execOption);
+        FsUtil_1.FsUtil.copy(this.stagingPath + "/resources/gitignore/src/config/setting.var.ts", this.stagingPath + "/src/config/setting.var.ts");
+        FsUtil_1.FsUtil.copy(this.stagingPath + "/package.json", this.stagingPath + "/build/api/src/package.json");
+        CmdUtil_1.CmdUtil.execSync("npm install", execOption);
+        CmdUtil_1.CmdUtil.execSync("gulp prod", execOption);
+        CmdUtil_1.CmdUtil.execSync("npm install --production", { cwd: this.stagingPath + "/build/api/src" });
+        execOption.cwd = deployPath;
         if (isAlreadyRunning) {
-            Cmd_1.Cmd.execSync("docker-compose stop -t 5", deployPath);
-            Cmd_1.Cmd.execSync("docker-compose down", deployPath);
-            Cmd_1.Cmd.execSync("rm -Rf " + deployPath);
+            CmdUtil_1.CmdUtil.execSync("docker-compose stop -t 5", execOption);
+            CmdUtil_1.CmdUtil.execSync("docker-compose down", execOption);
+            CmdUtil_1.CmdUtil.execSync("rm -Rf " + deployPath);
         }
-        Fs_1.Fs.rename(this.stagingPath + "/build", deployPath);
-        Cmd_1.Cmd.execSync("docker-compose up -d", deployPath);
-        Cmd_1.Cmd.execSync("rm -Rf " + this.stagingPath);
+        FsUtil_1.FsUtil.rename(this.stagingPath + "/build", deployPath);
+        CmdUtil_1.CmdUtil.execSync("docker-compose up -d", execOption);
+        CmdUtil_1.CmdUtil.execSync("rm -Rf " + this.stagingPath);
     };
     Deployer.prototype.deployClientSideProject = function () {
-        // Fs.copy(`${this.projectName}/resources/gitignore/src/app/config/setting.var.ts`, `${this.projectName}/src/app/config/setting.var.ts`);
+        // FsUtil.copy(`${this.projectName}/resources/gitignore/src/app/config/setting.var.ts`, `${this.projectName}/src/app/config/setting.var.ts`);
     };
     Deployer.getProjectName = function (url) {
         var _a = /.+\/(.+)\/(.+)\.git$/.exec(url), group = _a[1], project = _a[2];

@@ -4,7 +4,7 @@ import {Vesta} from "../../file/Vesta";
 import {IProjectGenConfig} from "../../ProjectGen";
 import {Util} from "../../../util/Util";
 import {GitGen} from "../../file/GitGen";
-import {Fs} from "../../../util/Fs";
+import {FsUtil} from "../../../util/FsUtil";
 import {Log} from "../../../util/Log";
 
 export interface IClientAppConfig {
@@ -58,10 +58,10 @@ export abstract class ClientAppGen {
         Util.findInFileAndReplace(`${dir}/resources/gitignore/resources/gulp/setting.js`, {
             'http://localhost': /(https?:\/\/[^:]+).*/.exec(this.config.endpoint)[1]
         });
-        Fs.copy(`${dir}/resources/gitignore/resources/gulp/setting.js`, `${dir}/resources/gulp/setting.js`);
-        Fs.copy(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, `${dir}/src/app/config/setting.var.ts`);
+        FsUtil.copy(`${dir}/resources/gitignore/resources/gulp/setting.js`, `${dir}/resources/gulp/setting.js`);
+        FsUtil.copy(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, `${dir}/src/app/config/setting.var.ts`);
         if (this.isCordova) {
-            Fs.mkdir(`${dir}/www`); // for installing plugins this folder must exist
+            FsUtil.mkdir(`${dir}/www`); // for installing plugins this folder must exist
             Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
         }
     }

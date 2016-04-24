@@ -4,7 +4,7 @@ import {NGDependencyInjector} from "./NGDependencyInjector";
 import {MethodGen} from "../../../core/MethodGen";
 import {Placeholder} from "../../../core/Placeholder";
 import {TsFileGen} from "../../../core/TSFileGen";
-import {Fs} from "../../../../util/Fs";
+import {FsUtil} from "../../../../util/FsUtil";
 
 export interface IFilterGenConfig {
     name:string;
@@ -28,7 +28,7 @@ export class NGFilterGen {
             return input;
         }`);
         this.file.addMixin(`${this.file.name}.$inject = [];`, TsFileGen.CodeLocation.AfterMethod);
-        Fs.mkdir(this.path);
+        FsUtil.mkdir(this.path);
     }
 
     generate() {

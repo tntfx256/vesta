@@ -9,7 +9,7 @@ var NGDependencyInjector_1 = require("./NGDependencyInjector");
 var Placeholder_1 = require("../../../core/Placeholder");
 var Util_1 = require("../../../../util/Util");
 var SassGen_1 = require("../../../file/SassGen");
-var Fs_1 = require("../../../../util/Fs");
+var FsUtil_1 = require("../../../../util/FsUtil");
 var Log_1 = require("../../../../util/Log");
 var NGDirectiveGen = (function () {
     function NGDirectiveGen(config) {
@@ -71,7 +71,7 @@ var NGDirectiveGen = (function () {
         var templateCode = "<div class=\"" + this.tplFileName + "\"></div>";
         if (this.config.externalTemplate) {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', "templateUrl: 'tpl/directive/" + this.tplFileName + ".html',"));
-            Fs_1.Fs.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
+            FsUtil_1.FsUtil.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
         }
         else {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', "template: '" + templateCode + "',"));

@@ -1,3 +1,10 @@
+# 0.5.10
+### Features
+* SOC on util files 
+### Bug Fixes
+* import statement for relation field type on model generator
+
+
 # 0.5.9
 ### Features
 * backup volumes by `docker-compose.yml` file
@@ -6,7 +13,6 @@
 # 0.5.4
 ### Features
 * deploy history
-
 ### Bug Fixes
 * updating docker-compose production in order to be testable in windows
 * creating master branch after initiating git repository on generated project
@@ -19,7 +25,6 @@
 # 0.5.2
 ### Features
 * Backup
-
 ### Bug Fixes
 * Deploy
 

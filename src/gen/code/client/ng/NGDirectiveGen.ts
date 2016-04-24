@@ -10,7 +10,7 @@ import {Placeholder} from "../../../core/Placeholder";
 import {Util} from "../../../../util/Util";
 import {InterfaceGen} from "../../../core/InterfaceGen";
 import {SassGen} from "../../../file/SassGen";
-import {Fs} from "../../../../util/Fs";
+import {FsUtil} from "../../../../util/FsUtil";
 import {Log} from "../../../../util/Log";
 
 export interface INGDirectiveConfig {
@@ -104,7 +104,7 @@ export class NGDirectiveGen {
         var templateCode = `<div class="${this.tplFileName}"></div>`;
         if (this.config.externalTemplate) {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `templateUrl: 'tpl/directive/${this.tplFileName}.html',`));
-            Fs.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
+            FsUtil.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
         } else {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `template: '${templateCode}',`));
         }

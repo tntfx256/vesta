@@ -1,12 +1,13 @@
 "use strict";
 var DatabaseCodeGen = (function () {
-    function DatabaseCodeGen() {
+    function DatabaseCodeGen(model) {
+        this.model = model;
     }
     DatabaseCodeGen.prototype.getQueryCodeForSingleInstance = function () {
-        return "var result:IQueryResult<IUser> = <IQueryResult<IUser>>{items: []};\n        User.findById<IUser>(req.params.id)\n            .then(user=> {\n                result.items.push(user);\n                res.json(result);\n            })\n            .catch(err=>this.handleError(res, err.message, Err.Code.DBQuery));";
+        return this.model + ".findById<IUser>(req.params.id)\n            .then(result=> res.json(result))\n            .catch(err=> this.handleError(res, err.message, Err.Code.DBQuery));";
     };
     DatabaseCodeGen.prototype.getQueryCodeForMultiInstance = function () {
-        return "var result:IQueryResult<IUser> = <IQueryResult<IUser>>{items: []};\n        User.findById<IUser>(req.params.id)\n            .then(user=> {\n                result.items.push(user);\n                res.json(result);\n            })\n            .catch(err=>this.handleError(res, err.message, Err.Code.DBQuery));";
+        return "var query = new Vql('" + this.model + "');\n        query.filter(req.param('query')).limit(+req.param('limit', 50));\n        " + this.model + ".findByQuery(query)\n            .then(result=>res.json(result))\n            .catch(err=>this.handleError(res, err.message, Err.Code.DBQuery));";
     };
     DatabaseCodeGen.prototype.getQueryCode = function (isSingle) {
         return isSingle ? this.getQueryCodeForSingleInstance() : this.getQueryCodeForMultiInstance();

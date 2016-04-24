@@ -1,22 +1,19 @@
 export class DatabaseCodeGen {
 
+    constructor(private model:string) {
+    }
+
     private getQueryCodeForSingleInstance():string {
-        return `var result:IQueryResult<IUser> = <IQueryResult<IUser>>{items: []};
-        User.findById<IUser>(req.params.id)
-            .then(user=> {
-                result.items.push(user);
-                res.json(result);
-            })
-            .catch(err=>this.handleError(res, err.message, Err.Code.DBQuery));`;
+        return `${this.model}.findById<IUser>(req.params.id)
+            .then(result=> res.json(result))
+            .catch(err=> this.handleError(res, err.message, Err.Code.DBQuery));`;
     }
 
     private getQueryCodeForMultiInstance():string {
-        return `var result:IQueryResult<IUser> = <IQueryResult<IUser>>{items: []};
-        User.findById<IUser>(req.params.id)
-            .then(user=> {
-                result.items.push(user);
-                res.json(result);
-            })
+        return `var query = new Vql('${this.model}');
+        query.filter(req.param('query')).limit(+req.param('limit', 50));
+        ${this.model}.findByQuery(query)
+            .then(result=>res.json(result))
             .catch(err=>this.handleError(res, err.message, Err.Code.DBQuery));`;
     }
 

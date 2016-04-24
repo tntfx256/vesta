@@ -9,7 +9,7 @@ var ModelGen_1 = require("../../ModelGen");
 var EmptyFormGen_1 = require("./form/EmptyFormGen");
 var ClientAppGen_1 = require("../../../app/client/ClientAppGen");
 var IonicFormGen_1 = require("./form/IonicFormGen");
-var Fs_1 = require("../../../../util/Fs");
+var FsUtil_1 = require("../../../../util/FsUtil");
 var Log_1 = require("../../../../util/Log");
 var NGFormGen = (function () {
     function NGFormGen(config) {
@@ -45,7 +45,7 @@ var NGFormGen = (function () {
             return;
         var code = this.form.generate();
         if (this.config.writeToFile)
-            Fs_1.Fs.writeFile(path.join(this.path, 'form.html'), code);
+            FsUtil_1.FsUtil.writeFile(path.join(this.path, 'form.html'), code);
         return code;
     };
     NGFormGen.prototype.wrap = function (config) {

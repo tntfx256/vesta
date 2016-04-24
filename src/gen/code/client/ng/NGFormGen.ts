@@ -13,7 +13,7 @@ import {ModelGen} from "../../ModelGen";
 import {EmptyFormGen} from "./form/EmptyFormGen";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {IonicFormGen} from "./form/IonicFormGen";
-import {Fs} from "../../../../util/Fs";
+import {FsUtil} from "../../../../util/FsUtil";
 import {Log} from "../../../../util/Log";
 
 export interface INGFormConfig {
@@ -70,7 +70,7 @@ export class NGFormGen {
     generate() {
         if (!this.model) return;
         var code = this.form.generate();
-        if (this.config.writeToFile) Fs.writeFile(path.join(this.path, 'form.html'), code);
+        if (this.config.writeToFile) FsUtil.writeFile(path.join(this.path, 'form.html'), code);
         return code;
     }
 

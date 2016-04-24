@@ -5,7 +5,7 @@ var ClassGen_1 = require("./ClassGen");
 var InterfaceGen_1 = require("./InterfaceGen");
 var EnumGen_1 = require("./EnumGen");
 var MethodGen_1 = require("./MethodGen");
-var Fs_1 = require("../../util/Fs");
+var FsUtil_1 = require("../../util/FsUtil");
 var Log_1 = require("../../util/Log");
 var TsFileGen = (function () {
     function TsFileGen(name) {
@@ -195,7 +195,7 @@ var TsFileGen = (function () {
     TsFileGen.prototype.write = function (directory, ext) {
         if (ext === void 0) { ext = 'ts'; }
         try {
-            Fs_1.Fs.writeFile(path.join(directory, this.name + "." + ext), this.generate());
+            FsUtil_1.FsUtil.writeFile(path.join(directory, this.name + "." + ext), this.generate());
         }
         catch (e) {
             Log_1.Log.error(e.message);

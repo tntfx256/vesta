@@ -6,9 +6,9 @@ var _ = require("lodash");
 var Deployer_1 = require("./Deployer");
 var GregorianDate_1 = require("../cmn/date/GregorianDate");
 var Err_1 = require("../cmn/Err");
-var Fs_1 = require("../util/Fs");
+var FsUtil_1 = require("../util/FsUtil");
 var Log_1 = require("../util/Log");
-var Cmd_1 = require("../util/Cmd");
+var CmdUtil_1 = require("../util/CmdUtil");
 var Backuper = (function () {
     function Backuper(config) {
         this.config = config;
@@ -44,10 +44,10 @@ var Backuper = (function () {
                 dirsToBackup.push(volumeDirectoryMap[volume]);
             }
         }
-        Cmd_1.Cmd.execSync("docker run " + volumeOption.join(' ') + " --name " + this.backupName + " busybox tar -cvf " + this.backupName + ".tar " + dirsToBackup.join(' '));
-        Cmd_1.Cmd.execSync("docker cp " + this.backupName + ":/" + this.backupName + ".tar ./" + this.backupName + ".tar");
-        Cmd_1.Cmd.execSync("docker rm -fv " + this.backupName);
-        Fs_1.Fs.writeFile(Backuper.ConfigFile, JSON.stringify(this.config, null, 2));
+        CmdUtil_1.CmdUtil.execSync("docker run " + volumeOption.join(' ') + " --name " + this.backupName + " busybox tar -cvf " + this.backupName + ".tar " + dirsToBackup.join(' '));
+        CmdUtil_1.CmdUtil.execSync("docker cp " + this.backupName + ":/" + this.backupName + ".tar ./" + this.backupName + ".tar");
+        CmdUtil_1.CmdUtil.execSync("docker rm -fv " + this.backupName);
+        FsUtil_1.FsUtil.writeFile(Backuper.ConfigFile, JSON.stringify(this.config, null, 2));
         Log_1.Log.info("\n\nBackup was create to " + this.backupName + ".tar");
     };
     Backuper.getDeployConfig = function (args) {

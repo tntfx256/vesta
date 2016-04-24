@@ -8,7 +8,7 @@ import {Util} from "../../../../util/Util";
 import {CordovaGen} from "../../../file/CordovaGen";
 import {Vesta} from "../../../file/Vesta";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
-import {Fs} from "../../../../util/Fs";
+import {FsUtil} from "../../../../util/FsUtil";
 
 
 export interface INGInjectable {
@@ -92,7 +92,7 @@ export class NGDependencyInjector {
         if (/.+Filter$/.exec(instanceName)) {
             instanceName = instanceName.replace(/Filter$/, '');
         }
-        Fs.writeFile(path.join(destination, className + '.ts'), file.generate());
+        FsUtil.writeFile(path.join(destination, className + '.ts'), file.generate());
 
         var importFileCode = fs.readFileSync(importFilePath, {encoding: 'utf8'}),
             importCode = `export {${className}} from '${importPath}/${className}';`,
@@ -105,8 +105,8 @@ export class NGDependencyInjector {
         appFileCode = appFileCode.replace(placeHolder, embedCode);
         importFileCode += '\n' + importCode;
 
-        Fs.writeFile(appFilePath, appFileCode);
-        Fs.writeFile(importFilePath, importFileCode);
+        FsUtil.writeFile(appFilePath, appFileCode);
+        FsUtil.writeFile(importFilePath, importFileCode);
     }
 
     public static getCliInjectables(extraInjectables:Array<INGInjectable> = []):Promise<Array<INGInjectable>> {

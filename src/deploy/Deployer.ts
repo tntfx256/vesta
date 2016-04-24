@@ -5,9 +5,9 @@ import {GitGen} from "../gen/file/GitGen";
 import {GregorianDate} from "../cmn/date/GregorianDate";
 import {IVesta} from "../gen/file/Vesta";
 import {ProjectGen} from "../gen/ProjectGen";
-import {Fs} from "../util/Fs";
+import {FsUtil} from "../util/FsUtil";
 import {Log} from "../util/Log";
-import {Cmd} from "../util/Cmd";
+import {CmdUtil, IExecOptions} from "../util/CmdUtil";
 import inquirer = require("inquirer");
 var isRoot = require('is-root');
 
@@ -31,8 +31,8 @@ export class Deployer {
         var date = new GregorianDate();
         this.config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy'});
         this.stagingPath = config.projectName;
-        Fs.remove(this.stagingPath);
-        Fs.mkdir(config.deployPath);
+        FsUtil.remove(this.stagingPath);
+        FsUtil.mkdir(config.deployPath);
     }
 
     public deploy() {
@@ -41,36 +41,38 @@ export class Deployer {
         try {
             this.vesta = <IVesta>JSON.parse(fs.readFileSync(vestaJsonFile, {encoding: 'utf8'}));
         } catch (e) {
-            Fs.remove(this.stagingPath);
+            FsUtil.remove(this.stagingPath);
             return Log.error(`${vestaJsonFile} not found`);
         }
         this.vesta.config.type == ProjectGen.Type.ClientSide ?
             this.deployClientSideProject() :
             this.deployServerSideProject();
-        Fs.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
+        FsUtil.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
     }
 
     private deployServerSideProject() {
         var deployPath = `${this.config.deployPath}/${this.config.projectName}`;
         var isAlreadyRunning = fs.existsSync(deployPath);
-        Cmd.execSync(`git submodule update --init src/cmn`, this.stagingPath);
-        Fs.copy(`${this.stagingPath}/resources/gitignore/src/config/setting.var.ts`, `${this.stagingPath}/src/config/setting.var.ts`);
-        Fs.copy(`${this.stagingPath}/package.json`, `${this.stagingPath}/build/api/src/package.json`);
-        Cmd.execSync(`npm install`, this.stagingPath);
-        Cmd.execSync(`gulp prod`, this.stagingPath);
-        Cmd.execSync(`npm install --production`, `${this.stagingPath}/build/api/src`);
+        var execOption:IExecOptions = {cwd: this.stagingPath};
+        CmdUtil.execSync(`git submodule update --init src/cmn`, execOption);
+        FsUtil.copy(`${this.stagingPath}/resources/gitignore/src/config/setting.var.ts`, `${this.stagingPath}/src/config/setting.var.ts`);
+        FsUtil.copy(`${this.stagingPath}/package.json`, `${this.stagingPath}/build/api/src/package.json`);
+        CmdUtil.execSync(`npm install`, execOption);
+        CmdUtil.execSync(`gulp prod`, execOption);
+        CmdUtil.execSync(`npm install --production`, {cwd: `${this.stagingPath}/build/api/src`});
+        execOption.cwd = deployPath;
         if (isAlreadyRunning) {
-            Cmd.execSync(`docker-compose stop -t 5`, deployPath);
-            Cmd.execSync(`docker-compose down`, deployPath);
-            Cmd.execSync(`rm -Rf ${deployPath}`);
+            CmdUtil.execSync(`docker-compose stop -t 5`, execOption);
+            CmdUtil.execSync(`docker-compose down`, execOption);
+            CmdUtil.execSync(`rm -Rf ${deployPath}`);
         }
-        Fs.rename(`${this.stagingPath}/build`, deployPath);
-        Cmd.execSync(`docker-compose up -d`, deployPath);
-        Cmd.execSync(`rm -Rf ${this.stagingPath}`);
+        FsUtil.rename(`${this.stagingPath}/build`, deployPath);
+        CmdUtil.execSync(`docker-compose up -d`, execOption);
+        CmdUtil.execSync(`rm -Rf ${this.stagingPath}`);
     }
 
     private deployClientSideProject() {
-        // Fs.copy(`${this.projectName}/resources/gitignore/src/app/config/setting.var.ts`, `${this.projectName}/src/app/config/setting.var.ts`);
+        // FsUtil.copy(`${this.projectName}/resources/gitignore/src/app/config/setting.var.ts`, `${this.projectName}/src/app/config/setting.var.ts`);
     }
 
     private static getProjectName(url:string) {

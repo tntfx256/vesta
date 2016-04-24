@@ -10,7 +10,7 @@ var Util_1 = require("../../../util/Util");
 var DatabaseCodeGen_1 = require("./DatabaseCodeGen");
 var Placeholder_1 = require("../../core/Placeholder");
 var ModelGen_1 = require("../ModelGen");
-var Fs_1 = require("../../../util/Fs");
+var FsUtil_1 = require("../../../util/FsUtil");
 var Log_1 = require("../../../util/Log");
 var ExpressControllerGen = (function () {
     function ExpressControllerGen(config) {
@@ -52,7 +52,7 @@ var ExpressControllerGen = (function () {
         return method;
     };
     ExpressControllerGen.prototype.addCRUDOperations = function () {
-        var modelInstanceName = _.camelCase(this.config.model), modelClassName = _.capitalize(modelInstanceName), db = new DatabaseCodeGen_1.DatabaseCodeGen();
+        var modelInstanceName = _.camelCase(this.config.model), modelClassName = _.capitalize(modelInstanceName), dbCodeGen = new DatabaseCodeGen_1.DatabaseCodeGen(modelClassName);
         this.controllerFile.addImport("{Err}", Util_1.Util.genRelativePath(this.path, "src/cmn/Err"));
         this.controllerFile.addImport("{DatabaseError}", Util_1.Util.genRelativePath(this.path, "src/cmn/error/DatabaseError"));
         this.controllerFile.addImport("{ValidationError}", Util_1.Util.genRelativePath(this.path, "src/cmn/error/ValidationError"));
@@ -61,34 +61,34 @@ var ExpressControllerGen = (function () {
         var middleWares = " this.acl('__ACL__'),", acl = this.routingPath.replace(/\/+/g, '.');
         //
         var methodName = 'get' + modelClassName, methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.getAll');
-        this.addResponseMethod(methodName).setContent(db.getQueryCode(true));
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getQueryCode(true));
         this.routeMethod.appendContent("router.get('" + this.routingPath + "/:id'," + methodBasedMiddleWares + " this." + methodName + ".bind(this));");
         //
         methodName = 'get' + Util_1.Util.plural(modelClassName);
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.get');
-        this.addResponseMethod(methodName).setContent(db.getQueryCode(false));
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getQueryCode(false));
         this.routeMethod.appendContent("router.get('" + this.routingPath + "'," + methodBasedMiddleWares + " this." + methodName + ".bind(this));");
         //
         methodName = 'add' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.add');
-        this.addResponseMethod(methodName).setContent(db.getInsertCode());
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getInsertCode());
         this.routeMethod.appendContent("router.post('" + this.routingPath + "'," + methodBasedMiddleWares + " this." + methodName + ".bind(this));");
         //
         methodName = 'update' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.update');
-        this.addResponseMethod(methodName).setContent(db.getUpdateCode());
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getUpdateCode());
         this.routeMethod.appendContent("router.put('" + this.routingPath + "'," + methodBasedMiddleWares + " this." + methodName + ".bind(this));");
         //
         methodName = 'remove' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.delete');
-        this.addResponseMethod(methodName).setContent(db.getDeleteCode());
+        this.addResponseMethod(methodName).setContent(dbCodeGen.getDeleteCode());
         this.routeMethod.appendContent("router.delete('" + this.routingPath + "'," + methodBasedMiddleWares + " this." + methodName + ".bind(this));");
     };
     ExpressControllerGen.prototype.generate = function () {
         if (this.config.model) {
             this.addCRUDOperations();
         }
-        Fs_1.Fs.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
+        FsUtil_1.FsUtil.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
         var filePath = 'src/api/ApiFactory.ts';
         var code = fs.readFileSync(filePath, { encoding: 'utf8' });
         if (code.search(Placeholder_1.Placeholder.Router)) {
@@ -99,7 +99,7 @@ var ExpressControllerGen = (function () {
             var controllerCamel = _.camelCase(this.controllerClass.name);
             var embedCode = "var " + controllerCamel + " = new " + this.controllerClass.name + "(setting, database);\n        " + controllerCamel + ".route(router);\n        " + Placeholder_1.Placeholder.Router;
             code = importCode + '\n' + code.replace(Placeholder_1.Placeholder.Router, embedCode);
-            Fs_1.Fs.writeFile(filePath, code);
+            FsUtil_1.FsUtil.writeFile(filePath, code);
         }
     };
     ExpressControllerGen.prototype.normalizeRoutingPath = function () {

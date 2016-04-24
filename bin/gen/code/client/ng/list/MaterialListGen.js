@@ -6,7 +6,7 @@ var XMLGen_1 = require("../../../../core/XMLGen");
 var Util_1 = require("../../../../../util/Util");
 var ModelGen_1 = require("../../../ModelGen");
 var Field_1 = require("../../../../../cmn/Field");
-var Fs_1 = require("../../../../../util/Fs");
+var FsUtil_1 = require("../../../../../util/FsUtil");
 var MaterialListGen = (function () {
     function MaterialListGen(config) {
         this.config = config;
@@ -24,7 +24,7 @@ var MaterialListGen = (function () {
     MaterialListGen.prototype.generate = function () {
         var ctrlName = _.camelCase(this.config.name), code = this.createHeader() + this.createContent() + this.getPaginator();
         this.list.html(code);
-        Fs_1.Fs.writeFile(path.join(this.path, ctrlName + "List.html"), this.list.generate());
+        FsUtil_1.FsUtil.writeFile(path.join(this.path, ctrlName + "List.html"), this.list.generate());
     };
     MaterialListGen.prototype.createHeader = function () {
         var pluralModel = Util_1.Util.plural(this.config.model);

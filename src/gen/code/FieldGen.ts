@@ -272,7 +272,7 @@ export class FieldGen {
         if (this.properties.default) code += this.getDefaultValueCode();
         if (this.properties.relation) {
             let {type, model} = this.properties.relation;
-            this.modelFile.addImport(`{I${model}, ${model}}`, model.toString());
+            this.modelFile.addImport(`{I${model}, ${model}}`, `./${model.toString()}`);
             code += this.getRelationCodeFromNumber(type, model.toString());
         }
         return code + ';';

@@ -1,7 +1,7 @@
 import * as fs from "fs-extra";
 import {IProjectGenConfig} from "../ProjectGen";
 import {IProjectConfig, Config} from "../../Config";
-import {Fs} from "../../util/Fs";
+import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 
 export interface IProjectVersion {
@@ -47,7 +47,7 @@ export class Vesta {
         if (this.isUpdate) {
             Log.error('Invalid operation');
         } else {
-            Fs.writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.json, null, 2));
+            FsUtil.writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.json, null, 2));
         }
     }
 
