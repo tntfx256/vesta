@@ -2,6 +2,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
 import * as inquirer from "inquirer";
+import {Question} from "inquirer";
 import {ClassGen} from "../../../core/ClassGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {NGDependencyInjector, INGInjectable} from "./NGDependencyInjector";
@@ -116,12 +117,12 @@ export class NGDirectiveGen {
 
     public static getGeneratorConfig(callback) {
         var config:INGDirectiveConfig = <INGDirectiveConfig>{};
-        inquirer.prompt([{
+        inquirer.prompt([<Question>{
             name: 'externalTemplate',
             type: 'confirm',
             message: 'Use external template file: ',
             default: true
-        }, {
+        }, <Question>{
             name: 'generateSass',
             type: 'confirm',
             message: 'Create Sass style file: ',

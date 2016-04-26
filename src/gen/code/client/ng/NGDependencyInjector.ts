@@ -9,6 +9,7 @@ import {CordovaGen} from "../../../file/CordovaGen";
 import {Vesta} from "../../../file/Vesta";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {FsUtil} from "../../../../util/FsUtil";
+import {Question} from "inquirer";
 
 
 export interface INGInjectable {
@@ -120,7 +121,7 @@ export class NGDependencyInjector {
             injectableNames.push(injectables[i].name);
         }
         return new Promise(resolve=> {
-            inquirer.prompt({
+            inquirer.prompt(<Question>{
                 name: 'injects',
                 type: 'checkbox',
                 message: 'Injectables: ',
