@@ -29,16 +29,6 @@ var Schema = (function () {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Schema.prototype, "dbSchema", {
-        get: function () {
-            if (!this._dbSchema) {
-                this._dbSchema = getDbSchema(this.fields);
-            }
-            return this._dbSchema;
-        },
-        enumerable: true,
-        configurable: true
-    });
     Schema.prototype.addField = function (fieldName) {
         this.fields = this.fields || {};
         this.fields[fieldName] = new Field_1.Field(fieldName);
