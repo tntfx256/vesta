@@ -12,6 +12,15 @@ export class FsUtil {
         })
     };
 
+    public static readJsonFile(path:string) {
+        try {
+            return JSON.parse(fse.readFileSync(path, {encoding: 'utf8'}));
+        } catch (e) {
+            Log.error(`Invalid json file: ${path}`);
+            return null;
+        }
+    }
+
     public static writeFile(path:string, content:string) {
         try {
             fse.writeFileSync(path, content);

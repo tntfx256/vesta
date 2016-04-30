@@ -18,9 +18,12 @@ var Deployer_1 = require("./deploy/Deployer");
 var Backuper_1 = require("./deploy/Backuper");
 var ExpressControllerGen_1 = require("./gen/code/server/ExpressControllerGen");
 var Log_1 = require("./util/Log");
+var DockerInstaller_1 = require("./docker/DockerInstaller");
+var Util_1 = require("./util/Util");
 var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), { encoding: 'utf8' }));
-program.version("Vesta Framework++ v" + packageInfo.version);
+program.version("Vesta Platform v" + packageInfo.version);
 program
+    .option('init', 'Initiate a server')
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
     .option('plugin', 'Adding a Cordova Plugin')
@@ -147,8 +150,23 @@ function generateCode(args) {
     }
 }
 function initProject() {
-    var vesta = Vesta_1.Vesta.getInstance({});
-    Log_1.Log.error('In progress...');
+    Util_1.Util.prompt({
+        name: 'initType',
+        message: 'Choose one of the following operations',
+        type: 'list',
+        choices: ['Install Docker', 'Install DockerCompose']
+    })
+        .then(function (answer) {
+        switch (answer.initType) {
+            case 'Install Docker':
+                var instlr = new DockerInstaller_1.DockerInstaller();
+                instlr.installEngine();
+                break;
+            case 'Install DockerCompose':
+                var instlr = new DockerInstaller_1.DockerInstaller();
+                instlr.installCompose();
+        }
+    });
 }
 function deployProject(args) {
     Deployer_1.Deployer.getDeployConfig(args)

@@ -1,3 +1,13 @@
+# 0.5.12
+### Features
+* Installing Docker Compose
+
+# 0.5.11
+### Features
+* Adding `vesta init` command
+* Installing Docker Engine
+
+
 # 0.5.10
 ### Features
 * SOC on util files 

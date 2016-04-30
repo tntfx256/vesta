@@ -3,6 +3,7 @@ import * as program from "commander";
 import * as _ from "lodash";
 import * as fs from "fs-extra";
 import * as path from "path";
+import {Question} from "inquirer";
 import {ProjectGen, IProjectGenConfig} from "./gen/ProjectGen";
 import {Vesta} from "./gen/file/Vesta";
 import {ModelGen} from "./gen/code/ModelGen";
@@ -17,11 +18,14 @@ import {Deployer} from "./deploy/Deployer";
 import {Backuper} from "./deploy/Backuper";
 import {ExpressControllerGen} from "./gen/code/server/ExpressControllerGen";
 import {Log} from "./util/Log";
+import {DockerInstaller} from "./docker/DockerInstaller";
+import {Util} from "./util/Util";
 
 var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
-program.version(`Vesta Framework++ v${packageInfo.version}`);
+program.version(`Vesta Platform v${packageInfo.version}`);
 
 program
+    .option('init', 'Initiate a server')
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
     .option('plugin', 'Adding a Cordova Plugin')
@@ -156,8 +160,23 @@ function generateCode(args:Array<string>) {
 }
 
 function initProject() {
-    var vesta = Vesta.getInstance(<IProjectGenConfig>{});
-    Log.error('In progress...');
+    Util.prompt<{initType:string}>(<Question>{
+            name: 'initType',
+            message: 'Choose one of the following operations',
+            type: 'list',
+            choices: ['Install Docker', 'Install DockerCompose']
+        })
+        .then(answer=> {
+            switch (answer.initType) {
+                case 'Install Docker':
+                    var instlr = new DockerInstaller();
+                    instlr.installEngine();
+                    break;
+                case 'Install DockerCompose':
+                    var instlr = new DockerInstaller();
+                    instlr.installCompose();
+            }
+        })
 }
 
 function deployProject(args:Array<string>) {
