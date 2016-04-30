@@ -19,6 +19,15 @@ var FsUtil = (function () {
         });
     };
     ;
+    FsUtil.readJsonFile = function (path) {
+        try {
+            return JSON.parse(fse.readFileSync(path, { encoding: 'utf8' }));
+        }
+        catch (e) {
+            Log_1.Log.error("Invalid json file: " + path);
+            return null;
+        }
+    };
     FsUtil.writeFile = function (path, content) {
         try {
             fse.writeFileSync(path, content);
