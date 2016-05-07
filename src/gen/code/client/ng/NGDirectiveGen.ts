@@ -87,7 +87,7 @@ export class NGDirectiveGen {
         replace: true,
         %TEMPLATE%
         controller: ${this.controllerClass.name},
-        controllerAs: 'vm',
+        controllerAs: 'ctrl',
         bindToController: true,
         scope: {},
         link: function(scope:${this.scopeInterface.name}, $element: IAugmentedJQuery, attrs: IAttributes){

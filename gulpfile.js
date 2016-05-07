@@ -1,5 +1,6 @@
 var gulp = require('gulp'),
-    ts = require('gulp-typescript');
+    ts = require('gulp-typescript'),
+    fs = require('fs-extra');
 
 
 gulp.task('compile', function () {
@@ -17,4 +18,9 @@ gulp.task('watch', function () {
     gulp.watch('./src/**/*.ts', ['compile']);
 });
 
-gulp.task('default', ['compile', 'watch']);
+gulp.task('clean', function (done) {
+    fs.removeSync('bin');
+    done();
+});
+
+gulp.task('default', ['clean', 'compile', 'watch']);

@@ -18,8 +18,8 @@ import {Deployer} from "./deploy/Deployer";
 import {Backuper} from "./deploy/Backuper";
 import {ExpressControllerGen} from "./gen/code/server/ExpressControllerGen";
 import {Log} from "./util/Log";
-import {DockerInstaller} from "./docker/DockerInstaller";
 import {Util} from "./util/Util";
+import {DockerUtil} from "./util/DockerUtil";
 
 var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
 program.version(`Vesta Platform v${packageInfo.version}`);
@@ -31,6 +31,7 @@ program
     .option('plugin', 'Adding a Cordova Plugin')
     .option('gen [model, controller, directive, service] name', 'Generate code for mentioned type')
     .option('deploy [httpRepoPath]')
+    .option('docker [cleanup]')
     .option('backup [deployFileName]');
 //program
 //    .command('create [projectName]', 'Create new project by interactive CLI')
@@ -62,6 +63,9 @@ switch (command) {
         break;
     case 'init':
         initProject();
+        break;
+    case 'docker':
+        DockerUtil.cleanup();
         break;
     default:
         Log.error('Invalid operation');
@@ -169,12 +173,11 @@ function initProject() {
         .then(answer=> {
             switch (answer.initType) {
                 case 'Install Docker':
-                    var instlr = new DockerInstaller();
-                    instlr.installEngine();
+                    DockerUtil.installEngine();
                     break;
                 case 'Install DockerCompose':
-                    var instlr = new DockerInstaller();
-                    instlr.installCompose();
+                    DockerUtil.installCompose();
+                    break;
             }
         })
 }

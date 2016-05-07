@@ -1,3 +1,9 @@
+# 0.5.17
+### Features
+* Loading behind Nginx load balancer
+
+
+
 # 0.5.12
 ### Features
 * Installing Docker Compose

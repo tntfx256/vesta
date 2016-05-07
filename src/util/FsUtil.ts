@@ -4,6 +4,7 @@ import {Log} from "./Log";
 export class FsUtil {
     public static mkdir(...dirs:Array<string>):void {
         dirs.forEach(dir=> {
+            Log.info(`./> mkdir -p ${dir}`);
             try {
                 fse.mkdirpSync(dir);
             } catch (e) {
@@ -30,6 +31,7 @@ export class FsUtil {
     }
 
     public static copy(src:string, dest:string) {
+        Log.info(`./> cp ${src} ${dest}`);
         try {
             fse.copySync(src, dest);
         } catch (e) {
@@ -38,6 +40,7 @@ export class FsUtil {
     }
 
     public static rename(src:string, dest:string) {
+        Log.info(`./> mv ${src} ${dest}`);
         try {
             fse.renameSync(src, dest);
         } catch (e) {
@@ -45,11 +48,14 @@ export class FsUtil {
         }
     }
 
-    public static remove(path:string) {
-        try {
-            fse.removeSync(path);
-        } catch (e) {
-            Log.error(`remove: ${e.message}`);
-        }
+    public static remove(...path:Array<string>) {
+        path.forEach(p=> {
+            Log.info(`./> rm -rf ${p}`);
+            try {
+                fse.removeSync(p);
+            } catch (e) {
+                Log.error(`remove: ${e.message}`);
+            }
+        })
     }
 }
