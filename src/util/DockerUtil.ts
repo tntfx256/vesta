@@ -61,4 +61,12 @@ export class DockerUtil {
             });
 
     }
+
+    public static getComposicName(name:string):string {
+        return name.replace(/[\W_]/g, '').toLowerCase();
+    }
+
+    public static isVolumeDriver(name:string):boolean {
+        return name.indexOf('.') === 0 || name.indexOf('/') === 0;
+    }
 }

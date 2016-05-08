@@ -11,12 +11,22 @@ import {CmdUtil, IExecOptions} from "../util/CmdUtil";
 import {Util} from "../util/Util";
 import {Question} from "inquirer";
 import inquirer = require("inquirer");
+import {DockerGen} from "../gen/code/DockerGen";
+import {DockerUtil} from "../util/DockerUtil";
 
 export interface IDeployHistory {
     date:string;
     type:'deploy'|'backup';
 }
-
+/**
+ * projectName      => ProjectGroupName-projectName (automatic)
+ * deployPath       => app/ProjectGroupName-projectName (automatic)
+ * lbPath           The path to the load balancer directory, in which there must be a conf.d directory and docker-compose.yml file
+ *                      The deploy process will automatically add networks and volumes to the compose files and restarts
+ *                      (down/up) the container.
+ * ssl              Whether or not to use ssl
+ * repositoryUrl    Url to the project repository
+ */
 export interface IDeployConfig {
     projectName:string;
     deployPath:string;
@@ -42,6 +52,12 @@ export class Deployer {
     }
 
     public deploy() {
+        if (this.config.lbPath) {
+            if (!fs.existsSync(`${this.config.lbPath}/docker-compose.yml`)) {
+                return Log.error(`docker-compose.yml file was not found at '${this.config.lbPath}'`);
+            }
+            FsUtil.mkdir(`${this.config.lbPath}/conf.d`);
+        }
         GitGen.clone(this.config.repositoryUrl, this.cloningPath);
         var execOption:IExecOptions = {cwd: this.cloningPath};
         CmdUtil.execSync(`git checkout master`, execOption);
@@ -61,7 +77,6 @@ export class Deployer {
         this.isClientSide ?
             this.deployClientSideProject() :
             this.deployServerSideProject();
-        this.updateLoadBalancer();
         FsUtil.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
     }
 
@@ -105,13 +120,13 @@ export class Deployer {
                     message: `Overwrite ${this.config.projectName}.conf? `
                 }).then(answer=> {
                     if (answer.ow) {
-                        FsUtil.remove(`${this.config.lbPath}/${this.config.projectName}.conf`);
-                        FsUtil.rename(`${buildPath}/docker/nginx/load-balancer/${confFile}`, `${this.config.lbPath}/${this.config.projectName}.conf`);
+                        FsUtil.remove(`${this.config.lbPath}/conf.d/${this.config.projectName}.conf`);
+                        FsUtil.rename(`${buildPath}/docker/nginx/load-balancer/${confFile}`, `${this.config.lbPath}/conf.d/${this.config.projectName}.conf`);
                         this.showUpdateWarning = true;
                     }
                 })
             } else {
-                FsUtil.rename(`${buildPath}/docker/nginx/load-balancer/${confFile}`, `${this.config.lbPath}/${this.config.projectName}.conf`);
+                FsUtil.rename(`${buildPath}/docker/nginx/load-balancer/${confFile}`, `${this.config.lbPath}/conf.d/${this.config.projectName}.conf`);
                 this.showUpdateWarning = true;
             }
         } else {
@@ -137,30 +152,23 @@ export class Deployer {
         CmdUtil.execSync(`docker-compose up -d`, execOption);
         CmdUtil.execSync(`rm -Rf ${this.cloningPath}`);
         if (this.showUpdateWarning) {
+            // todo update load balancer compose file automatically
             this.showLbWarning();
         }
     }
 
     private showLbWarning() {
-        var prefix = this.config.projectName.replace(/\-+/g, '').toLocaleLowerCase();
+        var prefix = DockerUtil.getComposicName(this.config.projectName);
         var points = [];
         if (this.isClientSide) {
             points.push(`- Add '${prefix}_network'  to the load balancer's networks`);
             points.push(`- Add '${prefix}_web_1'    to the load balancer's external_links`);
-            points.push(`- Add '${prefix}_html'     to the load balancer's volumes list`);
             if (this.config.ssl) {
-                points.push(`- Add '${prefix}_ssl'      to the load balancer's volumes list`);
+                points.push(`- Add ssl directory mounting to the load balancer's volumes option`);
             }
         }
         points.push(`- Restart your NGinx container for the ${this.config.projectName}.conf file to take effect!\n`);
         Log.warning(`\nWARNING! Do NOT forget to\n\t${points.join('\n\t')}`);
-    }
-
-    private updateLoadBalancer() {
-        if (!this.config.lbPath) return;
-        var confFile = `${this.cloningPath}/resources/docker/nginx/lb.conf`;
-        if (!fs.existsSync(confFile)) return;
-
     }
 
     private static getProjectName(url:string) {

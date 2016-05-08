@@ -8,6 +8,7 @@ import {Err} from "../cmn/Err";
 import {FsUtil} from "../util/FsUtil";
 import {Log} from "../util/Log";
 import {CmdUtil} from "../util/CmdUtil";
+import {DockerUtil} from "../util/DockerUtil";
 
 
 export class Backuper {
@@ -22,7 +23,7 @@ export class Backuper {
     }
 
     public backup() {
-        this.volumePrefix = this.config.projectName.replace(/[\W_]/g, '').toLowerCase();
+        this.volumePrefix = DockerUtil.getComposicName(this.config.projectName);
         var composeFilePath = `${this.config.deployPath}/${this.config.projectName}/docker-compose.yml`;
         if (!fs.existsSync(composeFilePath)) {
             return Log.error(`docker-compose.yml file does not exist at ${composeFilePath}`);
@@ -33,22 +34,23 @@ export class Backuper {
             volumeDirectoryMap = {};
         for (var i = 0, il = services.length; i < il; ++i) {
             var service = composeConfig['services'][services[i]];
-            for (var j = 0, jl = volumes.length; j < jl; ++j) {
-                var serviceVolumes = service['volumes'];
-                for (var k = 0, kl = serviceVolumes.length; k < kl; ++k) {
-                    var [hostVolume,containerVolume]=serviceVolumes[k].split(':');
-                    if (hostVolume == volumes[j]) {
-                        volumeDirectoryMap[hostVolume] = containerVolume;
-                    }
-                }
+            var serviceVolumes = service['volumes'];
+            for (var k = 0, kl = serviceVolumes.length; k < kl; ++k) {
+                var volumeMap = serviceVolumes[k].split(':');
+                volumeDirectoryMap[volumeMap[0]] = volumeMap[1];
             }
         }
         var volumeOption = [],
             dirsToBackup = [];
+        // todo directory nesting (e.g. compose-prod-sa.yml)
         for (var volume in volumeDirectoryMap) {
             if (volumeDirectoryMap.hasOwnProperty(volume)) {
-                var volumeName = `${this.volumePrefix}_${volume}`;
-                volumeOption.push(`-v ${volumeName}:${volumeDirectoryMap[volume]}`);
+                if (DockerUtil.isVolumeDriver(volume)) {
+                    var volumeName = `${this.volumePrefix}_${volume}`;
+                    volumeOption.push(`-v ${volumeName}:${volumeDirectoryMap[volume]}`);
+                } else {
+                    volumeOption.push(`-v ${volume}:${volumeDirectoryMap[volume]}`);
+                }
                 dirsToBackup.push(volumeDirectoryMap[volume]);
             }
         }
