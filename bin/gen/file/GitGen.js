@@ -1,7 +1,9 @@
 "use strict";
 var ProjectGen_1 = require("../ProjectGen");
-var Util_1 = require("../../util/Util");
 var ClientAppGen_1 = require("../app/client/ClientAppGen");
+var FsUtil_1 = require("../../util/FsUtil");
+var CmdUtil_1 = require("../../util/CmdUtil");
+var Util_1 = require("../../util/Util");
 var GitGen = (function () {
     function GitGen() {
     }
@@ -9,7 +11,7 @@ var GitGen = (function () {
         if (destination === void 0) { destination = ''; }
         if (branch === void 0) { branch = ''; }
         var branchCmd = branch ? " -b " + branch + " " : ' ';
-        return Util_1.Util.execSync("git clone" + branchCmd + repository + " " + destination);
+        return CmdUtil_1.CmdUtil.execSync("git clone" + branchCmd + repository + " " + destination);
     };
     GitGen.getRepoUrl = function (baseUrl, group, repository) {
         return /^git.+/.exec(baseUrl) ?
@@ -17,10 +19,10 @@ var GitGen = (function () {
             baseUrl + "/" + group + "/" + repository + ".git";
     };
     GitGen.cleanClonedRepo = function (basePath) {
-        Util_1.Util.fs.remove(basePath + "/.git");
-        Util_1.Util.fs.remove(basePath + "/.gitmodule");
-        Util_1.Util.fs.remove(basePath + "/src/cmn");
-        Util_1.Util.fs.remove(basePath + "/src/app/cmn");
+        FsUtil_1.FsUtil.remove(basePath + "/.git");
+        FsUtil_1.FsUtil.remove(basePath + "/.gitmodule");
+        FsUtil_1.FsUtil.remove(basePath + "/src/cmn");
+        FsUtil_1.FsUtil.remove(basePath + "/src/app/cmn");
     };
     GitGen.getGeneratorConfig = function (appConfig) {
         return Util_1.Util.prompt({
@@ -34,7 +36,7 @@ var GitGen = (function () {
                     type: 'input',
                     name: 'baseUrl',
                     message: 'Repository base url:',
-                    default: 'http://hbtb.ir:8080'
+                    default: 'https://git.hbtb.ir'
                 }];
             if (!appConfig.repository.group) {
                 qs.push({
@@ -71,7 +73,7 @@ var GitGen = (function () {
                 GitGen.commonProjectExists = answer['commonExists'];
                 appConfig.repository = {
                     baseUrl: answer['baseUrl'],
-                    group: answer['group'],
+                    group: appConfig.repository.group || answer['group'],
                     name: appConfig.name,
                     common: answer['common']
                 };

@@ -1,11 +1,12 @@
 "use strict";
 var _ = require("lodash");
 var path = require("path");
-var Util_1 = require("../../util/Util");
 var ClassGen_1 = require("./ClassGen");
 var InterfaceGen_1 = require("./InterfaceGen");
 var EnumGen_1 = require("./EnumGen");
 var MethodGen_1 = require("./MethodGen");
+var FsUtil_1 = require("../../util/FsUtil");
+var Log_1 = require("../../util/Log");
 var TsFileGen = (function () {
     function TsFileGen(name) {
         this.name = name;
@@ -194,10 +195,10 @@ var TsFileGen = (function () {
     TsFileGen.prototype.write = function (directory, ext) {
         if (ext === void 0) { ext = 'ts'; }
         try {
-            Util_1.Util.fs.writeFile(path.join(directory, this.name + "." + ext), this.generate());
+            FsUtil_1.FsUtil.writeFile(path.join(directory, this.name + "." + ext), this.generate());
         }
         catch (e) {
-            Util_1.Util.log.error(e.message);
+            Log_1.Log.error(e.message);
         }
     };
     TsFileGen.CodeLocation = { AfterImport: 1, AfterEnum: 2, AfterInterface: 3, AfterClass: 4, AfterMethod: 5 };

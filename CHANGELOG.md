@@ -1,7 +1,34 @@
+# 0.5.17
+### Features
+* Loading behind Nginx load balancer
+
+
+
+# 0.5.12
+### Features
+* Installing Docker Compose
+
+# 0.5.11
+### Features
+* Adding `vesta init` command
+* Installing Docker Engine
+
+
+# 0.5.10
+### Features
+* SOC on util files 
+### Bug Fixes
+* import statement for relation field type on model generator
+
+
+# 0.5.9
+### Features
+* backup volumes by `docker-compose.yml` file
+* instead of exporting container, only the mounted directories are compressed as tar file
+
 # 0.5.4
 ### Features
-* Deploy history
-
+* deploy history
 ### Bug Fixes
 * updating docker-compose production in order to be testable in windows
 * creating master branch after initiating git repository on generated project
@@ -14,7 +41,6 @@
 # 0.5.2
 ### Features
 * Backup
-
 ### Bug Fixes
 * Deploy
 

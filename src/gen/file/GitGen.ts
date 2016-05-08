@@ -1,7 +1,9 @@
 import {IProjectGenConfig, ProjectGen} from "../ProjectGen";
-import {Util, IExecSyncResult} from "../../util/Util";
 import {ClientAppGen} from "../app/client/ClientAppGen";
 import {Question} from "inquirer";
+import {FsUtil} from "../../util/FsUtil";
+import {IExecSyncResult, CmdUtil} from "../../util/CmdUtil";
+import {Util} from "../../util/Util";
 import inquirer = require("inquirer");
 
 export interface IRepositoryConfig {
@@ -16,7 +18,7 @@ export class GitGen {
 
     public static clone(repository:string, destination:string = '', branch:string = ''):IExecSyncResult {
         var branchCmd = branch ? ` -b ${branch} ` : ' ';
-        return Util.execSync(`git clone${branchCmd}${repository} ${destination}`);
+        return CmdUtil.execSync(`git clone${branchCmd}${repository} ${destination}`);
     }
 
     public static getRepoUrl(baseUrl:string, group:string, repository:string):string {
@@ -26,10 +28,10 @@ export class GitGen {
     }
 
     public static cleanClonedRepo(basePath:string) {
-        Util.fs.remove(`${basePath}/.git`);
-        Util.fs.remove(`${basePath}/.gitmodule`);
-        Util.fs.remove(`${basePath}/src/cmn`);
-        Util.fs.remove(`${basePath}/src/app/cmn`);
+        FsUtil.remove(`${basePath}/.git`);
+        FsUtil.remove(`${basePath}/.gitmodule`);
+        FsUtil.remove(`${basePath}/src/cmn`);
+        FsUtil.remove(`${basePath}/src/app/cmn`);
     }
 
     public static getGeneratorConfig(appConfig:IProjectGenConfig):Promise<IProjectGenConfig> {
@@ -43,7 +45,7 @@ export class GitGen {
                 type: 'input',
                 name: 'baseUrl',
                 message: 'Repository base url:',
-                default: 'http://hbtb.ir:8080'
+                default: 'https://git.hbtb.ir'
             }];
             if (!appConfig.repository.group) {
                 qs.push(<Question>{
@@ -79,7 +81,7 @@ export class GitGen {
                 GitGen.commonProjectExists = answer['commonExists'];
                 appConfig.repository = <IRepositoryConfig>{
                     baseUrl: answer['baseUrl'],
-                    group: answer['group'],
+                    group: appConfig.repository.group || answer['group'],
                     name: appConfig.name,
                     common: answer['common']
                 };

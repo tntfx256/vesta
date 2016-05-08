@@ -4,7 +4,7 @@ var Vesta_1 = require("../file/Vesta");
 var DatabaseGen_1 = require("../core/DatabaseGen");
 var ExpressAppGen_1 = require("./server/ExpressAppGen");
 var GitGen_1 = require("../file/GitGen");
-var Util_1 = require("../../util/Util");
+var FsUtil_1 = require("../../util/FsUtil");
 var speakeasy = require('speakeasy');
 var ServerAppGen = (function () {
     function ServerAppGen(config) {
@@ -23,7 +23,7 @@ var ServerAppGen = (function () {
         var dir = this.config.name, repo = this.vesta.getProjectConfig().repository;
         GitGen_1.GitGen.clone(GitGen_1.GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
         GitGen_1.GitGen.cleanClonedRepo(dir);
-        Util_1.Util.fs.copy(dir + "/resources/gitignore/src/config/setting.var.ts", dir + "/src/config/setting.var.ts");
+        FsUtil_1.FsUtil.copy(dir + "/resources/gitignore/src/config/setting.var.ts", dir + "/src/config/setting.var.ts");
     };
     ServerAppGen.prototype.generate = function () {
         return this.cloneTemplate();

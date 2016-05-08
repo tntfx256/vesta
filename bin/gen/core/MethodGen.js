@@ -1,7 +1,7 @@
 "use strict";
-var _ = require('lodash');
+var _ = require("lodash");
 var ClassGen_1 = require("./ClassGen");
-var Util_1 = require("../../util/Util");
+var Log_1 = require("../../util/Log");
 var MethodGen = (function () {
     function MethodGen(name) {
         if (name === void 0) { name = ''; }
@@ -50,7 +50,7 @@ var MethodGen = (function () {
     MethodGen.prototype.addParameter = function (parameter) {
         for (var i = this.parameters.length; i--;) {
             if (this.parameters[i].name == parameter.name) {
-                return Util_1.Util.log.error("A parameter with the same name (" + parameter.name + ") already exists");
+                return Log_1.Log.error("A parameter with the same name (" + parameter.name + ") already exists");
             }
         }
         this.parameters.push(parameter);

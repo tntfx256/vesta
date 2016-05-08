@@ -3,30 +3,35 @@ import * as program from "commander";
 import * as _ from "lodash";
 import * as fs from "fs-extra";
 import * as path from "path";
+import {Question} from "inquirer";
 import {ProjectGen, IProjectGenConfig} from "./gen/ProjectGen";
 import {Vesta} from "./gen/file/Vesta";
-import {ExpressControllerGen} from "./gen/code/server/express/ExpressControllerGen";
 import {ModelGen} from "./gen/code/ModelGen";
 import {NGControllerGen} from "./gen/code/client/ng/NGControllerGen";
 import {NGDirectiveGen} from "./gen/code/client/ng/NGDirectiveGen";
 import {NGServiceGen} from "./gen/code/client/ng/NGServiceGen";
-import {Util} from "./util/Util";
 import {NGFormGen} from "./gen/code/client/ng/NGFormGen";
 import {NGFilterGen} from "./gen/code/client/ng/NGFilterGen";
 import {SassGen} from "./gen/file/SassGen";
 import {CordovaGen} from "./gen/file/CordovaGen";
 import {Deployer} from "./deploy/Deployer";
 import {Backuper} from "./deploy/Backuper";
+import {ExpressControllerGen} from "./gen/code/server/ExpressControllerGen";
+import {Log} from "./util/Log";
+import {Util} from "./util/Util";
+import {DockerUtil} from "./util/DockerUtil";
 
 var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
-program.version(`Vesta Framework++ v${packageInfo.version}`);
+program.version(`Vesta Platform v${packageInfo.version}`);
 
 program
+    .option('init', 'Initiate a server')
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
     .option('plugin', 'Adding a Cordova Plugin')
     .option('gen [model, controller, directive, service] name', 'Generate code for mentioned type')
     .option('deploy [httpRepoPath]')
+    .option('docker [cleanup]')
     .option('backup [deployFileName]');
 //program
 //    .command('create [projectName]', 'Create new project by interactive CLI')
@@ -59,8 +64,11 @@ switch (command) {
     case 'init':
         initProject();
         break;
+    case 'docker':
+        DockerUtil.cleanup();
+        break;
     default:
-        Util.log.error('Invalid operation');
+        Log.error('Invalid operation');
 }
 
 function createProject() {
@@ -94,7 +102,7 @@ function generateCode(args:Array<string>) {
     var type = args.shift().toLowerCase();
     var name = args[0];
     if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
-        return Util.log.error('Please enter a valid name');
+        return Log.error('Please enter a valid name');
     }
     var vesta = Vesta.getInstance(),
         projectConfig = vesta.getConfig();
@@ -151,13 +159,27 @@ function generateCode(args:Array<string>) {
             sass.generate();
             break;
         default:
-            Util.log.error(`Invalid generator option ${type}`);
+            Log.error(`Invalid generator option ${type}`);
     }
 }
 
 function initProject() {
-    var vesta = Vesta.getInstance(<IProjectGenConfig>{});
-    Util.log.error('In progress...');
+    Util.prompt<{initType:string}>(<Question>{
+            name: 'initType',
+            message: 'Choose one of the following operations',
+            type: 'list',
+            choices: ['Install Docker', 'Install DockerCompose']
+        })
+        .then(answer=> {
+            switch (answer.initType) {
+                case 'Install Docker':
+                    DockerUtil.installEngine();
+                    break;
+                case 'Install DockerCompose':
+                    DockerUtil.installCompose();
+                    break;
+            }
+        })
 }
 
 function deployProject(args:Array<string>) {

@@ -1,14 +1,16 @@
 "use strict";
-var fs = require('fs-extra');
-var path = require('path');
-var _ = require('lodash');
-var inquirer = require('inquirer');
+var fs = require("fs-extra");
+var path = require("path");
+var _ = require("lodash");
+var inquirer = require("inquirer");
 var ClassGen_1 = require("../../../core/ClassGen");
 var TSFileGen_1 = require("../../../core/TSFileGen");
 var NGDependencyInjector_1 = require("./NGDependencyInjector");
 var Placeholder_1 = require("../../../core/Placeholder");
 var Util_1 = require("../../../../util/Util");
 var SassGen_1 = require("../../../file/SassGen");
+var FsUtil_1 = require("../../../../util/FsUtil");
+var Log_1 = require("../../../../util/Log");
 var NGDirectiveGen = (function () {
     function NGDirectiveGen(config) {
         this.config = config;
@@ -56,7 +58,7 @@ var NGDirectiveGen = (function () {
         this.directiveMethod.isSimple();
         this.directiveMethod.shouldExport();
         this.directiveMethod.setReturnType('IDirective');
-        this.directiveMethod.setContent("return {\n        restrict: 'E',\n        replace: true,\n        %TEMPLATE%\n        controller: " + this.controllerClass.name + ",\n        controllerAs: 'vm',\n        bindToController: true,\n        scope: {},\n        link: function(scope:" + this.scopeInterface.name + ", $element: IAugmentedJQuery, attrs: IAttributes){\n        }\n    }");
+        this.directiveMethod.setContent("return {\n        restrict: 'E',\n        replace: true,\n        %TEMPLATE%\n        controller: " + this.controllerClass.name + ",\n        controllerAs: 'ctrl',\n        bindToController: true,\n        scope: {},\n        link: function(scope:" + this.scopeInterface.name + ", $element: IAugmentedJQuery, attrs: IAttributes){\n        }\n    }");
     };
     NGDirectiveGen.prototype.generate = function () {
         var tplPath = 'src/app/templates/directive';
@@ -64,12 +66,12 @@ var NGDirectiveGen = (function () {
             fs.mkdirpSync(tplPath);
         }
         catch (e) {
-            Util_1.Util.log.error(e.message);
+            Log_1.Log.error(e.message);
         }
         var templateCode = "<div class=\"" + this.tplFileName + "\"></div>";
         if (this.config.externalTemplate) {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', "templateUrl: 'tpl/directive/" + this.tplFileName + ".html',"));
-            Util_1.Util.fs.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
+            FsUtil_1.FsUtil.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
         }
         else {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', "template: '" + templateCode + "',"));

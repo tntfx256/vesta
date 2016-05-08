@@ -98,13 +98,18 @@ var Condition = (function () {
     return Condition;
 }());
 exports.Condition = Condition;
+/**
+ * Vesta Query Language
+ *
+ */
 var Vql = (function () {
     function Vql(model) {
         // IQueryOption
-        this.fetchLimit = 0;
-        this.fetchFrom = 0;
-        this.sort = [];
+        this.limit = 0;
+        this.offset = 0;
+        this.page = 1;
         this.fields = [];
+        this.orderBy = [];
         this.relations = [];
         this.model = model;
     }
@@ -127,16 +132,20 @@ var Vql = (function () {
         this.fields = fields;
         return this;
     };
-    Vql.prototype.limit = function (limit) {
+    Vql.prototype.limitTo = function (limit) {
         if (limit === void 0) { limit = 1; }
-        this.fetchLimit = limit;
+        this.limit = limit;
         return this;
     };
-    Vql.prototype.offset = function (offset) {
-        this.fetchFrom = offset;
+    Vql.prototype.fromOffset = function (offset) {
+        this.offset = offset;
         return this;
     };
-    Vql.prototype.orderBy = function (field, ascending) {
+    Vql.prototype.fromPage = function (page) {
+        this.page = page;
+        return this;
+    };
+    Vql.prototype.sortBy = function (field, ascending) {
         if (ascending === void 0) { ascending = true; }
         for (var i = this.orderBy.length; i--;) {
             if (this.orderBy[i].field == field) {
@@ -144,7 +153,7 @@ var Vql = (function () {
                 return this;
             }
         }
-        this.sort.push({ field: field, ascending: ascending });
+        this.orderBy.push({ field: field, ascending: ascending });
         return this;
     };
     Vql.prototype.fetchRecordFor = function (field) {

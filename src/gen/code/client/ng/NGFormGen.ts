@@ -5,7 +5,6 @@ import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import {Model} from "../../../../cmn/Model";
 import {Schema} from "../../../../cmn/Schema";
-import {Util} from "../../../../util/Util";
 import {XMLGen} from "../../../core/XMLGen";
 import {Vesta} from "../../../file/Vesta";
 import {BaseFormGen} from "./form/BaseFormGen";
@@ -14,6 +13,8 @@ import {ModelGen} from "../../ModelGen";
 import {EmptyFormGen} from "./form/EmptyFormGen";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {IonicFormGen} from "./form/IonicFormGen";
+import {FsUtil} from "../../../../util/FsUtil";
+import {Log} from "../../../../util/Log";
 
 export interface INGFormConfig {
     name:string;
@@ -57,7 +58,7 @@ export class NGFormGen {
             }
             this.path = path.join(this.path, config.module, _.camelCase(this.schema.name));
         } else {
-            Util.log.error(`Model file was not found. You have to run gulp task first.`);
+            Log.error(`Model file was not found. You have to run gulp task first.`);
             this.form = new EmptyFormGen(null);
         }
         try {
@@ -69,7 +70,7 @@ export class NGFormGen {
     generate() {
         if (!this.model) return;
         var code = this.form.generate();
-        if (this.config.writeToFile) Util.fs.writeFile(path.join(this.path, 'form.html'), code);
+        if (this.config.writeToFile) FsUtil.writeFile(path.join(this.path, 'form.html'), code);
         return code;
     }
 
@@ -88,7 +89,7 @@ export class NGFormGen {
         if (models.length) {
             qs.push({name: 'model', type: 'list', message: 'Model: ', choices: models, default: models[0]});
         } else {
-            return Util.log.error('There is no model to generate form upon');
+            return Log.error('There is no model to generate form upon');
         }
         inquirer.prompt(qs, answer => {
             if (answer['module']) {

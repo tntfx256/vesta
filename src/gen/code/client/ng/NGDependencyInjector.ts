@@ -1,23 +1,24 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as inquirer from 'inquirer';
+import * as fs from "fs-extra";
+import * as path from "path";
+import * as _ from "lodash";
+import * as inquirer from "inquirer";
 import {ClassGen} from "../../../core/ClassGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {Util} from "../../../../util/Util";
 import {CordovaGen} from "../../../file/CordovaGen";
 import {Vesta} from "../../../file/Vesta";
-import {IProjectGenConfig} from "../../../ProjectGen";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
+import {FsUtil} from "../../../../util/FsUtil";
+import {Question} from "inquirer";
 
 
 export interface INGInjectable {
-    name?: string;
-    type?: string;
-    path?: string;
+    name?:string;
+    type?:string;
+    path?:string;
     isLib?:boolean;
-    importType?: number;
-    plugins?: Array<string>;
+    importType?:number;
+    plugins?:Array<string>;
 }
 
 export class NGDependencyInjector {
@@ -92,7 +93,7 @@ export class NGDependencyInjector {
         if (/.+Filter$/.exec(instanceName)) {
             instanceName = instanceName.replace(/Filter$/, '');
         }
-        Util.fs.writeFile(path.join(destination, className + '.ts'), file.generate());
+        FsUtil.writeFile(path.join(destination, className + '.ts'), file.generate());
 
         var importFileCode = fs.readFileSync(importFilePath, {encoding: 'utf8'}),
             importCode = `export {${className}} from '${importPath}/${className}';`,
@@ -105,8 +106,8 @@ export class NGDependencyInjector {
         appFileCode = appFileCode.replace(placeHolder, embedCode);
         importFileCode += '\n' + importCode;
 
-        Util.fs.writeFile(appFilePath, appFileCode);
-        Util.fs.writeFile(importFilePath, importFileCode);
+        FsUtil.writeFile(appFilePath, appFileCode);
+        FsUtil.writeFile(importFilePath, importFileCode);
     }
 
     public static getCliInjectables(extraInjectables:Array<INGInjectable> = []):Promise<Array<INGInjectable>> {
@@ -120,7 +121,7 @@ export class NGDependencyInjector {
             injectableNames.push(injectables[i].name);
         }
         return new Promise(resolve=> {
-            inquirer.prompt({
+            inquirer.prompt(<Question>{
                 name: 'injects',
                 type: 'checkbox',
                 message: 'Injectables: ',

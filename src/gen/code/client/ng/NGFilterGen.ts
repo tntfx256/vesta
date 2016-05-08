@@ -1,18 +1,13 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as colors from 'colors';
-import * as inquirer from 'inquirer';
-import {ClassGen} from "../../../core/ClassGen";
-import {Question} from "inquirer";
+import * as fs from "fs-extra";
+import * as _ from "lodash";
 import {NGDependencyInjector} from "./NGDependencyInjector";
 import {MethodGen} from "../../../core/MethodGen";
 import {Placeholder} from "../../../core/Placeholder";
 import {TsFileGen} from "../../../core/TSFileGen";
-import {Util} from "../../../../util/Util";
+import {FsUtil} from "../../../../util/FsUtil";
 
 export interface IFilterGenConfig {
-    name: string;
+    name:string;
 }
 
 export class NGFilterGen {
@@ -33,7 +28,7 @@ export class NGFilterGen {
             return input;
         }`);
         this.file.addMixin(`${this.file.name}.$inject = [];`, TsFileGen.CodeLocation.AfterMethod);
-        Util.fs.mkdir(this.path);
+        FsUtil.mkdir(this.path);
     }
 
     generate() {

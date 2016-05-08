@@ -1,15 +1,11 @@
 "use strict";
-var colors = require("colors");
 var path = require("path");
 var fse = require("fs-extra");
-var shell = require("shelljs");
+var Log_1 = require("./Log");
 var inquirer = require("inquirer");
 var Util = (function () {
     function Util() {
     }
-    Util.setMode = function (mode) {
-        Util.config.mode = mode;
-    };
     Util.prompt = function (questions) {
         return new Promise(function (resolve) {
             inquirer.prompt(questions, function (answer) { return resolve(answer); });
@@ -88,7 +84,7 @@ var Util = (function () {
             fse.writeFileSync(filePath, code);
             return;
         }
-        Util.log.error("File not found @" + filePath);
+        Log_1.Log.error("File not found @" + filePath);
     };
     Util.fileHasContent = function (filePath, pattern) {
         if (fse.existsSync(filePath)) {
@@ -96,88 +92,6 @@ var Util = (function () {
             return code.indexOf(pattern) >= 0;
         }
         return false;
-    };
-    Util.execSync = function (command, wd) {
-        if (wd === void 0) { wd = '.'; }
-        if (Util.config.mode == Util.Mode.Development) {
-            Util.log.info(wd + "/> " + command + " ");
-        }
-        return shell.exec(command, { cwd: wd, async: false });
-    };
-    Util.Mode = {
-        Development: 1,
-        Production: 2
-    };
-    Util.config = {
-        mode: Util.Mode.Development
-    };
-    Util.log = {
-        simple: function (message) {
-            console.log(message);
-        },
-        info: function (message) {
-            Util.log.color('cyan', message);
-        },
-        error: function (message) {
-            Util.log.color('red', message);
-        },
-        warning: function (message) {
-            Util.log.color('yellow', message);
-        },
-        success: function (message) {
-            Util.log.color('green', message);
-        },
-        color: function (color, message) {
-            console.log(colors[color](message));
-        }
-    };
-    Util.fs = {
-        mkdir: function () {
-            var dirs = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                dirs[_i - 0] = arguments[_i];
-            }
-            dirs.forEach(function (dir) {
-                try {
-                    fse.mkdirpSync(dir);
-                }
-                catch (e) {
-                    Util.log.error("mkdir: " + e.message);
-                }
-            });
-        },
-        writeFile: function (path, content) {
-            try {
-                fse.writeFileSync(path, content);
-            }
-            catch (e) {
-                Util.log.error("writeFile: " + e.message);
-            }
-        },
-        copy: function (src, dest) {
-            try {
-                fse.copySync(src, dest);
-            }
-            catch (e) {
-                Util.log.error("copy: " + e.message);
-            }
-        },
-        rename: function (src, dest) {
-            try {
-                fse.renameSync(src, dest);
-            }
-            catch (e) {
-                Util.log.error("rename: " + e.message);
-            }
-        },
-        remove: function (path) {
-            try {
-                fse.removeSync(path);
-            }
-            catch (e) {
-                Util.log.error("remove: " + e.message);
-            }
-        }
     };
     return Util;
 }());

@@ -3,13 +3,14 @@ var fs = require("fs-extra");
 var path = require("path");
 var _ = require("lodash");
 var inquirer = require("inquirer");
-var Util_1 = require("../../../../util/Util");
 var Vesta_1 = require("../../../file/Vesta");
 var MaterialFormGen_1 = require("./form/MaterialFormGen");
 var ModelGen_1 = require("../../ModelGen");
 var EmptyFormGen_1 = require("./form/EmptyFormGen");
 var ClientAppGen_1 = require("../../../app/client/ClientAppGen");
 var IonicFormGen_1 = require("./form/IonicFormGen");
+var FsUtil_1 = require("../../../../util/FsUtil");
+var Log_1 = require("../../../../util/Log");
 var NGFormGen = (function () {
     function NGFormGen(config) {
         this.config = config;
@@ -30,7 +31,7 @@ var NGFormGen = (function () {
             this.path = path.join(this.path, config.module, _.camelCase(this.schema.name));
         }
         else {
-            Util_1.Util.log.error("Model file was not found. You have to run gulp task first.");
+            Log_1.Log.error("Model file was not found. You have to run gulp task first.");
             this.form = new EmptyFormGen_1.EmptyFormGen(null);
         }
         try {
@@ -44,7 +45,7 @@ var NGFormGen = (function () {
             return;
         var code = this.form.generate();
         if (this.config.writeToFile)
-            Util_1.Util.fs.writeFile(path.join(this.path, 'form.html'), code);
+            FsUtil_1.FsUtil.writeFile(path.join(this.path, 'form.html'), code);
         return code;
     };
     NGFormGen.prototype.wrap = function (config) {
@@ -60,7 +61,7 @@ var NGFormGen = (function () {
             qs.push({ name: 'model', type: 'list', message: 'Model: ', choices: models, default: models[0] });
         }
         else {
-            return Util_1.Util.log.error('There is no model to generate form upon');
+            return Log_1.Log.error('There is no model to generate form upon');
         }
         inquirer.prompt(qs, function (answer) {
             if (answer['module']) {

@@ -8,6 +8,7 @@ import {Model, IModelFields} from "../../../../../cmn/Model";
 import {ModelGen} from "../../../ModelGen";
 import {Schema} from "../../../../../cmn/Schema";
 import {FieldType} from "../../../../../cmn/Field";
+import {FsUtil} from "../../../../../util/FsUtil";
 
 export class MaterialListGen {
     private list:XMLGen;
@@ -28,7 +29,7 @@ export class MaterialListGen {
         var ctrlName = _.camelCase(this.config.name),
             code = this.createHeader() + this.createContent() + this.getPaginator();
         this.list.html(code);
-        Util.fs.writeFile(path.join(this.path, `${ctrlName}List.html`), this.list.generate());
+        FsUtil.writeFile(path.join(this.path, `${ctrlName}List.html`), this.list.generate());
     }
 
     private createHeader() {

@@ -1,7 +1,8 @@
 "use strict";
 var fs = require("fs-extra");
-var Util_1 = require("../../util/Util");
 var Config_1 = require("../../Config");
+var FsUtil_1 = require("../../util/FsUtil");
+var Log_1 = require("../../util/Log");
 var Vesta = (function () {
     function Vesta(config) {
         if (config === void 0) { config = null; }
@@ -18,23 +19,23 @@ var Vesta = (function () {
             this.isUpdate = true;
             try {
                 if (!fs.existsSync(this.path)) {
-                    Util_1.Util.log.error('`vesta.json` not found. Make sure you are in the correct directory');
+                    Log_1.Log.error('`vesta.json` not found. Make sure you are in the correct directory');
                     process.exit();
                 }
                 this.json = JSON.parse(fs.readFileSync(this.path, { encoding: 'utf8' }));
             }
             catch (e) {
-                Util_1.Util.log.error(e);
+                Log_1.Log.error(e);
                 process.exit();
             }
         }
     }
     Vesta.prototype.generate = function () {
         if (this.isUpdate) {
-            Util_1.Util.log.error('Invalid operation');
+            Log_1.Log.error('Invalid operation');
         }
         else {
-            Util_1.Util.fs.writeFile(this.config.name + "/vesta.json", JSON.stringify(this.json, null, 2));
+            FsUtil_1.FsUtil.writeFile(this.config.name + "/vesta.json", JSON.stringify(this.json, null, 2));
         }
     };
     Vesta.getInstance = function (config) {

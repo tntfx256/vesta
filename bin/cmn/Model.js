@@ -9,7 +9,7 @@ var Model = (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             fieldNames[_i - 0] = arguments[_i];
         }
-        var result = Validator_1.Validator.validate(this.getValues.apply(this, [null].concat(fieldNames)), this._schema.validateSchema);
+        var result = Validator_1.Validator.validate(this.getValues.apply(this, fieldNames), this._schema.validateSchema);
         if (!result)
             return result;
         if (fieldNames.length) {
@@ -35,21 +35,19 @@ var Model = (function () {
             this[fieldName] = values[fieldName];
         }
     };
-    Model.prototype.getValues = function (collection) {
-        if (collection === void 0) { collection = null; }
+    Model.prototype.getValues = function () {
         var fields = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            fields[_i - 1] = arguments[_i];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            fields[_i - 0] = arguments[_i];
         }
         var values = {}, fieldsNames = fields.length ? fields : this._schema.getFieldsNames(), fieldName;
-        collection = collection || this;
         for (var i = fieldsNames.length; i--;) {
             fieldName = fieldsNames[i];
-            if (collection[fieldName] && collection[fieldName].getValues) {
-                values[fieldName] = collection[fieldName].getValues();
+            if (this[fieldName] && this[fieldName].getValues) {
+                values[fieldName] = this[fieldName].getValues();
             }
             else {
-                values[fieldName] = collection[fieldName];
+                values[fieldName] = this[fieldName];
             }
         }
         return values;

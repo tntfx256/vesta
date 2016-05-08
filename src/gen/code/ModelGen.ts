@@ -11,6 +11,8 @@ import {Model} from "../../cmn/Model";
 import {TsFileGen} from "../core/TSFileGen";
 import {InterfaceGen} from "../core/InterfaceGen";
 import {ProjectGen} from "../ProjectGen";
+import {FsUtil} from "../../util/FsUtil";
+import {Log} from "../../util/Log";
 
 interface IFields {
     [name:string]:FieldGen
@@ -53,7 +55,7 @@ export class ModelGen {
         if (this.vesta.getConfig().type == ProjectGen.Type.ClientSide) {
             this.path = 'src/app/cmn/models';
         }
-        Util.fs.mkdir(this.path);
+        FsUtil.mkdir(this.path);
     }
 
     private getFields() {
@@ -62,7 +64,7 @@ export class ModelGen {
             type: 'input',
             message: 'Field Name: '
         };
-        Util.log.success('\n:: New field (press enter with no fieldName to exit)\n');
+        Log.success('\n:: New field (press enter with no fieldName to exit)\n');
         var idField = new FieldGen(this.modelFile, 'id');
         idField.setAsPrimary();
         this.fields['id'] = idField;
@@ -99,7 +101,7 @@ export class ModelGen {
             property.type = interfaceFieldType;
             this.modelInterface.addProperty(property);
         }
-        Util.fs.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
+        FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
 
     static getModelsList():any {

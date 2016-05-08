@@ -4,6 +4,8 @@ import {Vesta} from "../../file/Vesta";
 import {IProjectGenConfig} from "../../ProjectGen";
 import {Util} from "../../../util/Util";
 import {GitGen} from "../../file/GitGen";
+import {FsUtil} from "../../../util/FsUtil";
+import {Log} from "../../../util/Log";
 
 export interface IClientAppConfig {
     platform:string;
@@ -53,9 +55,13 @@ export abstract class ClientAppGen {
         Util.findInFileAndReplace(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, {
             'http://localhost:3000': this.config.endpoint
         });
-        Util.fs.copy(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, `${dir}/src/app/config/setting.var.ts`);
+        Util.findInFileAndReplace(`${dir}/resources/gitignore/resources/gulp/setting.js`, {
+            'http://localhost': /(https?:\/\/[^:]+).*/.exec(this.config.endpoint)[1]
+        });
+        FsUtil.copy(`${dir}/resources/gitignore/resources/gulp/setting.js`, `${dir}/resources/gulp/setting.js`);
+        FsUtil.copy(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, `${dir}/src/app/config/setting.var.ts`);
         if (this.isCordova) {
-            Util.fs.mkdir(`${dir}/www`); // for installing plugins this folder must exist
+            FsUtil.mkdir(`${dir}/www`); // for installing plugins this folder must exist
             Util.findInFileAndReplace(dir + '/config.xml', replacePattern);
         }
     }
@@ -69,7 +75,7 @@ export abstract class ClientAppGen {
                 message: 'Platform: ',
                 choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova]
             }];
-        Util.log.info(`For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)`);
+        Log.info(`For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)`);
         return new Promise<IClientAppConfig>((resolve)=> {
             inquirer.prompt(qs, answer=> {
                 config.type = ClientAppGen.Type.Angular;

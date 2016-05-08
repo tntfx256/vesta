@@ -1,16 +1,17 @@
 "use strict";
-var fs = require('fs-extra');
-var path = require('path');
-var _ = require('lodash');
+var fs = require("fs-extra");
+var path = require("path");
+var _ = require("lodash");
+var NGControllerGen_1 = require("../NGControllerGen");
 var TSFileGen_1 = require("../../../../core/TSFileGen");
 var ClassGen_1 = require("../../../../core/ClassGen");
 var NGFormGen_1 = require("../NGFormGen");
 var NGDependencyInjector_1 = require("../NGDependencyInjector");
 var Util_1 = require("../../../../../util/Util");
-var NGControllerGen_1 = require("../NGControllerGen");
 var Placeholder_1 = require("../../../../core/Placeholder");
 var XMLGen_1 = require("../../../../core/XMLGen");
 var SassGen_1 = require("../../../../file/SassGen");
+var FsUtil_1 = require("../../../../../util/FsUtil");
 var BaseNGControllerGen = (function () {
     function BaseNGControllerGen(config) {
         this.config = config;
@@ -34,7 +35,7 @@ var BaseNGControllerGen = (function () {
             this.templatePath = path.join(this.templatePath, ctrlName);
             this.setModelRequiredInjections();
         }
-        Util_1.Util.fs.mkdir(this.path, this.templatePath);
+        FsUtil_1.FsUtil.mkdir(this.path, this.templatePath);
         for (var i = config.injects.length; i--;) {
             if (config.injects[i].name == '$scope') {
                 config.injects.splice(i, 1);
@@ -89,23 +90,23 @@ var BaseNGControllerGen = (function () {
         var code = codeFirstLine + "\n        url: '/" + url + "',\n        views: {\n            'master': {\n                templateUrl: '" + templateUrl + "',\n                controller: '" + ctrlName + "Controller',\n                controllerAs: 'vm'\n            }\n        }\n    });\n    " + Placeholder_1.Placeholder.NGRouter;
         var routerFile = 'src/app/config/route.ts';
         var routeCode = fs.readFileSync(routerFile, { encoding: 'utf8' });
-        Util_1.Util.fs.writeFile(routerFile, routeCode.replace(Placeholder_1.Placeholder.NGRouter, code));
+        FsUtil_1.FsUtil.writeFile(routerFile, routeCode.replace(Placeholder_1.Placeholder.NGRouter, code));
     };
     BaseNGControllerGen.prototype.generateForm = function () {
         var ctrlName = _.camelCase(this.config.name), formName = ctrlName + "Form", includePath = Util_1.Util.joinPath('tpl', this.config.module, ctrlName), config = {};
         config.formPath = Util_1.Util.joinPath(includePath, formName + ".html");
-        Util_1.Util.fs.writeFile(path.join(this.templatePath, ctrlName + "Form.html"), this.form.generate());
+        FsUtil_1.FsUtil.writeFile(path.join(this.templatePath, ctrlName + "Form.html"), this.form.generate());
         config.isModal = true;
         config.type = NGFormGen_1.NGFormGen.Type.Add;
         config.title = "Add " + this.config.model;
         config.cancel = 'Cancel';
         config.ok = 'Save';
         var addForm = this.form.wrap(config);
-        Util_1.Util.fs.writeFile(path.join(this.templatePath, ctrlName + "AddForm.html"), addForm.generate());
+        FsUtil_1.FsUtil.writeFile(path.join(this.templatePath, ctrlName + "AddForm.html"), addForm.generate());
         config.type = NGFormGen_1.NGFormGen.Type.Edit;
         config.title = "Edit " + this.config.model;
         var editForm = this.form.wrap(config);
-        Util_1.Util.fs.writeFile(path.join(this.templatePath, ctrlName + "EditForm.html"), editForm.generate());
+        FsUtil_1.FsUtil.writeFile(path.join(this.templatePath, ctrlName + "EditForm.html"), editForm.generate());
         //
         var addController = new NGControllerGen_1.NGControllerGen(this.config);
         addController.setAsAddController();
@@ -122,7 +123,7 @@ var BaseNGControllerGen = (function () {
         template.html("<h1>" + pageName + " Page</h1>");
         var sass = new SassGen_1.SassGen(this.config.name, SassGen_1.SassGen.Type.Page);
         sass.generate();
-        Util_1.Util.fs.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
+        FsUtil_1.FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
     };
     BaseNGControllerGen.prototype.createScope = function () {
         var name = _.capitalize(_.camelCase(this.config.name));

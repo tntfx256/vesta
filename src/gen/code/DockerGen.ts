@@ -1,5 +1,6 @@
 import {Util} from "../../util/Util";
 import {IProjectGenConfig, ProjectGen} from "../ProjectGen";
+import {Log} from "../../util/Log";
 var speakeasy = require('speakeasy');
 
 export class DockerGen {
@@ -8,7 +9,7 @@ export class DockerGen {
     constructor(private config:IProjectGenConfig) {
         var [, host, port] = /(http.+):(\d+)$/.exec(this.config.endpoint);
         if (!host) {
-            Util.log.error('Invalid host name');
+            Log.error('Invalid host name');
         }
         this.port = +port || 3000;
     }

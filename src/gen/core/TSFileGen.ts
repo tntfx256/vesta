@@ -1,10 +1,11 @@
 import * as _ from "lodash";
 import * as path from "path";
-import {Util} from "../../util/Util";
 import {ClassGen} from "./ClassGen";
 import {InterfaceGen} from "./InterfaceGen";
 import {EnumGen} from "./EnumGen";
 import {MethodGen} from "./MethodGen";
+import {FsUtil} from "../../util/FsUtil";
+import {Log} from "../../util/Log";
 
 export interface IImportStatement {
     name:string;
@@ -208,9 +209,9 @@ export class TsFileGen {
 
     public write(directory:string, ext:string = 'ts'):void {
         try {
-            Util.fs.writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
+            FsUtil.writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
         } catch (e) {
-            Util.log.error(e.message);
+            Log.error(e.message);
         }
     }
 }

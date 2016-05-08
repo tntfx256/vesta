@@ -6,26 +6,30 @@ var fs = require("fs-extra");
 var path = require("path");
 var ProjectGen_1 = require("./gen/ProjectGen");
 var Vesta_1 = require("./gen/file/Vesta");
-var ExpressControllerGen_1 = require("./gen/code/server/express/ExpressControllerGen");
 var ModelGen_1 = require("./gen/code/ModelGen");
 var NGControllerGen_1 = require("./gen/code/client/ng/NGControllerGen");
 var NGDirectiveGen_1 = require("./gen/code/client/ng/NGDirectiveGen");
 var NGServiceGen_1 = require("./gen/code/client/ng/NGServiceGen");
-var Util_1 = require("./util/Util");
 var NGFormGen_1 = require("./gen/code/client/ng/NGFormGen");
 var NGFilterGen_1 = require("./gen/code/client/ng/NGFilterGen");
 var SassGen_1 = require("./gen/file/SassGen");
 var CordovaGen_1 = require("./gen/file/CordovaGen");
 var Deployer_1 = require("./deploy/Deployer");
 var Backuper_1 = require("./deploy/Backuper");
+var ExpressControllerGen_1 = require("./gen/code/server/ExpressControllerGen");
+var Log_1 = require("./util/Log");
+var Util_1 = require("./util/Util");
+var DockerUtil_1 = require("./util/DockerUtil");
 var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), { encoding: 'utf8' }));
-program.version("Vesta Framework++ v" + packageInfo.version);
+program.version("Vesta Platform v" + packageInfo.version);
 program
+    .option('init', 'Initiate a server')
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
     .option('plugin', 'Adding a Cordova Plugin')
     .option('gen [model, controller, directive, service] name', 'Generate code for mentioned type')
     .option('deploy [httpRepoPath]')
+    .option('docker [cleanup]')
     .option('backup [deployFileName]');
 //program
 //    .command('create [projectName]', 'Create new project by interactive CLI')
@@ -54,8 +58,11 @@ switch (command) {
     case 'init':
         initProject();
         break;
+    case 'docker':
+        DockerUtil_1.DockerUtil.cleanup();
+        break;
     default:
-        Util_1.Util.log.error('Invalid operation');
+        Log_1.Log.error('Invalid operation');
 }
 function createProject() {
     var _a = program['create'].split('/'), projectCategory = _a[0], projectName = _a[1];
@@ -86,7 +93,7 @@ function generateCode(args) {
     var type = args.shift().toLowerCase();
     var name = args[0];
     if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
-        return Util_1.Util.log.error('Please enter a valid name');
+        return Log_1.Log.error('Please enter a valid name');
     }
     var vesta = Vesta_1.Vesta.getInstance(), projectConfig = vesta.getConfig();
     switch (type) {
@@ -143,12 +150,26 @@ function generateCode(args) {
             sass.generate();
             break;
         default:
-            Util_1.Util.log.error("Invalid generator option " + type);
+            Log_1.Log.error("Invalid generator option " + type);
     }
 }
 function initProject() {
-    var vesta = Vesta_1.Vesta.getInstance({});
-    Util_1.Util.log.error('In progress...');
+    Util_1.Util.prompt({
+        name: 'initType',
+        message: 'Choose one of the following operations',
+        type: 'list',
+        choices: ['Install Docker', 'Install DockerCompose']
+    })
+        .then(function (answer) {
+        switch (answer.initType) {
+            case 'Install Docker':
+                DockerUtil_1.DockerUtil.installEngine();
+                break;
+            case 'Install DockerCompose':
+                DockerUtil_1.DockerUtil.installCompose();
+                break;
+        }
+    });
 }
 function deployProject(args) {
     Deployer_1.Deployer.getDeployConfig(args)

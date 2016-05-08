@@ -1,14 +1,15 @@
 "use strict";
-var fs = require('fs-extra');
-var path = require('path');
-var _ = require('lodash');
-var inquirer = require('inquirer');
+var fs = require("fs-extra");
+var path = require("path");
+var _ = require("lodash");
+var inquirer = require("inquirer");
 var ClassGen_1 = require("../../../core/ClassGen");
 var TSFileGen_1 = require("../../../core/TSFileGen");
 var Util_1 = require("../../../../util/Util");
 var CordovaGen_1 = require("../../../file/CordovaGen");
 var Vesta_1 = require("../../../file/Vesta");
 var ClientAppGen_1 = require("../../../app/client/ClientAppGen");
+var FsUtil_1 = require("../../../../util/FsUtil");
 var NGDependencyInjector = (function () {
     function NGDependencyInjector() {
     }
@@ -75,7 +76,7 @@ var NGDependencyInjector = (function () {
         if (/.+Filter$/.exec(instanceName)) {
             instanceName = instanceName.replace(/Filter$/, '');
         }
-        Util_1.Util.fs.writeFile(path.join(destination, className + '.ts'), file.generate());
+        FsUtil_1.FsUtil.writeFile(path.join(destination, className + '.ts'), file.generate());
         var importFileCode = fs.readFileSync(importFilePath, { encoding: 'utf8' }), importCode = "export {" + className + "} from '" + importPath + "/" + className + "';", appFileCode = fs.readFileSync(appFilePath, { encoding: 'utf8' }), embedCode = "clientApp.module." + type + "('" + instanceName + "', imp." + className + ");\n    " + placeHolder;
         if (appFileCode.indexOf(placeHolder) < 0)
             return;
@@ -83,8 +84,8 @@ var NGDependencyInjector = (function () {
             return;
         appFileCode = appFileCode.replace(placeHolder, embedCode);
         importFileCode += '\n' + importCode;
-        Util_1.Util.fs.writeFile(appFilePath, appFileCode);
-        Util_1.Util.fs.writeFile(importFilePath, importFileCode);
+        FsUtil_1.FsUtil.writeFile(appFilePath, appFileCode);
+        FsUtil_1.FsUtil.writeFile(importFilePath, importFileCode);
     };
     NGDependencyInjector.getCliInjectables = function (extraInjectables) {
         if (extraInjectables === void 0) { extraInjectables = []; }

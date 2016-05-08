@@ -1,26 +1,24 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as colors from 'colors';
-import * as inquirer from 'inquirer';
+import * as fs from "fs-extra";
+import * as path from "path";
+import * as _ from "lodash";
+import * as inquirer from "inquirer";
+import {Question} from "inquirer";
 import {ClassGen} from "../../../core/ClassGen";
 import {TsFileGen} from "../../../core/TSFileGen";
-import {Question} from "inquirer";
-import {NGDependencyInjector} from "./NGDependencyInjector";
+import {NGDependencyInjector, INGInjectable} from "./NGDependencyInjector";
 import {MethodGen} from "../../../core/MethodGen";
 import {Placeholder} from "../../../core/Placeholder";
 import {Util} from "../../../../util/Util";
-import {IStructureProperty} from "../../../core/AbstractStructureGen";
-import {INGInjectable} from "./NGDependencyInjector";
 import {InterfaceGen} from "../../../core/InterfaceGen";
-import {IMethodParameter} from "../../../core/MethodGen";
 import {SassGen} from "../../../file/SassGen";
+import {FsUtil} from "../../../../util/FsUtil";
+import {Log} from "../../../../util/Log";
 
 export interface INGDirectiveConfig {
-    name: string;
-    injects: Array<INGInjectable>;
-    externalTemplate: boolean;
-    generateSass: boolean;
+    name:string;
+    injects:Array<INGInjectable>;
+    externalTemplate:boolean;
+    generateSass:boolean;
 }
 
 export class NGDirectiveGen {
@@ -89,7 +87,7 @@ export class NGDirectiveGen {
         replace: true,
         %TEMPLATE%
         controller: ${this.controllerClass.name},
-        controllerAs: 'vm',
+        controllerAs: 'ctrl',
         bindToController: true,
         scope: {},
         link: function(scope:${this.scopeInterface.name}, $element: IAugmentedJQuery, attrs: IAttributes){
@@ -102,12 +100,12 @@ export class NGDirectiveGen {
         try {
             fs.mkdirpSync(tplPath);
         } catch (e) {
-            Util.log.error(e.message);
+            Log.error(e.message);
         }
         var templateCode = `<div class="${this.tplFileName}"></div>`;
         if (this.config.externalTemplate) {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `templateUrl: 'tpl/directive/${this.tplFileName}.html',`));
-            Util.fs.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
+            FsUtil.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
         } else {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `template: '${templateCode}',`));
         }
@@ -119,12 +117,12 @@ export class NGDirectiveGen {
 
     public static getGeneratorConfig(callback) {
         var config:INGDirectiveConfig = <INGDirectiveConfig>{};
-        inquirer.prompt([{
+        inquirer.prompt([<Question>{
             name: 'externalTemplate',
             type: 'confirm',
             message: 'Use external template file: ',
             default: true
-        }, {
+        }, <Question>{
             name: 'generateSass',
             type: 'confirm',
             message: 'Create Sass style file: ',

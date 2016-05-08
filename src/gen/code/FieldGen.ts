@@ -2,11 +2,11 @@ import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import * as _ from "lodash";
 import {IFieldProperties, FieldType, Relationship} from "../../cmn/Field";
-import {Util} from "../../util/Util";
 import {FileMemeType} from "../../cmn/FileMemeType";
 import {TsFileGen} from "../core/TSFileGen";
 import {Vesta} from "../file/Vesta";
 import {ModelGen} from "./ModelGen";
+import {Log} from "../../util/Log";
 
 export class FieldGen {
     private isMultilingual:boolean = false;
@@ -91,7 +91,7 @@ export class FieldGen {
                     }
                 }
             } else {
-                Util.log.error(`Unknown type ${arr[i]}`);
+                Log.error(`Unknown type ${arr[i]}`);
             }
         }
         return fileTypes;
@@ -272,7 +272,7 @@ export class FieldGen {
         if (this.properties.default) code += this.getDefaultValueCode();
         if (this.properties.relation) {
             let {type, model} = this.properties.relation;
-            this.modelFile.addImport(`{I${model}, ${model}}`, model.toString());
+            this.modelFile.addImport(`{I${model}, ${model}}`, `./${model.toString()}`);
             code += this.getRelationCodeFromNumber(type, model.toString());
         }
         return code + ';';
@@ -310,7 +310,7 @@ export class FieldGen {
         if (firstEnum.indexOf('.') > 0) {
             this.enumName = firstEnum.substr(0, firstEnum.indexOf('.'));
             enumArray = this.properties.enum;
-            Util.log.warning(`Do not forget to import the (${this.enumName})`);
+            Log.warning(`Do not forget to import the (${this.enumName})`);
         } else {
             this.enumName = _.capitalize(this.modelFile.name) + _.capitalize(this.name);
             var enumField = this.modelFile.addEnum(this.enumName);
