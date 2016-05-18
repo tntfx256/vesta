@@ -29,6 +29,7 @@ export class CmdUtil {
     }
 
     static getOutputOf(command, options?:IExecOptions):string {
+        options = options || {silent: true};
         return StringUtil.trimLineBreaks(CmdUtil.execSync(command, options).output);
     }
 }

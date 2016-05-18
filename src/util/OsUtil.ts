@@ -7,7 +7,11 @@ export class OsUtil {
         console.log(output.split('\n'));
     }
 
-    public static getOsCodeName() {
+    public static getOsCodeName():string {
         return CmdUtil.getOutputOf(`lsb_release -c`).split(':')[1].trim();
+    }
+
+    public static getUserName():string {
+        return CmdUtil.getOutputOf('echo $USER');
     }
 }

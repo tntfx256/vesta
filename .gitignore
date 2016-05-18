@@ -2,7 +2,6 @@
 tsd-debug.*
 npm-debug.*
 /build
-/bin
 /node_modules
 /bower_components
 /resources/tsd
