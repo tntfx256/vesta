@@ -1,6 +1,7 @@
 .idea
 tsd-debug.*
 npm-debug.*
+/bin
 /build
 /node_modules
 /bower_components
