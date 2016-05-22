@@ -1,3 +1,9 @@
+# 0.5.30
+### Features
+* Moving deploy to project template (deploy.sh script)
+### Bug Fixes
+* Creating project 
+
 # 0.5.17
 ### Features
 * Loading behind Nginx load balancer

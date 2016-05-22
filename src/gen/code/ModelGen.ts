@@ -6,13 +6,12 @@ import {Question} from "inquirer";
 import {ClassGen} from "../core/ClassGen";
 import {Vesta} from "../file/Vesta";
 import {FieldGen as FieldGen} from "./FieldGen";
-import {Util} from "../../util/Util";
-import {Model} from "../../cmn/Model";
 import {TsFileGen} from "../core/TSFileGen";
 import {InterfaceGen} from "../core/InterfaceGen";
 import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
+import {Model} from "vesta-util/bin/index";
 
 interface IFields {
     [name:string]:FieldGen
@@ -120,7 +119,7 @@ export class ModelGen {
     }
 
     static getModel(modelName:string):Model {
-        var possiblePath = ['build/app/cmn/models/', 'www/app/cmn/models/', 'build/cmn/models/'];
+        var possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/cmn/models/'];
         modelName = _.capitalize(modelName);
         for (var i = possiblePath.length; i--;) {
             var modelFile = path.join(process.cwd(), possiblePath[i], modelName + '.js');

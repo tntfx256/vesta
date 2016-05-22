@@ -3,8 +3,6 @@ import * as path from "path";
 import * as _ from "lodash";
 import * as inquirer from "inquirer";
 import {Question} from "inquirer";
-import {Model} from "../../../../cmn/Model";
-import {Schema} from "../../../../cmn/Schema";
 import {XMLGen} from "../../../core/XMLGen";
 import {Vesta} from "../../../file/Vesta";
 import {BaseFormGen} from "./form/BaseFormGen";
@@ -15,6 +13,7 @@ import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {IonicFormGen} from "./form/IonicFormGen";
 import {FsUtil} from "../../../../util/FsUtil";
 import {Log} from "../../../../util/Log";
+import {Model, Schema} from "vesta-util/bin/index";
 
 export interface INGFormConfig {
     name:string;

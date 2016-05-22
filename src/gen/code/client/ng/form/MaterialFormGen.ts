@@ -1,9 +1,8 @@
-import * as _ from 'lodash';
+import * as _ from "lodash";
 import {BaseFormGen} from "./BaseFormGen";
-import {Field, IFieldProperties} from "../../../../../cmn/Field";
 import {XMLGen} from "../../../../core/XMLGen";
-import {FieldType} from "../../../../../cmn/Field";
 import {INGFormWrapperConfig} from "../NGFormGen";
+import {Field} from "vesta-util/bin/index";
 
 export class MaterialFormGen extends BaseFormGen {
 

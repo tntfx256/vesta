@@ -1,8 +1,6 @@
 import * as fs from "fs-extra";
 import * as _ from "lodash";
-import {Err} from "../cmn/Err";
 import {GitGen} from "../gen/file/GitGen";
-import {GregorianDate} from "../cmn/date/GregorianDate";
 import {FsUtil} from "../util/FsUtil";
 import {Log} from "../util/Log";
 import {CmdUtil} from "../util/CmdUtil";
@@ -11,6 +9,7 @@ import {Question} from "inquirer";
 import {ProjectGen} from "../gen/ProjectGen";
 import {IVesta} from "../gen/file/Vesta";
 import inquirer = require("inquirer");
+import {GregorianDate, Err} from "vesta-util/bin/index";
 
 export interface IDeployHistory {
     date:string;

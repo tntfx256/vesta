@@ -26,6 +26,7 @@ export class DockerGen {
                 'expressJsTemplate': this.config.name
             };
         }
+        Util.findInFileAndReplace(`${this.config.name}/resources/docker/nginx.conf`, replace);
         Util.findInFileAndReplace(`${this.config.name}/resources/docker/docker-compose.yml`, replace);
         Util.findInFileAndReplace(`${this.config.name}/docker-compose.yml`, replace);
     }

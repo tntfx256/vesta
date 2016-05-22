@@ -1,16 +1,7 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import {XMLGen} from "../../../../core/XMLGen";
-import {INGControllerConfig} from "../NGControllerGen";
+import * as _ from "lodash";
 import {Util} from "../../../../../util/Util";
-import {Model} from "../../../../../cmn/Model";
 import {ModelGen} from "../../../ModelGen";
-import {Schema} from "../../../../../cmn/Schema";
-import {IModelFields} from "../../../../../cmn/Model";
-import {FieldType} from "../../../../../cmn/Field";
 import {BaseNGControllerGen} from "./BaseNGControllerGen";
-import {NGControllerGen} from "../NGControllerGen";
 import {ClassGen} from "../../../../core/ClassGen";
 import {MaterialListGen} from "./../list/MaterialListGen";
 import {TsFileGen} from "../../../../core/TSFileGen";
@@ -36,7 +27,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             modelPlural = Util.plural(_.camelCase(this.config.model)),
             model = ModelGen.getModel(this.config.model),
             url = (this.config.module ? (this.config.module + '/') : '') + ctrlName + '/',
-            firstField = Object.keys(model['schema'].getFields())[0],
+            firstField = Object.keys(model.schema.getFields())[0],
             edge = Util.joinPath(this.config.module, ctrlName),
             modelListName = `${modelPlural}List`,
             modelSelectedListName = `selected${_.capitalize(modelPlural)}List`;

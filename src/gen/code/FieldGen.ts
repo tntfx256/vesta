@@ -1,12 +1,11 @@
 import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import * as _ from "lodash";
-import {IFieldProperties, FieldType, Relationship} from "../../cmn/Field";
-import {FileMemeType} from "../../cmn/FileMemeType";
 import {TsFileGen} from "../core/TSFileGen";
 import {Vesta} from "../file/Vesta";
 import {ModelGen} from "./ModelGen";
 import {Log} from "../../util/Log";
+import {IFieldProperties, FieldType, Relationship, FileMemeType} from "vesta-util/bin/index";
 
 export class FieldGen {
     private isMultilingual:boolean = false;

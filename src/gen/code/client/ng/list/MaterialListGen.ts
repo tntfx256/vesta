@@ -4,11 +4,9 @@ import * as _ from "lodash";
 import {XMLGen} from "../../../../core/XMLGen";
 import {INGControllerConfig} from "../NGControllerGen";
 import {Util} from "../../../../../util/Util";
-import {Model, IModelFields} from "../../../../../cmn/Model";
 import {ModelGen} from "../../../ModelGen";
-import {Schema} from "../../../../../cmn/Schema";
-import {FieldType} from "../../../../../cmn/Field";
 import {FsUtil} from "../../../../../util/FsUtil";
+import {Model, Schema, IModelFields, FieldType} from "vesta-util/bin/index";
 
 export class MaterialListGen {
     private list:XMLGen;
