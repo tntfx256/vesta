@@ -13,7 +13,7 @@ import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {IonicFormGen} from "./form/IonicFormGen";
 import {FsUtil} from "../../../../util/FsUtil";
 import {Log} from "../../../../util/Log";
-import {Model, Schema} from "vesta-util/bin/index";
+import {Model, Schema} from "vesta-util";
 
 export interface INGFormConfig {
     name:string;

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "module": "CommonJS",
+    "target": "es5",
+    "outDir": "./bin"
+  },
+  "files": [
+    "typings/tsd.d.ts",
+    "src/index.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

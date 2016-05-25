@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node node_modules/gulp/bin/gulp"
+    "dev": "tsc -w -p ."
   },
   "author": "hbtb <bishehsary@gmail.com>",
   "contributors": [
@@ -25,13 +25,13 @@
     }
   ],
   "bugs": {
-    "url": "https://github.com/hbtb/vesta/issues",
+    "url": "https://github.com/VestaRayanAfzar/vesta/issues",
     "email": "bishehsary@gmail.com"
   },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hbtb/vesta.git"
+    "url": "git+https://github.com/VestaRayanAfzar/vesta.git"
   },
   "dependencies": {
     "colors": "^1.1.2",
@@ -42,11 +42,7 @@
     "lodash": "^3.10.1",
     "shelljs": "^0.6.0",
     "speakeasy": "^1.0.3",
-    "vesta-util": "^0.2.3",
+    "vesta-util": "^0.2.4",
     "yamljs": "^0.2.7"
-  },
-  "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-typescript": "^2.10.0"
   }
 }

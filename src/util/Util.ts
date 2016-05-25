@@ -2,7 +2,7 @@ import * as path from "path";
 import * as fse from "fs-extra";
 import {Question} from "inquirer";
 import {Log} from "./Log";
-import inquirer = require("inquirer");
+import * as inquirer from "inquirer";
 
 export class Util {
 

@@ -1,13 +1,11 @@
 import * as path from "path";
 import {ProjectGen, IProjectGenConfig} from "../ProjectGen";
-import {IFileGenerator} from "../core/IFileGenerator";
 import {GitGen} from "../file/GitGen";
 import {Vesta} from "../file/Vesta";
 import {FsUtil} from "../../util/FsUtil";
 import {CmdUtil, IExecOptions} from "../../util/CmdUtil";
-import resolve = Promise.resolve;
 
-export class CommonGen implements IFileGenerator {
+export class CommonGen {
     private vesta:Vesta;
 
     constructor(private config:IProjectGenConfig) {
@@ -69,8 +67,9 @@ export class CommonGen implements IFileGenerator {
             if (!GitGen.commonProjectExists) {
                 this.createCommonProject()
             }
-            return this.addSubModule();
+            this.addSubModule();
+        } else {
+            this.initWithoutSubModule();
         }
-        this.initWithoutSubModule();
     }
 }

@@ -1,5 +1,5 @@
 # vesta
-**[Vesta Rayan Afzar](http://vestarayanafzar.ir) Platform**
+**[Vesta Rayan Afzar](http://vestarayanafzar.com) Platform**
 
 ## Installation
     npm install -g vesta

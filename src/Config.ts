@@ -1,4 +1,4 @@
-interface IProjectConfigRepository {
+export interface IProjectConfigRepository {
     baseUrl:string;
     group:string;
     common:string;

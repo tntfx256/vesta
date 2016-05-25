@@ -11,7 +11,7 @@ import {InterfaceGen} from "../core/InterfaceGen";
 import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
-import {Model} from "vesta-util/bin/index";
+import {Model} from "vesta-util";
 
 interface IFields {
     [name:string]:FieldGen

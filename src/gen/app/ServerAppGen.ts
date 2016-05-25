@@ -1,12 +1,10 @@
 import * as inqurer from "inquirer";
 import {Question} from "inquirer";
-import {IFileGenerator} from "../core/IFileGenerator";
 import {Vesta} from "../file/Vesta";
 import {DatabaseGen} from "../core/DatabaseGen";
 import {IProjectGenConfig} from "../ProjectGen";
 import {ExpressAppGen} from "./server/ExpressAppGen";
 import {GitGen} from "../file/GitGen";
-import {Util} from "../../util/Util";
 import {FsUtil} from "../../util/FsUtil";
 var speakeasy = require('speakeasy');
 
@@ -15,7 +13,7 @@ export interface IServerAppConfig {
     database:string;
 }
 
-export class ServerAppGen implements IFileGenerator {
+export class ServerAppGen {
     private express:ExpressAppGen;
     private vesta:Vesta;
 

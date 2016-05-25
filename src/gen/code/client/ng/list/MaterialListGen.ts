@@ -6,7 +6,7 @@ import {INGControllerConfig} from "../NGControllerGen";
 import {Util} from "../../../../../util/Util";
 import {ModelGen} from "../../../ModelGen";
 import {FsUtil} from "../../../../../util/FsUtil";
-import {Model, Schema, IModelFields, FieldType} from "vesta-util/bin/index";
+import {Model, Schema, IModelFields, FieldType} from "vesta-util";
 
 export class MaterialListGen {
     private list:XMLGen;

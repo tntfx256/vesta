@@ -7,7 +7,7 @@ import {FsUtil} from "../util/FsUtil";
 import {Log} from "../util/Log";
 import {CmdUtil} from "../util/CmdUtil";
 import {DockerUtil} from "../util/DockerUtil";
-import {GregorianDate, Err} from "vesta-util/bin/index";
+import {Err} from "vesta-util/bin/Err";
 
 
 export class Backuper {

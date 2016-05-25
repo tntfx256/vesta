@@ -4,7 +4,6 @@ import {Question} from "inquirer";
 import {FsUtil} from "../../util/FsUtil";
 import {IExecSyncResult, CmdUtil} from "../../util/CmdUtil";
 import {Util} from "../../util/Util";
-import inquirer = require("inquirer");
 
 export interface IRepositoryConfig {
     baseUrl:string;
