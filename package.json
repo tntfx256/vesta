@@ -42,7 +42,9 @@
     "lodash": "^3.10.1",
     "shelljs": "^0.6.0",
     "speakeasy": "^1.0.3",
-    "vesta-util": "^0.2.4",
+    "vesta-datetime-gregorian": "^0.2.6",
+    "vesta-schema": "^0.2.5",
+    "vesta-util": "^0.2.6",
     "yamljs": "^0.2.7"
   }
 }

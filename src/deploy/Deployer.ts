@@ -9,7 +9,8 @@ import {Question} from "inquirer";
 import {ProjectGen} from "../gen/ProjectGen";
 import {IVesta} from "../gen/file/Vesta";
 import inquirer = require("inquirer");
-import {GregorianDate, Err} from "vesta-util";
+import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
+import {Err} from "vesta-util/Err";
 
 export interface IDeployHistory {
     date:string;

@@ -1,7 +1,7 @@
 import {BaseFormGen} from "./BaseFormGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
 import {XMLGen} from "../../../../core/XMLGen";
-import {Field} from "vesta-util";
+import {Field} from "vesta-schema/Field";
 
 export class EmptyFormGen extends BaseFormGen {
 

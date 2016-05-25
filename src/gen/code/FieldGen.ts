@@ -5,7 +5,8 @@ import {TsFileGen} from "../core/TSFileGen";
 import {Vesta} from "../file/Vesta";
 import {ModelGen} from "./ModelGen";
 import {Log} from "../../util/Log";
-import {IFieldProperties, FieldType, Relationship, FileMemeType} from "vesta-util";
+import {IFieldProperties, FieldType, Relationship} from "vesta-schema/Field";
+import {FileMemeType} from "vesta-util/FileMemeType";
 
 export class FieldGen {
     private isMultilingual:boolean = false;

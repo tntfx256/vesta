@@ -1,7 +1,9 @@
 import * as _ from "lodash";
 import {XMLGen} from "../../../../core/XMLGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
-import {Schema, IModelFields, Model, IFieldProperties, FieldType, Field} from "vesta-util";
+import {Schema} from "vesta-schema/Schema";
+import {IModelFields, Model} from "vesta-schema/Model";
+import {IFieldProperties, FieldType, Field} from "vesta-schema/Field";
 
 export abstract class BaseFormGen {
     protected schema:Schema;

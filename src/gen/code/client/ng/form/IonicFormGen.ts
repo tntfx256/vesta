@@ -2,7 +2,7 @@ import * as _ from "lodash";
 import {BaseFormGen} from "./BaseFormGen";
 import {XMLGen} from "../../../../core/XMLGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
-import {Field} from "vesta-util";
+import {Field} from "vesta-schema/Field";
 
 export class IonicFormGen extends BaseFormGen {
 
