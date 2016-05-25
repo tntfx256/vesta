@@ -1,4 +1,4 @@
-# 0.5.30
+# 0.6.1
 ### Features
 * Moving deploy to project template (deploy.sh script)
 ### Bug Fixes
