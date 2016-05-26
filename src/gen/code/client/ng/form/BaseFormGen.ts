@@ -82,7 +82,7 @@ export abstract class BaseFormGen {
                 input = this.genTextField();
                 break;
             case FieldType.Password:
-                input = this.genTextField();
+                input = this.genTypedInputField('password');
                 break;
             case FieldType.Tel:
             case FieldType.EMail:

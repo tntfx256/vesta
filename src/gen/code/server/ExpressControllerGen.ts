@@ -71,11 +71,11 @@ export class ExpressControllerGen {
         var modelInstanceName = _.camelCase(this.config.model),
             modelClassName = _.capitalize(modelInstanceName),
             dbCodeGen:DatabaseCodeGen = new DatabaseCodeGen(modelClassName);
-        this.controllerFile.addImport(`{Err}`, Util.genRelativePath(this.path, `src/cmn/Err`));
-        this.controllerFile.addImport(`{DatabaseError}`, Util.genRelativePath(this.path, `src/cmn/error/DatabaseError`));
-        this.controllerFile.addImport(`{ValidationError}`, Util.genRelativePath(this.path, `src/cmn/error/ValidationError`));
+        this.controllerFile.addImport(`{Err}`, 'vesta-util/Err');
+        this.controllerFile.addImport(`{DatabaseError}`, 'vesta-util/error/DatabaseError');
+        this.controllerFile.addImport(`{ValidationError}`, 'vesta-util/error/ValidationError');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${modelClassName}`));
-        this.controllerFile.addImport(`{IQueryResult, IUpsertResult, IDeleteResult}`, Util.genRelativePath(this.path, `src/cmn/ICRUDResult`));
+        this.controllerFile.addImport(`{IQueryResult, IUpsertResult, IDeleteResult}`, 'vesta-schema/ICRUDResult');
         var middleWares = ` this.acl('__ACL__'),`,
             acl = this.routingPath.replace(/\/+/g, '.');
         //

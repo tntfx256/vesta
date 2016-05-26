@@ -16,7 +16,6 @@ import {CmdUtil, IExecOptions} from "../util/CmdUtil";
 export interface IProjectGenConfig {
     name:string;
     type:string;
-    endpoint:string;
     server:IServerAppConfig;
     client:IClientAppConfig;
     repository:IRepositoryConfig;
@@ -97,16 +96,10 @@ export class ProjectGen {
             message: 'Project Type: ',
             choices: [ProjectGen.Type.ClientSide, ProjectGen.Type.ServerSide],
             default: ProjectGen.Type.ClientSide
-        }, <Question>{
-            type: 'input',
-            name: 'endpoint',
-            message: 'API Endpoint: ',
-            default: 'http://localhost:3000'
         }];
         return new Promise((resolve, reject)=> {
             inquirer.prompt(questions, answer => {
                 appConfig.type = answer['type'];
-                appConfig.endpoint = answer['endpoint'];
                 if (ProjectGen.Type.ServerSide == appConfig.type) {
                     resolve(ServerAppGen.getGeneratorConfig()
                         .then((serverAppConfig:IServerAppConfig)=> {
