@@ -46,8 +46,8 @@ export class ExpressControllerGen {
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
-        this.controllerFile.addImport('{Request, Response, Router}', 'express');
-        this.controllerFile.addImport('{BaseController}', Util.genRelativePath(this.path, 'src/api/BaseController'));
+        this.controllerFile.addImport('{Response, Router}', 'express');
+        this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({name: 'router', type: 'Router'});
@@ -60,7 +60,7 @@ export class ExpressControllerGen {
 
     private addResponseMethod(name:string) {
         var method = this.controllerClass.addMethod(name);
-        method.addParameter({name: 'req', type: 'Request'});
+        method.addParameter({name: 'req', type: 'IExtRequest'});
         method.addParameter({name: 'res', type: 'Response'});
         method.addParameter({name: 'next', type: 'Function'});
         method.setContent(`return next({message: '${name} has not been implemented'})`);
@@ -72,35 +72,35 @@ export class ExpressControllerGen {
             modelClassName = _.capitalize(modelInstanceName),
             dbCodeGen:DatabaseCodeGen = new DatabaseCodeGen(modelClassName);
         this.controllerFile.addImport(`{Err}`, 'vesta-util/Err');
-        this.controllerFile.addImport(`{DatabaseError}`, 'vesta-util/error/DatabaseError');
-        this.controllerFile.addImport(`{ValidationError}`, 'vesta-util/error/ValidationError');
+        // this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
+        this.controllerFile.addImport(`{ValidationError}`, 'vesta-schema/error/ValidationError');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${modelClassName}`));
-        this.controllerFile.addImport(`{IQueryResult, IUpsertResult, IDeleteResult}`, 'vesta-schema/ICRUDResult');
-        var middleWares = ` this.acl('__ACL__'),`,
-            acl = this.routingPath.replace(/\/+/g, '.');
+        this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
+        this.controllerFile.addImport(`{Vql}`, 'vesta-schema/Vql');
+        var acl = this.routingPath.replace(/\/+/g, ''),
+            middleWares = ` this.checkAcl('${acl}', '__ACTION__'),`;
         //
         var methodName = 'get' + modelClassName,
-            methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.getAll');
+            methodBasedMiddleWares = middleWares.replace('__ACTION__', 'read');
         this.addResponseMethod(methodName).setContent(dbCodeGen.getQueryCode(true));
         this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'get' + Util.plural(modelClassName);
-        methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.get');
         this.addResponseMethod(methodName).setContent(dbCodeGen.getQueryCode(false));
         this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'add' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.add');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'create');
         this.addResponseMethod(methodName).setContent(dbCodeGen.getInsertCode());
         this.routeMethod.appendContent(`router.post('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'update' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.update');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'update');
         this.addResponseMethod(methodName).setContent(dbCodeGen.getUpdateCode());
         this.routeMethod.appendContent(`router.put('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'remove' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACL__', acl + '.delete');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'delete');
         this.addResponseMethod(methodName).setContent(dbCodeGen.getDeleteCode());
         this.routeMethod.appendContent(`router.delete('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
     }
