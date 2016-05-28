@@ -89,7 +89,7 @@ export class MethodGen {
             var parameter = this.parameters[i],
                 code = '',
                 access = '',
-                type = parameter.type ? `: ${parameter.type}` : '',
+                type = parameter.type ? `:${parameter.type}` : '',
                 opt = parameter.isOptional ? '?' : '';
             if (this.isConstructor) {
                 var access = parameter.access ? (parameter.access + ' ') : '';

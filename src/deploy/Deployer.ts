@@ -8,9 +8,8 @@ import {Util} from "../util/Util";
 import {Question} from "inquirer";
 import {ProjectGen} from "../gen/ProjectGen";
 import {IVesta} from "../gen/file/Vesta";
-import inquirer = require("inquirer");
-import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
 import {Err} from "vesta-util/Err";
+import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
 
 export interface IDeployHistory {
     date:string;
@@ -54,10 +53,7 @@ export class Deployer {
         var deployPath = `${this.config.deployPath}/${this.config.projectName}`;
         var args = [this.cloningPath, deployPath, this.config.ssl ? 'ssl' : 'no-ssl'];
         if (this.config.lbPath) {
-            if (!fs.existsSync(`${this.config.lbPath}/docker-compose.yml`)) {
-                return Log.error(`docker-compose.yml file was not found at '${this.config.lbPath}'`);
-            }
-            FsUtil.mkdir(`${this.config.lbPath}/conf.d`);
+            FsUtil.mkdir(this.config.lbPath);
             args.push(this.config.lbPath);
             args.push(this.config.projectName);
         }
@@ -84,8 +80,8 @@ export class Deployer {
 
     public static getDeployConfig(args:Array<string>):Promise<IDeployConfig> {
         if (CmdUtil.execSync(`gulp -v`, {silent: true}).code) {
-            Log.error('You must install gulp-cli!');
-            CmdUtil.execSync(`sudo npm install -g gulp-cli`);
+            Log.error('You must install gulp-cli! Run `sudo npm install -g gulp-cli`');
+            return Promise.reject(new Err(Err.Code.OperationFailed, 'gulp-cli is not installed'));
         }
         var config:IDeployConfig = <IDeployConfig>{
             history: [],

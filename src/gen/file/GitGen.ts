@@ -55,7 +55,7 @@ export class GitGen {
             }
             var defaultProjectName = `${appConfig.name}ApiServer`;
             if (appConfig.type == ProjectGen.Type.ClientSide) {
-                defaultProjectName = appConfig.name + (appConfig.client.platform == ClientAppGen.Platform.Browser ? 'WebInterface' : 'App');
+                defaultProjectName = appConfig.name + (appConfig.client.platform == ClientAppGen.Platform.Browser ? 'WebSite' : 'App');
             }
             qs.push(<Question>{
                 type: 'input',

@@ -31,8 +31,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             edge = Util.joinPath(this.config.module, ctrlName),
             modelListName = `${modelPlural}List`,
             modelSelectedListName = `selected${_.capitalize(modelPlural)}List`;
-        this.controllerFile.addImport(`{IQueryRequest, IQueryResult, IDeleteResult}`, Util.genRelativePath(this.path, 'src/app/cmn/ICRUDResult'));
-        this.controllerFile.addImport(`{ExtArray}`, Util.genRelativePath(this.path, 'src/app/cmn/collection/ExtArray'));
+        this.controllerFile.addImport(`{IQueryRequest, IQueryResult, IDeleteResult}`, 'vesta-schema/ICRUDResult');
+        this.controllerFile.addImport(`{ExtArray}`, 'vesta-util/ExtArray');
         this.controllerClass.addProperty({
             name: modelListName,
             type: `ExtArray<I${this.config.model}>`,

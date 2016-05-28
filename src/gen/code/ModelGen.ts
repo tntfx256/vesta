@@ -39,8 +39,8 @@ export class ModelGen {
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
         this.modelFile.addImport('{Model}', 'vesta-schema/Model');
-        this.modelFile.addImport('{FieldType}', 'vesta-schema/Field');
         this.modelFile.addImport('{Schema}', 'vesta-schema/Schema');
+        this.modelFile.addImport('{FieldType}', 'vesta-schema/Field');
 
         var cm = this.modelClass.setConstructor();
         cm.addParameter({name: 'values', type: 'any', isOptional: true});

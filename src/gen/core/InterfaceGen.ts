@@ -18,7 +18,7 @@ export class InterfaceGen extends AbstractStructureGen {
         for (var i = 0, il = this.properties.length; i < il; ++i) {
             var code = this.properties[i].name;
             if (this.properties[i].isOptional) code += '?';
-            if (this.properties[i].type) code += `: ${this.properties[i].type}`;
+            if (this.properties[i].type) code += `:${this.properties[i].type}`;
             code += ';';
             codes.push(code);
         }

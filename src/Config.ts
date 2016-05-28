@@ -14,7 +14,7 @@ export interface IProjectConfig {
 export var Config:IProjectConfig = {
     repository: {
         baseUrl: 'https://github.com',
-        group: 'hbtb',
+        group: 'VestaRayanAfzar',
         common: 'commonCodeTemplate',
         express: 'expressJsTemplate',
         ionic: 'ionicCordovaTemplate',

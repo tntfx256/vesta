@@ -1,15 +1,12 @@
 {
   "compilerOptions": {
-    "declaration": true,
     "module": "CommonJS",
     "target": "es5",
-    "outDir": "./bin"
+    "outDir": "./bin",
+    "newLine": "LF"
   },
   "files": [
     "typings/tsd.d.ts",
     "src/index.ts"
-  ],
-  "exclude": [
-    "node_modules"
   ]
 }

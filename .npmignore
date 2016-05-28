@@ -1,9 +1,6 @@
 .idea
 tsd-debug.*
 npm-debug.*
-/build
 /node_modules
-/bower_components
-/resources/tsd
 /src
 /typings
