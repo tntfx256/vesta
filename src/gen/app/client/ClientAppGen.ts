@@ -52,12 +52,6 @@ export abstract class ClientAppGen {
             replacePattern = {};
         replacePattern[templateProjectName] = dir;
         Util.findInFileAndReplace(`${dir}/src/app/config/setting.ts`, replacePattern);
-        Util.findInFileAndReplace(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, {
-            'http://localhost:3000': this.config.endpoint
-        });
-        Util.findInFileAndReplace(`${dir}/resources/gitignore/resources/gulp/setting.js`, {
-            'http://localhost': /(https?:\/\/[^:]+).*/.exec(this.config.endpoint)[1]
-        });
         FsUtil.copy(`${dir}/resources/gitignore/resources/gulp/setting.js`, `${dir}/resources/gulp/setting.js`);
         FsUtil.copy(`${dir}/resources/gitignore/src/app/config/setting.var.ts`, `${dir}/src/app/config/setting.var.ts`);
         if (this.isCordova) {

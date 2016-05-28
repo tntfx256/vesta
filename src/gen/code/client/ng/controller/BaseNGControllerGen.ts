@@ -64,7 +64,7 @@ export abstract class BaseNGControllerGen {
         });
         this.controllerFile.addImport(`{I${this.config.model}, ${this.config.model}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${this.config.model}`));
         // importing Err
-        this.controllerFile.addImport('{Err}', Util.genRelativePath(this.path, 'src/app/cmn/Err'));
+        this.controllerFile.addImport('{Err}', 'vesta-util/Err');
         // importing apiService
         this.addInjection({name: 'apiService', type: 'ApiService', path: 'src/app/service/ApiService'});
         // importing formService

@@ -1,18 +1,16 @@
 import * as inquirer from "inquirer";
-import {INGInjectable} from "./NGDependencyInjector";
+import {INGInjectable, NGDependencyInjector} from "./NGDependencyInjector";
 import {BaseNGControllerGen} from "./controller/BaseNGControllerGen";
 import {ControllerGenFactory} from "./controller/NGControllerGenFactory";
 import {Vesta} from "../../../file/Vesta";
-import {IProjectGenConfig} from "../../../ProjectGen";
 import {ModelGen} from "../../ModelGen";
-import {NGDependencyInjector} from "./NGDependencyInjector";
 
 export interface INGControllerConfig {
-    name: string;
-    module: string;
-    model: string;
-    injects: Array<INGInjectable>;
-    openFormInModal?: boolean;
+    name:string;
+    module:string;
+    model:string;
+    injects:Array<INGInjectable>;
+    openFormInModal?:boolean;
 }
 
 export class NGControllerGen {
