@@ -12,6 +12,8 @@ import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 import {Model} from "vesta-schema/Model";
+import {stringify} from "querystring";
+var xml2json = require('xml-to-json');
 
 interface IFields {
     [name:string]:FieldGen
@@ -25,18 +27,20 @@ export class ModelGen {
     private path:string = 'src/cmn/models';
     private vesta:Vesta;
     private fields:IFields = {};
+    private xml:string;
 
     constructor(private args:Array<string>) {
         this.vesta = Vesta.getInstance();
         var modelName = _.capitalize(_.camelCase(args[0]));
+        this.xml = args[1];
         this.modelFile = new TsFileGen(modelName);
         this.modelInterface = this.modelFile.addInterface();
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
-        this.modelFile.addImport('{Model}', '../Model');
-        this.modelFile.addImport('{FieldType}', '../Field');
-        this.modelFile.addImport('{Schema}', '../Schema');
+        this.modelFile.addImport('{Model}', 'vesta-schema/Model');
+        this.modelFile.addImport('{FieldType}', 'vesta-schema/Field');
+        this.modelFile.addImport('{Schema}', 'vesta-schema/Schema');
 
         var cm = this.modelClass.setConstructor();
         cm.addParameter({name: 'values', type: 'any', isOptional: true});
@@ -81,8 +85,48 @@ export class ModelGen {
         })
     }
 
+    private readFields() {
+        var idField = new FieldGen(this.modelFile, 'id');
+        idField.setAsPrimary();
+        this.fields['id'] = idField;
+        var status = fs.lstatSync(this.xml);
+        var steps = [];
+        if (status.isDirectory()) {
+            var files = fs.readdirSync(__dirname + '/cmn/models');
+            for (var i = files.length; i--;) {
+                steps.push(this.parseXml(files[i]));
+            }
+        } else if (status.isFile()) {
+            steps.push(this.parseXml(this.xml));
+        } else {
+            Log.error('\n:: Invalid file path \n');
+            process.exit(1);
+        }
+        Promise.all(steps).then((data)=> {
+            //this.write();
+            console.log("success:",JSON.stringify(data[0],));
+        }).catch(err=>{
+            console.log("error:"+JSON.stringify(err));
+        })
+    }
+
+    private parseXml(xml) {
+        return new Promise((resolve, reject)=> {
+            xml2json({input: xml}, function (err, result) {
+                if (err) {
+                    reject(result)
+                }
+                resolve(result)
+            });
+        })
+    }
+
     generate() {
-        this.getFields();
+        if (this.xml) {
+            this.readFields();
+        } else {
+            this.getFields();
+        }
     }
 
     private write() {
