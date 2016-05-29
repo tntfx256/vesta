@@ -12,7 +12,6 @@ import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 import {Model} from "vesta-schema/Model";
-import {stringify} from "querystring";
 var xml2json = require('xml-to-json');
 
 interface IFields {
@@ -31,8 +30,15 @@ export class ModelGen {
 
     constructor(private args:Array<string>) {
         this.vesta = Vesta.getInstance();
-        var modelName = _.capitalize(_.camelCase(args[0]));
-        this.xml = args[1];
+        if (fs.existsSync(args[1])) {
+            this.xml = args[1];
+        } else {
+            this.initModel(args[0]);
+        }
+    }
+
+    private initModel(modelName) {
+        modelName = _.capitalize(_.camelCase(modelName));
         this.modelFile = new TsFileGen(modelName);
         this.modelInterface = this.modelFile.addInterface();
         this.modelClass = this.modelFile.addClass();
@@ -41,10 +47,11 @@ export class ModelGen {
         this.modelFile.addImport('{Model}', 'vesta-schema/Model');
         this.modelFile.addImport('{Schema}', 'vesta-schema/Schema');
         this.modelFile.addImport('{FieldType}', 'vesta-schema/Field');
+        this.modelFile.addImport('{Database}', 'vesta-schema/Database');
 
         var cm = this.modelClass.setConstructor();
         cm.addParameter({name: 'values', type: 'any', isOptional: true});
-        cm.setContent(`super(schema);
+        cm.setContent(`super(${modelName}.schema, ${modelName}.database);
         this.setValues(values);`);
 
         this.modelFile.addMixin(`var schema = new Schema('${modelName}');`, TsFileGen.CodeLocation.AfterEnum);
@@ -53,6 +60,12 @@ export class ModelGen {
             type: 'Schema',
             access: ClassGen.Access.Public,
             defaultValue: 'schema',
+            isStatic: true
+        });
+        this.modelClass.addProperty({
+            name: 'database',
+            type: 'Database',
+            access: ClassGen.Access.Public,
             isStatic: true
         });
         if (this.vesta.getConfig().type == ProjectGen.Type.ClientSide) {
@@ -92,9 +105,9 @@ export class ModelGen {
         var status = fs.lstatSync(this.xml);
         var steps = [];
         if (status.isDirectory()) {
-            var files = fs.readdirSync(__dirname + '/cmn/models');
+            var files = fs.readdirSync(this.xml);
             for (var i = files.length; i--;) {
-                steps.push(this.parseXml(files[i]));
+                steps.push(this.parseXml(this.xml + '\\' + files[i]));
             }
         } else if (status.isFile()) {
             steps.push(this.parseXml(this.xml));
@@ -102,20 +115,40 @@ export class ModelGen {
             Log.error('\n:: Invalid file path \n');
             process.exit(1);
         }
-        Promise.all(steps).then((data)=> {
-            //this.write();
-            console.log("success:",JSON.stringify(data[0],));
-        }).catch(err=>{
-            console.log("error:"+JSON.stringify(err));
+        Promise.all(steps).then(()=> {
+            console.log('writing models');
+        }).catch(err=> {
+            console.log("error:" + JSON.stringify(err));
         })
     }
 
     private parseXml(xml) {
         return new Promise((resolve, reject)=> {
-            xml2json({input: xml}, function (err, result) {
-                if (err) {
-                    reject(result)
+            xml2json({input: xml}, (err, result)=> {
+                var parts = xml.split(/[\/\\]/);
+                var modelName = parts[parts.length - 1].replace('.xml', '').replace('.XML', '');
+                var model = new ModelGen([modelName]);
+                if (err) return reject(result);
+                var body = result['S:Envelope']['S:Body'];
+                var schema = body[Object.keys(body)[0]]['return'][0];
+                var fieldsName = Object.keys(schema);
+                for (var i = fieldsName.length; i--;) {
+                    var fieldName = _.camelCase(fieldsName[i]);
+                    var type = 'string';
+                    switch (fieldName) {
+                        case 'id':
+                            type = 'number';
+                            fieldName = 'refId';
+                            break;
+                        case 'active':
+                            type = 'boolean';
+                            break;
+                    }
+                    var field = new FieldGen(this.modelFile, fieldName);
+                    field.addProperty('type', type);
+                    model.fields[fieldName] = field;
                 }
+                model.write();
                 resolve(result)
             });
         })

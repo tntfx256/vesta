@@ -90,12 +90,13 @@ export class TsFileGen {
         return null;
     }
 
-    public addInterface(name?:string):InterfaceGen {
+    public addInterface(inputName?:string):InterfaceGen {
+        var name = inputName;
         if (!name) {
             name = this.name;
         }
         name = _.capitalize(_.camelCase(name));
-        if (name.charAt(0) != 'I') name = `I${name}`;
+        if (name.charAt(0) != 'I' || !inputName) name = `I${name}`;
         var intfc = this.getInterface(name);
         if (intfc) return intfc;
         intfc = new InterfaceGen(name);
