@@ -137,7 +137,6 @@ export class ModelGen {
                     var type = 'string';
                     switch (fieldName) {
                         case 'id':
-                            type = 'number';
                             fieldName = 'refId';
                             break;
                         case 'active':
@@ -148,6 +147,10 @@ export class ModelGen {
                     field.addProperty('type', type);
                     model.fields[fieldName] = field;
                 }
+                var id = new FieldGen(this.modelFile, 'id');
+                id.addProperty('type', 'integer');
+                id.setAsPrimary();
+                model.fields['id'] = id;
                 model.write();
                 resolve(result)
             });
@@ -188,7 +191,18 @@ export class ModelGen {
         try {
             var modelFiles = fs.readdirSync(modelDirectory);
             modelFiles.forEach(modelFile => {
-                models[modelFile.substr(0, modelFile.length - 3)] = path.join(modelDirectory, modelFile);
+                var status = fs.statSync(path.join(modelDirectory, modelFile));
+                if (status.isFile()) {
+                    models[modelFile.substr(0, modelFile.length - 3)] = path.join(modelDirectory, modelFile);
+                } else {
+                    var dir = modelFile;
+                    var subModelDirectory = path.join(modelDirectory, modelFile);
+                    var subModelFile = fs.readdirSync(subModelDirectory);
+                    subModelFile.forEach(modelFile => {
+                        models[dir + '/' + modelFile.substr(0, modelFile.length - 3)] = path.join(subModelDirectory, modelFile);
+                    })
+
+                }
             });
         } catch (e) {
         }

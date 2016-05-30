@@ -68,13 +68,15 @@ export class ExpressControllerGen {
     }
 
     private addCRUDOperations() {
-        var modelInstanceName = _.camelCase(this.config.model),
+        var parts = this.config.model.split(/[\/\\]/);
+        var modelName = parts[parts.length - 1];
+        var modelInstanceName = _.camelCase(modelName),
             modelClassName = _.capitalize(modelInstanceName),
             dbCodeGen:DatabaseCodeGen = new DatabaseCodeGen(modelClassName);
         this.controllerFile.addImport(`{Err}`, 'vesta-util/Err');
         // this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
         this.controllerFile.addImport(`{ValidationError}`, 'vesta-schema/error/ValidationError');
-        this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${modelClassName}`));
+        this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport(`{Vql}`, 'vesta-schema/Vql');
         var acl = this.routingPath.replace(/\/+/g, ''),
