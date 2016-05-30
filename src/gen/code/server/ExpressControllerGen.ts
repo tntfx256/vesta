@@ -79,8 +79,9 @@ export class ExpressControllerGen {
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport(`{Vql}`, 'vesta-schema/Vql');
-        var acl = this.routingPath.replace(/\/+/g, ''),
-            middleWares = ` this.checkAcl('${acl}', '__ACTION__'),`;
+        var acl = this.routingPath.replace(/\/+/g, '.');
+        acl = acl[0] == '.' ? acl.slice(1) : acl;
+        var middleWares = ` this.checkAcl('${acl}', '__ACTION__'),`;
         //
         var methodName = 'get' + modelClassName,
             methodBasedMiddleWares = middleWares.replace('__ACTION__', 'read');
@@ -119,7 +120,7 @@ export class ExpressControllerGen {
             var importCode = `import {${this.controllerClass.name}} from '${relPath}/${this.controllerClass.name}';`;
             if (code.indexOf(importCode) >= 0) return;
             var controllerCamel = _.camelCase(this.controllerClass.name);
-            var embedCode = `var ${controllerCamel} = new ${this.controllerClass.name}(setting, database);
+            var embedCode = `var ${controllerCamel} = new ${this.controllerClass.name}(setting, acl, database);
         ${controllerCamel}.route(router);
         ${Placeholder.Router}`;
             code = importCode + '\n' + code.replace(Placeholder.Router, embedCode);
@@ -139,30 +140,57 @@ export class ExpressControllerGen {
         var config:IExpressControllerConfig = <IExpressControllerConfig>{},
             models = Object.keys(ModelGen.getModelsList());
         models.unshift('None');
-        var q:Array<Question> = [
-            <Question>{
-                name: 'routingPath',
-                type: 'input',
-                message: 'Routing Path: ',
-                choices: models,
-                default: '/'
-            },
-            <Question>{
-                name: 'model',
-                type: 'list',
-                message: 'Model for CRUD: ',
-                choices: models,
-                default: 'None'
-            }];
-        config.name = name;
-        inquirer.prompt(q, answer => {
-            var modelName = answer['model'];
-            if (modelName != 'None') {
-                config.model = modelName;
-            }
-            config.route = answer['routingPath'];
-            callback(config);
-        });
+        if(name) {
+            var q:Array<Question> = [
+                <Question>{
+                    name: 'routingPath',
+                    type: 'input',
+                    message: 'Routing Path: ',
+                    choices: models,
+                    default: '/'
+                },
+                <Question>{
+                    name: 'model',
+                    type: 'list',
+                    message: 'Model for CRUD: ',
+                    choices: models,
+                    default: 'None'
+                }];
+            config.name = name;
+            inquirer.prompt(q, answer => {
+                var modelName = answer['model'];
+                if (modelName != 'None') {
+                    config.model = modelName;
+                }
+                config.route = answer['routingPath'];
+                callback(config);
+            });
+        }else{
+            var q:Array<Question> = [
+                <Question>{
+                    name: 'routingPath',
+                    type: 'input',
+                    message: 'Routing Path: ',
+                    choices: models,
+                    default: '/'
+                },
+                <Question>{
+                    name: 'models',
+                    message: 'choose Model for CRUD (select none for create controller for all model): ',
+                    type: 'checkbox',
+                    choices: models,
+                    default: 'None'
+                }];
+            config.name = name;
+            inquirer.prompt(q, answer => {
+                var models = answer['models'];
+                if (models != 'None') {
+                    config.model = models;
+                }
+                config.route = answer['routingPath'];
+                callback(config);
+            });
+        }
     }
 
 }
