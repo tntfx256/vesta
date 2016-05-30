@@ -12,6 +12,9 @@ import {XMLGen} from "../../../../core/XMLGen";
 import {SassGen} from "../../../../file/SassGen";
 import {FsUtil} from "../../../../../util/FsUtil";
 
+/**
+ * @property {boolean} isSpecialController If true, the controller is of type addController or editController
+ */
 export abstract class BaseNGControllerGen {
     protected controllerFile:TsFileGen;
     protected controllerClass:ClassGen;
@@ -48,6 +51,10 @@ export abstract class BaseNGControllerGen {
         }
     }
 
+    /**
+     * add the INGInjectable param to the this.config.injects
+     * @param inject
+     */
     protected addInjection(inject:INGInjectable) {
         for (var i = this.config.injects.length; i--;) {
             if (this.config.injects[i].name == inject.name) return;
@@ -69,7 +76,7 @@ export abstract class BaseNGControllerGen {
         this.addInjection({name: 'apiService', type: 'ApiService', path: 'src/app/service/ApiService'});
         // importing formService
         this.addInjection({name: 'formService', type: 'FormService', path: 'src/app/service/FormService'});
-        //importing notificationService
+        // importing notificationService
         this.addInjection({
             name: 'notificationService', type: 'NotificationService', path: 'src/app/service/NotificationService'
         });

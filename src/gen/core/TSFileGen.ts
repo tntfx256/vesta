@@ -52,16 +52,16 @@ export class TsFileGen {
         var statement = `import ${name} `;
         switch (type) {
             case TsFileGen.ImportType.Require:
-                statement += `= require('${from}');`;
+                statement += `= require("${from}");`;
                 break;
             case TsFileGen.ImportType.Namespace:
                 statement += `= ${from};`;
                 break;
             case TsFileGen.ImportType.Legacy:
-                statement = `var ${name} = require('${from}');`;
+                statement = `var ${name} = require("${from}");`;
                 break;
             default:
-                statement += `from '${from}';`;
+                statement += `from "${from}";`;
         }
         if (this.importStatements.indexOf(statement) < 0) {
             this.importStatements.push(statement);

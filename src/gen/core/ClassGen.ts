@@ -37,7 +37,7 @@ export class ClassGen extends AbstractStructureGen {
             if (this.properties[i].isStatic) code += 'static ';
             code += this.properties[i].name;
             if (this.properties[i].isOptional) code += '?';
-            if (this.properties[i].type) code += `: ${this.properties[i].type}`;
+            if (this.properties[i].type) code += `:${this.properties[i].type}`;
             if (this.properties[i].defaultValue) code += ` = ${this.properties[i].defaultValue}`;
             code += ';';
             codes.push(code);

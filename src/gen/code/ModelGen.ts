@@ -12,6 +12,7 @@ import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 import {Model} from "vesta-schema/Model";
+import {IStructureProperty} from "../core/AbstractStructureGen";
 
 interface IFields {
     [name:string]:FieldGen
@@ -90,7 +91,7 @@ export class ModelGen {
         for (var i = 0, il = fieldNames.length; i < il; ++i) {
             this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterEnum);
             var {fieldName, fieldType, interfaceFieldType, defaultValue} = this.fields[fieldNames[i]].getNameTypePair();
-            var property = {
+            var property:IStructureProperty = {
                 name: fieldName,
                 type: fieldType,
                 access: ClassGen.Access.Public,
@@ -98,6 +99,7 @@ export class ModelGen {
             };
             this.modelClass.addProperty(property);
             property.type = interfaceFieldType;
+            property.isOptional = true;
             this.modelInterface.addProperty(property);
         }
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());

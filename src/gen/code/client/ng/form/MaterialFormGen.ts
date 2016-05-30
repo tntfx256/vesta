@@ -36,7 +36,7 @@ export class MaterialFormGen extends BaseFormGen {
             modelClassName = _.capitalize(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'md-dialog' : 'div'),
             form = new XMLGen('form');
-        wrapper.setAttribute('aria-label', config.title);
+        wrapper.setAttribute('aria-label', config.title).addClass('form-wrapper');
         form.setAttribute('name', `vm.${modelInstanceName}Form`)
             .setAttribute('ng-submit', `vm.${config.type}${modelClassName}()`)
             .setAttribute('novalidate')

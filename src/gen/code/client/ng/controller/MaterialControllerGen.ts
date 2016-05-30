@@ -84,7 +84,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.busy = true;
         this.apiService.get<IQueryRequest<I${this.config.model}>, IQueryResult<I${this.config.model}>>('${ctrlName}', {
                 limit: 10,
-                pageNumber: ++this.currentPage
+                page: ++this.currentPage
             })
             .then(result=> {
                 if (result.error) return this.notificationService.toast(result.error.message);
@@ -163,7 +163,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.controllerFile.name = _.capitalize(ctrlName) + 'AddController';
         this.controllerClass.name = this.controllerFile.name;
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
-        this.controllerFile.addImport(`{IUpsertResult}`, Util.genRelativePath(this.path, 'src/app/cmn/ICRUDResult'));
+        this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport('{IFormController}', 'angular');
         this.controllerClass.getConstructor().appendContent(`this.${modelInstanceName} = new ${modelName}();`);
         var closeMethod = this.controllerClass.addMethod('closeFormModal');
@@ -198,7 +198,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.controllerFile.name = _.capitalize(ctrlName) + 'EditController';
         this.controllerClass.name = this.controllerFile.name;
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
-        this.controllerFile.addImport(`{IQueryResult, IUpsertResult}`, Util.genRelativePath(this.path, 'src/app/cmn/ICRUDResult'));
+        this.controllerFile.addImport(`{IQueryResult, IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport('{IFormController}', 'angular');
         this.controllerClass.getConstructor().appendContent(`apiService.get<I${modelName}, IQueryResult<I${modelName}>>('${edge}/'+this.locals.id)
             .then(result=> {
