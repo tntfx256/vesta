@@ -17,7 +17,7 @@ export class MaterialListGen {
     constructor(private config:INGControllerConfig) {
         var ctrlName = _.camelCase(this.config.name);
         this.list = new XMLGen('div');
-        this.list.setAttribute('layout', 'column');
+        this.list.setAttribute('layout', 'column').addClass('dt-wrapper');
         this.path = path.join(this.path, config.module, ctrlName);
         try {
             fs.mkdirpSync(this.path);

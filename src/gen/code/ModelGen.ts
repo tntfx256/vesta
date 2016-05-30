@@ -199,7 +199,7 @@ export class ModelGen {
                     var subModelDirectory = path.join(modelDirectory, modelFile);
                     var subModelFile = fs.readdirSync(subModelDirectory);
                     subModelFile.forEach(modelFile => {
-                        models[dir + '/' + modelFile.substr(0, modelFile.length - 3)] = path.join(subModelDirectory, modelFile);
+                        models[dir + '/' + modelFile.substr(0, modelFile.length - 3)] = FsUtil.unixPath(path.join(subModelDirectory, modelFile));
                     })
 
                 }
@@ -209,11 +209,19 @@ export class ModelGen {
         return models;
     }
 
+    /**
+     *
+     * @param modelName this might also contains the path to the model
+     * @returns {Model}
+     */
     static getModel(modelName:string):Model {
-        var possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/cmn/models/'];
-        modelName = _.capitalize(modelName);
+        var possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/cmn/models/'],
+            pathToModel = modelName;
+        if (modelName.indexOf('/') > 0) {
+            modelName = /.+\/([^\/]+)$/i.exec(pathToModel)[1];
+        }
         for (var i = possiblePath.length; i--;) {
-            var modelFile = path.join(process.cwd(), possiblePath[i], modelName + '.js');
+            var modelFile = path.join(process.cwd(), possiblePath[i], pathToModel + '.js');
             if (fs.existsSync(modelFile)) {
                 var module = require(modelFile);
                 if (module[modelName]) {
