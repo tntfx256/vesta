@@ -35,7 +35,7 @@ export class MaterialListGen {
     private createHeader() {
         var pluralModel = Util.plural(this.config.model);
         return `
-    <md-data-table-toolbar ng-show="!vm.detOption.showFilter&&!vm.selected.length">
+    <md-data-table-toolbar ng-show="!vm.dtOption.showFilter&&!vm.selected.length">
         <h2 class="box-title">{{vm.dtOption.title}}</h2>
 
         <div flex></div>

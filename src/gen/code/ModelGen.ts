@@ -12,6 +12,7 @@ import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 import {Model} from "vesta-schema/Model";
+import {IStructureProperty} from "../core/AbstractStructureGen";
 var xml2json = require('xml-to-json');
 
 interface IFields {
@@ -170,7 +171,7 @@ export class ModelGen {
         for (var i = 0, il = fieldNames.length; i < il; ++i) {
             this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterEnum);
             var {fieldName, fieldType, interfaceFieldType, defaultValue} = this.fields[fieldNames[i]].getNameTypePair();
-            var property = {
+            var property:IStructureProperty = {
                 name: fieldName,
                 type: fieldType,
                 access: ClassGen.Access.Public,
@@ -178,6 +179,7 @@ export class ModelGen {
             };
             this.modelClass.addProperty(property);
             property.type = interfaceFieldType;
+            property.isOptional = true;
             this.modelInterface.addProperty(property);
         }
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
@@ -216,12 +218,10 @@ export class ModelGen {
      */
     static getModel(modelName:string):Model {
         var possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/cmn/models/'],
-            pathToModel = modelName;
-        if (modelName.indexOf('/') > 0) {
-            modelName = /.+\/([^\/]+)$/i.exec(pathToModel)[1];
-        }
+            pathToModel = `${modelName}.js`;
+        modelName = ModelGen.extractModelName(pathToModel);
         for (var i = possiblePath.length; i--;) {
-            var modelFile = path.join(process.cwd(), possiblePath[i], pathToModel + '.js');
+            var modelFile = path.join(process.cwd(), possiblePath[i], pathToModel);
             if (fs.existsSync(modelFile)) {
                 var module = require(modelFile);
                 if (module[modelName]) {
@@ -230,5 +230,9 @@ export class ModelGen {
             }
         }
         return null;
+    }
+
+    public static extractModelName(modelPath:string):string {
+        return path.parse(modelPath).name;
     }
 }

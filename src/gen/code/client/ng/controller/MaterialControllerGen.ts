@@ -21,10 +21,11 @@ export class MaterialControllerGen extends BaseNGControllerGen {
     }
 
     public setAsListController() {
+        var modelName = ModelGen.extractModelName(this.config.model);
         var ctrlName = _.camelCase(this.config.name),
             capitalize = _.capitalize(ctrlName),
-            modelInstanceName = _.camelCase(this.config.model),
-            modelPlural = Util.plural(_.camelCase(this.config.model)),
+            modelInstanceName = _.camelCase(modelName),
+            modelPlural = Util.plural(_.camelCase(modelName)),
             model = ModelGen.getModel(this.config.model),
             url = (this.config.module ? (this.config.module + '/') : '') + ctrlName + '/',
             firstField = Object.keys(model['schema'].getFields())[0],
@@ -35,15 +36,15 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.controllerFile.addImport(`{ExtArray}`, 'vesta-util/ExtArray');
         this.controllerClass.addProperty({
             name: modelListName,
-            type: `ExtArray<I${this.config.model}>`,
+            type: `ExtArray<I${modelName}>`,
             access: ClassGen.Access.Private,
-            defaultValue: `new ExtArray<I${this.config.model}>()`
+            defaultValue: `new ExtArray<I${modelName}>()`
         });
         this.controllerClass.addProperty({
             name: modelSelectedListName,
-            type: `ExtArray<I${this.config.model}>`,
+            type: `ExtArray<I${modelName}>`,
             access: ClassGen.Access.Private,
-            defaultValue: `new ExtArray<I${this.config.model}>()`
+            defaultValue: `new ExtArray<I${modelName}>()`
         });
         this.controllerClass.addProperty({name: 'dtOption', type: `any`, access: ClassGen.Access.Private});
         this.controllerClass.addProperty({
@@ -70,7 +71,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             label: {text: 'Records', of: 'of'},
             loadMore: this.loadMore.bind(this)
         };
-        apiService.get<IQueryRequest<I${this.config.model}>, IQueryResult<I${this.config.model}>>('${ctrlName}', {limit: 50})
+        apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${ctrlName}', {limit: 50})
             .then(result=> {
                 if (result.error) return this.notificationService.toast(result.error.message);
                 this.${modelListName}.set(result.items);
@@ -82,9 +83,9 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         loadMoreMethod.addParameter({name: 'page', type: 'number'});
         loadMoreMethod.setContent(`if(this.busy || page <= this.currentPage) return;
         this.busy = true;
-        this.apiService.get<IQueryRequest<I${this.config.model}>, IQueryResult<I${this.config.model}>>('${ctrlName}', {
+        this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${ctrlName}', {
                 limit: 10,
-                pageNumber: ++this.currentPage
+                page: ++this.currentPage
             })
             .then(result=> {
                 if (result.error) return this.notificationService.toast(result.error.message);
@@ -95,7 +96,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
                 this.busy = false;
             })`);
         // add method
-        var addMethod = this.controllerClass.addMethod(`add${this.config.model}`);
+        var addMethod = this.controllerClass.addMethod(`add${modelName}`);
         addMethod.addParameter({name: 'event', type: 'MouseEvent'});
         addMethod.setContent(`this.$mdDialog.show(<IDialogOptions>{
             controller: '${ctrlName}AddController',
@@ -109,7 +110,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             this.notificationService.toast('New ${modelInstanceName} has been added successfully');
         })`);
         // edit method
-        var editMethod = this.controllerClass.addMethod(`edit${this.config.model}`);
+        var editMethod = this.controllerClass.addMethod(`edit${modelName}`);
         editMethod.addParameter({name: 'event', type: 'MouseEvent'});
         editMethod.addParameter({name: 'id', type: 'number'});
         editMethod.setContent(`this.$mdDialog.show(<IDialogOptions>{
@@ -122,12 +123,12 @@ export class MaterialControllerGen extends BaseNGControllerGen {
                 id: id
             }
         })
-        .then((${modelInstanceName}: I${this.config.model}) => {
+        .then((${modelInstanceName}: I${modelName}) => {
             this.${modelListName}[this.${modelListName}.indexOfByProperty('id', ${modelInstanceName}.id)] = ${modelInstanceName};
             this.notificationService.toast('${modelInstanceName} has been updated successfully');
         })`);
         // delete method
-        var delMethod = this.controllerClass.addMethod(`del${this.config.model}`);
+        var delMethod = this.controllerClass.addMethod(`del${modelName}`);
         delMethod.addParameter({name: 'event', type: 'MouseEvent'});
         delMethod.setContent(`var confirm = this.$mdDialog.confirm()
             .parent(angular.element(document.body))
@@ -156,14 +157,14 @@ export class MaterialControllerGen extends BaseNGControllerGen {
     public setAsAddController() {
         this.isSpecialController = true;
         var ctrlName = _.camelCase(this.config.name),
-            modelName = this.config.model,
+            modelName = ModelGen.extractModelName(this.config.model),
             modelInstanceName = _.camelCase(modelName),
             formName = `${modelInstanceName}Form`,
             edge = Util.joinPath(this.config.module, ctrlName);
         this.controllerFile.name = _.capitalize(ctrlName) + 'AddController';
         this.controllerClass.name = this.controllerFile.name;
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
-        this.controllerFile.addImport(`{IUpsertResult}`, Util.genRelativePath(this.path, 'src/app/cmn/ICRUDResult'));
+        this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport('{IFormController}', 'angular');
         this.controllerClass.getConstructor().appendContent(`this.${modelInstanceName} = new ${modelName}();`);
         var closeMethod = this.controllerClass.addMethod('closeFormModal');
@@ -191,16 +192,16 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.addInjection({name: 'locals', type: 'any', path: '', isLib: true});
         this.isSpecialController = true;
         var ctrlName = _.camelCase(this.config.name),
-            modelName = this.config.model,
+            modelName = ModelGen.extractModelName(this.config.model),
             modelInstanceName = _.camelCase(modelName),
             formName = `${modelInstanceName}Form`,
             edge = Util.joinPath(this.config.module, ctrlName);
         this.controllerFile.name = _.capitalize(ctrlName) + 'EditController';
         this.controllerClass.name = this.controllerFile.name;
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
-        this.controllerFile.addImport(`{IQueryResult, IUpsertResult}`, Util.genRelativePath(this.path, 'src/app/cmn/ICRUDResult'));
+        this.controllerFile.addImport(`{IQueryRequest, IQueryResult, IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport('{IFormController}', 'angular');
-        this.controllerClass.getConstructor().appendContent(`apiService.get<I${modelName}, IQueryResult<I${modelName}>>('${edge}/'+this.locals.id)
+        this.controllerClass.getConstructor().appendContent(`apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}/'+this.locals.id)
             .then(result=> {
                 if (result.error) return $mdDialog.cancel(result.error);
                 this.${modelInstanceName} = new ${modelName}(result.items[0]);
