@@ -36,7 +36,7 @@ export class MaterialFormGen extends BaseFormGen {
             modelClassName = _.capitalize(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'md-dialog' : 'div'),
             form = new XMLGen('form');
-        wrapper.setAttribute('aria-label', config.title);
+        wrapper.setAttribute('aria-label', config.title).addClass('form-wrapper');
         form.setAttribute('name', `vm.${modelInstanceName}Form`)
             .setAttribute('ng-submit', `vm.${config.type}${modelClassName}()`)
             .setAttribute('novalidate')
@@ -44,7 +44,7 @@ export class MaterialFormGen extends BaseFormGen {
 
         if (config.isModal) {
             var toolbar = new XMLGen('md-toolbar'),
-                actionBar = new XMLGen('div'),
+                actionBar = new XMLGen('md-dialog-actions'),
                 contentWrapper = new XMLGen('md-dialog-content');
             toolbar.html(`
             <div class="md-toolbar-tools">
@@ -58,7 +58,6 @@ export class MaterialFormGen extends BaseFormGen {
             contentWrapper.html(`
             <div ng-include="'${config.formPath}'"></div>`);
             actionBar
-                .addClass('md-actions')
                 .setAttribute('layout', 'row')
                 .html(`
             <md-button type="submit" class="md-primary md-raised">${config.ok}</md-button>

@@ -58,4 +58,8 @@ export class FsUtil {
             }
         })
     }
+
+    public static unixPath(path:string) {
+        return path.replace(/\\/g, '/');
+    }
 }

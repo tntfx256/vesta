@@ -17,7 +17,7 @@ export class MaterialListGen {
     constructor(private config:INGControllerConfig) {
         var ctrlName = _.camelCase(this.config.name);
         this.list = new XMLGen('div');
-        this.list.setAttribute('layout', 'column');
+        this.list.setAttribute('layout', 'column').addClass('dt-wrapper');
         this.path = path.join(this.path, config.module, ctrlName);
         try {
             fs.mkdirpSync(this.path);
@@ -35,7 +35,7 @@ export class MaterialListGen {
     private createHeader() {
         var pluralModel = Util.plural(this.config.model);
         return `
-    <md-data-table-toolbar ng-show="!vm.detOption.showFilter&&!vm.selected.length">
+    <md-data-table-toolbar ng-show="!vm.dtOption.showFilter&&!vm.selected.length">
         <h2 class="box-title">{{vm.dtOption.title}}</h2>
 
         <div flex></div>

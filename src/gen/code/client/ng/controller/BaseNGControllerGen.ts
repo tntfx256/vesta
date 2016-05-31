@@ -11,7 +11,11 @@ import {Placeholder} from "../../../../core/Placeholder";
 import {XMLGen} from "../../../../core/XMLGen";
 import {SassGen} from "../../../../file/SassGen";
 import {FsUtil} from "../../../../../util/FsUtil";
+import {ModelGen} from "../../../ModelGen";
 
+/**
+ * @property {boolean} isSpecialController If true, the controller is of type addController or editController
+ */
 export abstract class BaseNGControllerGen {
     protected controllerFile:TsFileGen;
     protected controllerClass:ClassGen;
@@ -48,6 +52,10 @@ export abstract class BaseNGControllerGen {
         }
     }
 
+    /**
+     * add the INGInjectable param to the this.config.injects
+     * @param inject
+     */
     protected addInjection(inject:INGInjectable) {
         for (var i = this.config.injects.length; i--;) {
             if (this.config.injects[i].name == inject.name) return;
@@ -57,19 +65,20 @@ export abstract class BaseNGControllerGen {
 
     protected setModelRequiredInjections() {
         // importing model
+        var modelName = ModelGen.extractModelName(this.config.model);
         this.controllerClass.addProperty({
-            name: _.camelCase(this.config.model),
-            type: this.config.model,
+            name: _.camelCase(modelName),
+            type: modelName,
             access: ClassGen.Access.Private
         });
-        this.controllerFile.addImport(`{I${this.config.model}, ${this.config.model}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${this.config.model}`));
+        this.controllerFile.addImport(`{I${modelName}, ${modelName}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${this.config.model}`));
         // importing Err
         this.controllerFile.addImport('{Err}', 'vesta-util/Err');
         // importing apiService
         this.addInjection({name: 'apiService', type: 'ApiService', path: 'src/app/service/ApiService'});
         // importing formService
         this.addInjection({name: 'formService', type: 'FormService', path: 'src/app/service/FormService'});
-        //importing notificationService
+        // importing notificationService
         this.addInjection({
             name: 'notificationService', type: 'NotificationService', path: 'src/app/service/NotificationService'
         });
@@ -145,7 +154,7 @@ export abstract class BaseNGControllerGen {
     protected createEmptyTemplate() {
         var template = new XMLGen('div'),
             pageName = _.camelCase(this.config.name);
-        template.setAttribute('id', `${pageName}-page`);
+        template.setAttribute('id', `${pageName}-page`).addClass('page');
         pageName = _.capitalize(_.camelCase(this.config.name));
         template.html(`<h1>${pageName} Page</h1>`);
         var sass = new SassGen(this.config.name, SassGen.Type.Page);
