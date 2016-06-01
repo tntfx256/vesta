@@ -48,7 +48,7 @@ export class DatabaseCodeGen {
         }
         ${this.model}.findById<I${this.model}>(${modelInstanceName}.id)
             .then(result=> {
-                if (result.items.length == 1) return ${modelInstanceName}.update();
+                if (result.items.length == 1) return ${modelInstanceName}.update().then(result=>res.json(result));
                 this.handleError(res, Err.Code.DBUpdate);
             })
             .catch(err=> this.handleError(res, Err.Code.DBUpdate, err.message));`;

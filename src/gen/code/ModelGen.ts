@@ -12,7 +12,11 @@ import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 import {Model} from "vesta-schema/Model";
+import {Connection, config, Request} from "mssql";
+import {Err} from "vesta-util/Err";
+import {DatabaseError} from "vesta-schema/error/DatabaseError";
 import {IStructureProperty} from "../core/AbstractStructureGen";
+import reject = Promise.reject;
 var xml2json = require('xml-to-json');
 
 interface IFields {
@@ -158,7 +162,77 @@ export class ModelGen {
         })
     }
 
+    private importFromSQL() {
+        var SQLConnection = new Connection(<config>{
+            server: '192.168.2.105',
+            port: '1433',
+            user: 'sa',
+            password: 'tntfx256',
+            database: 'TestDB',
+            pool: {
+                min: 5,
+                max: 100,
+                idleTimeoutMillis: 1000,
+            }
+        });
+        SQLConnection.connect((err)=> {
+            if (err) {
+                return reject(new DatabaseError(Err.Code.DBConnection, err.message));
+            }
+            (new Request(SQLConnection)).query('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', (err, result)=> {
+                var schema = {};
+                for (var i = 0; i < result.length; i++) {
+                    schema[result[i]['TABLE_NAME']] = schema[result[i]['TABLE_NAME']] || {};
+                    schema[result[i]['TABLE_NAME']][result[i]['COLUMN_NAME']] = result[i];
+                }
+
+                for (var modelName in schema) {
+                    if (schema.hasOwnProperty(modelName)) {
+                        var model = new ModelGen([modelName]);
+                        var id = new FieldGen(this.modelFile, 'id');
+                        id.addProperty('type', 'integer');
+                        id.setAsPrimary();
+                        model.fields['id'] = id;
+                        for (var fieldName in schema[modelName]) {
+                            if (schema[modelName].hasOwnProperty(fieldName)) {
+                                var record = schema[modelName][fieldName];
+                                var field = new FieldGen(this.modelFile, fieldName);
+                                if (record['COLUMN_DEFAULT']) {
+                                    field.addProperty('default', record['COLUMN_DEFAULT']);
+                                }
+                                if (record['IS_NULLABLE'] == 'NO') {
+                                    field.addProperty('required', true);
+                                }
+                                switch (record['DATA_TYPE']) {
+                                    case 'decimal':
+                                        field.addProperty('type', 'number');
+                                        break;
+                                    case 'bigint':
+                                    case 'int':
+                                        field.addProperty('type', 'integer');
+                                        break;
+                                    case 'bit':
+                                        field.addProperty('type', 'boolean');
+                                        break;
+                                    case 'varbinary':
+                                        field.addProperty('type', 'object');
+                                        break;
+                                    default:
+                                        field.addProperty('type', 'string');
+                                        break;
+                                }
+                                model.fields[fieldName] = field;
+                            }
+                        }
+                        model.write();
+                    }
+                }
+            })
+        })
+    }
+
     generate() {
+        // this.importFromSQL();
         if (this.xml) {
             this.readFields();
         } else {
@@ -175,12 +249,14 @@ export class ModelGen {
                 name: fieldName,
                 type: fieldType,
                 access: ClassGen.Access.Public,
-                defaultValue: defaultValue
+                defaultValue: defaultValue,
             };
             this.modelClass.addProperty(property);
-            property.type = interfaceFieldType;
-            property.isOptional = true;
-            this.modelInterface.addProperty(property);
+            var iProperty:IStructureProperty = <IStructureProperty>_.assign({}, property, {
+                isOptional: true,
+                type: interfaceFieldType
+            });
+            this.modelInterface.addProperty(iProperty);
         }
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
