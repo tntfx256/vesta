@@ -83,7 +83,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         loadMoreMethod.addParameter({name: 'page', type: 'number'});
         loadMoreMethod.setContent(`if(this.busy || page <= this.currentPage) return;
         this.busy = true;
-        this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${ctrlName}', {
+        this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}', {
                 limit: 10,
                 page: ++this.currentPage
             })
