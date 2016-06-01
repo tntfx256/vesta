@@ -15,8 +15,8 @@ import {Model} from "vesta-schema/Model";
 import {Connection, config, Request} from "mssql";
 import {Err} from "vesta-util/Err";
 import {DatabaseError} from "vesta-schema/error/DatabaseError";
-import reject = Promise.reject;
 import {IStructureProperty} from "../core/AbstractStructureGen";
+import reject = Promise.reject;
 var xml2json = require('xml-to-json');
 
 interface IFields {
@@ -249,12 +249,14 @@ export class ModelGen {
                 name: fieldName,
                 type: fieldType,
                 access: ClassGen.Access.Public,
-                defaultValue: defaultValue
+                defaultValue: defaultValue,
             };
             this.modelClass.addProperty(property);
-            property.type = interfaceFieldType;
-            property.isOptional = true;
-            this.modelInterface.addProperty(property);
+            var iProperty:IStructureProperty = <IStructureProperty>_.assign({}, property, {
+                isOptional: true,
+                type: interfaceFieldType
+            });
+            this.modelInterface.addProperty(iProperty);
         }
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
