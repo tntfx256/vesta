@@ -97,7 +97,7 @@ export abstract class BaseNGControllerGen {
             state = pathParts.join('.'),
             templateUrl = '';
         if (this.isSpecialController) {
-            templateUrl = `tpl/${url}/${ctrlName}List.html`;
+            templateUrl = `tpl/${pathParts.join('/')}/${ctrlName}List.html`;
         } else {
             templateUrl = `tpl/${ctrlName}.html`;
         }
