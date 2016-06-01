@@ -42,9 +42,9 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         });
         this.controllerClass.addProperty({
             name: modelSelectedListName,
-            type: `ExtArray<I${modelName}>`,
+            type: `Array<number>`,
             access: ClassGen.Access.Private,
-            defaultValue: `new ExtArray<I${modelName}>()`
+            defaultValue: `[]`
         });
         this.controllerClass.addProperty({name: 'dtOption', type: `any`, access: ClassGen.Access.Private});
         this.controllerClass.addProperty({
@@ -71,7 +71,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             label: {text: 'Records', of: 'of'},
             loadMore: this.loadMore.bind(this)
         };
-        apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${ctrlName}', {limit: 50})
+        apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}')
             .then(result=> {
                 if (result.error) return this.notificationService.toast(result.error.message);
                 this.${modelListName}.set(result.items);
@@ -104,11 +104,10 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             templateUrl: 'tpl/${url}${ctrlName}AddForm.html',
             parent: angular.element(document.body),
             targetEvent: event
-        })
-        .then((${modelInstanceName}) => {
+        }).then((${modelInstanceName}) => {
             this.${modelPlural}List.push(${modelInstanceName});
             this.notificationService.toast('New ${modelInstanceName} has been added successfully');
-        })`);
+        }).catch(err=> err && this.notificationService.toast(err.message))`);
         // edit method
         var editMethod = this.controllerClass.addMethod(`edit${modelName}`);
         editMethod.addParameter({name: 'event', type: 'MouseEvent'});
@@ -122,11 +121,10 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             locals: {
                 id: id
             }
-        })
-        .then((${modelInstanceName}: I${modelName}) => {
+        }).then((${modelInstanceName}: I${modelName}) => {
             this.${modelListName}[this.${modelListName}.indexOfByProperty('id', ${modelInstanceName}.id)] = ${modelInstanceName};
             this.notificationService.toast('${modelInstanceName} has been updated successfully');
-        })`);
+        }).catch(err=> err && this.notificationService.toast(err.message))`);
         // delete method
         var delMethod = this.controllerClass.addMethod(`del${modelName}`);
         delMethod.addParameter({name: 'event', type: 'MouseEvent'});
@@ -137,15 +135,11 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             .targetEvent(event)
             .ok('Yes').cancel('No');
         this.$mdDialog.show(confirm).then(() => {
-            var ${modelInstanceName}Ids = [];
-            this.${modelSelectedListName}.forEach(${modelInstanceName} => {
-                ${modelInstanceName}Ids.push(${modelInstanceName}.id);
-            });
-            this.apiService.delete<any, IDeleteResult>('${edge}', ${modelInstanceName}Ids)
+            this.apiService.delete<Array<number>, IDeleteResult>('${edge}', this.${modelSelectedListName})
                 .then(result=> {
                     if (result.error) return this.notificationService.toast(result.error.message);
-                    this.${modelListName}.removeByProperty('id', result.items);
-                    this.${modelSelectedListName}.clear();
+                    this.${modelListName}.removeByProperty('id', this.${modelSelectedListName});
+                    this.${modelSelectedListName} = [];
                     this.notificationService.toast(result.items.length + ' ${modelInstanceName} has been deleted successfully');
                 })
         })`);

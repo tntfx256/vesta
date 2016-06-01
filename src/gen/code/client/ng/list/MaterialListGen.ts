@@ -33,55 +33,57 @@ export class MaterialListGen {
     }
 
     private createHeader() {
-        var pluralModel = Util.plural(this.config.model);
+        var modelName = ModelGen.extractModelName(this.config.model);
+        var pluralModel = Util.plural(modelName);
         return `
-    <md-data-table-toolbar ng-show="!vm.dtOption.showFilter&&!vm.selected.length">
-        <h2 class="box-title">{{vm.dtOption.title}}</h2>
+    <md-toolbar class="md-table-toolbar md-default" ng-show="!vm.dtOption.showFilter&&!vm.selected${pluralModel}List.length">
+        <div class="md-toolbar-tools">
+            <h2 class="box-title">{{vm.dtOption.title}}</h2>
+            <div flex></div>
+            <md-button class="md-icon-button" ng-click="vm.dtOption.showFilter=true">
+                <md-icon>filter_list</md-icon>
+            </md-button>
+            <md-button class="md-icon-button" ng-click="vm.add${modelName}($event)">
+                <md-icon>add</md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>
+    <md-toolbar class="md-table-toolbar md-default" ng-show="vm.selected${pluralModel}List.length">
+        <div class="md-toolbar-tools">
+            <p>Number of selected records: {{vm.selected${pluralModel}List.length}}</p>
+            <div flex></div>
+            <md-button class="md-icon-button" ng-click="vm.del${modelName}($event)">
+                <md-icon>delete</md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>
 
-        <div flex></div>
-        <md-button class="md-icon-button" ng-click="vm.dtOption.showFilter=true">
-            <md-icon>filter_list</md-icon>
-        </md-button>
-        <md-button class="md-icon-button" ng-click="vm.add${this.config.model}($event)">
-            <md-icon>add</md-icon>
-        </md-button>
-    </md-data-table-toolbar>
-
-    <md-data-table-toolbar ng-show="vm.selected${pluralModel}List.length">
-        <p>Number of selected records: {{vm.selected${pluralModel}List.length}}</p>
-
-        <div flex></div>
-        <md-button class="md-icon-button" ng-click="vm.del${this.config.model}($event)">
-            <md-icon>delete</md-icon>
-        </md-button>
-    </md-data-table-toolbar>
-
-    <md-data-table-toolbar ng-show="vm.dtOption.showFilter&&!vm.selected${pluralModel}List.length">
-
-        <md-button class="md-icon-button">
-            <md-icon>search</md-icon>
-        </md-button>
-
-        <md-input-container flex>
-            <input type="search" ng-model="vm.dtOption.filter" placeholder="Type search query"/>
-        </md-input-container>
-
-        <md-button class="md-icon-button" ng-click="vm.dtOption.showFilter=false">
-            <md-icon>clear</md-icon>
-        </md-button>
-
-    </md-data-table-toolbar>`;
+    <md-toolbar class="md-table-toolbar md-default" ng-show="vm.dtOption.showFilter&&!vm.selected${pluralModel}List.length">
+        <div class="md-toolbar-tools">
+            <md-button class="md-icon-button">
+                <md-icon>search</md-icon>
+            </md-button>
+            <md-input-container flex>
+                <input type="search" ng-model="vm.dtOption.filter" placeholder="Type search query"/>
+            </md-input-container>
+            <md-button class="md-icon-button" ng-click="vm.dtOption.showFilter=false">
+                <md-icon>clear</md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>`;
     }
 
     private createContent() {
-        var pluralModel = Util.plural(this.config.model),
+        var modelName = ModelGen.extractModelName(this.config.model),
+            pluralModel = Util.plural(modelName),
             pluralInstance = _.camelCase(pluralModel),
-            modelInstanceName = _.camelCase(this.config.model),
+            modelInstanceName = _.camelCase(modelName),
             model:Model = ModelGen.getModel(this.config.model),
             schema:Schema = model['schema'],
             fields:IModelFields = schema.getFields(),
-            headerCode = `<th>row</th>`,
-            rowCode = `<td>{{$index + 1 + (vm.dtOption.page - 1 ) * vm.dtOption.limit }}</td>`;
+            headerCode = `<th md-column>row</th>`,
+            rowCode = `<td md-cell>{{$index + 1 + (vm.dtOption.page - 1 ) * vm.dtOption.limit }}</td>`,
+            splitter = '\n\t\t\t\t';
         Object.keys(fields).forEach(fieldName => {
             var properties = fields[fieldName].properties;
             switch (properties.type) {
@@ -90,23 +92,26 @@ export class MaterialListGen {
                 case FieldType.Tel :
                 case FieldType.EMail :
                 case FieldType.URL :
+                    headerCode += `${splitter}<th md-column md-order-by="${fieldName}">${fieldName}</th>`;
+                    rowCode += `${splitter}<td md-cell>{{${modelInstanceName}.${fieldName}}}</td>`;
+                    break;
                 case FieldType.Number :
                 case FieldType.Integer :
                 case FieldType.Float :
-                    headerCode += `<th>${fieldName}</th>`;
-                    rowCode += `<td>{{${modelInstanceName}.${fieldName}}}</td>`;
+                    headerCode += `${splitter}<th md-column md-numeric md-order-by="${fieldName}">${fieldName}</th>`;
+                    rowCode += `${splitter}<td md-cell>{{${modelInstanceName}.${fieldName}}}</td>`;
                     break;
                 case FieldType.Timestamp :
-                    headerCode += `<th>${fieldName}</th>`;
-                    rowCode += `<td>{{${modelInstanceName}.${fieldName} | dateTime}}</td>`;
+                    headerCode += `${splitter}<th md-column md-order-by="${fieldName}">${fieldName}</th>`;
+                    rowCode += `${splitter}<td md-cell>{{${modelInstanceName}.${fieldName} | dateTime}}</td>`;
                     break;
                 case FieldType.Boolean :
-                    headerCode += `<th>${fieldName}</th>`;
-                    rowCode += `<td>{{${modelInstanceName}.${fieldName}?'Yes':'No'}}</td>`;
+                    headerCode += `${splitter}<th md-column md-order-by="${fieldName}">${fieldName}</th>`;
+                    rowCode += `${splitter}<td md-cell><md-checkbox ng-disabled="true" ng-model="${modelInstanceName}.${fieldName}"></md-checkbox></td>`;
                     break;
                 case FieldType.Enum :
-                    headerCode += `<th>${fieldName}</th>`;
-                    rowCode += `<td>{{vm.${_.capitalize(fieldName)}[${modelInstanceName}.${fieldName}]}}</td>`;
+                    headerCode += `${splitter}<th md-column md-order-by="${fieldName}">${fieldName}</th>`;
+                    rowCode += `${splitter}<td md-cell>{{vm.${_.capitalize(fieldName)}[${modelInstanceName}.${fieldName}]}}</td>`;
                     break;
                 case FieldType.File :
                 case FieldType.Password :
@@ -116,38 +121,39 @@ export class MaterialListGen {
         });
 
         return `
-    <md-data-table-container>
-        <table md-data-table md-row-select="vm.selected${pluralModel}List">
+    <md-table-container>
+        <table md-table md-row-select multiple ng-model="vm.selected${pluralModel}List">
 
-            <thead md-order="vm.dtOption.order">
+            <thead md-head md-order="vm.dtOption.order">
             <tr>
                 ${headerCode}
-                <th>&nbsp;</th>
+                <th md-column>&nbsp;</th>
             </tr>
             </thead>
-            <tbody>
-            <tr md-auto-select
+            <tbody md-body>
+            <tr md-row md-auto-select md-select="${modelInstanceName}.id"
                 ng-repeat="${modelInstanceName} in vm.${pluralInstance}List  | filter:vm.dtOption.filter | pagination:vm.dtOption.page:vm.dtOption.limit:vm.dtOption.total:vm.dtOption.loadMore track by $index">
                 ${rowCode}
-                <td>
-                    <md-button class="md-icon-button" ng-click="vm.edit${this.config.model}($event, ${modelInstanceName}.id)">
+                <td md-cell>
+                    <md-button class="md-icon-button" ng-click="vm.edit${modelName}($event, ${modelInstanceName}.id)">
                         <md-icon>mode_edit</md-icon>
                     </md-button>
                 </td>
             </tr>
             </tbody>
         </table>
-    </md-data-table-container>`;
+    </md-table-container>`;
     }
 
     private getPaginator() {
         return `
-    <md-table-pagination md-limit="vm.dtOption.limit"
-                              md-page="vm.dtOption.page"
-                              md-total="{{vm.dtOption.total}}"
-                              md-trigger="vm.dtOption.onPaginationChange"
-                              md-row-select="vm.dtOption.rowsPerPage"
-                              md-label="vm.dtOption.label">
+    <md-table-pagination 
+        md-limit="vm.dtOption.limit"
+        md-page="vm.dtOption.page"
+        md-total="{{vm.dtOption.total}}"
+        md-limit-options="vm.dtOption.rowsPerPage"
+        md-page-select="true"
+        md-on-paginate="vm.loadMore">
     </md-table-pagination>`;
     }
 }

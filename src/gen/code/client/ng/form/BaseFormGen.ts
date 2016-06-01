@@ -4,6 +4,7 @@ import {INGFormWrapperConfig} from "../NGFormGen";
 import {Schema} from "vesta-schema/Schema";
 import {IModelFields, Model} from "vesta-schema/Model";
 import {IFieldProperties, FieldType, Field} from "vesta-schema/Field";
+import {ModelGen} from "../../../ModelGen";
 
 export abstract class BaseFormGen {
     protected schema:Schema;
@@ -70,7 +71,7 @@ export abstract class BaseFormGen {
     }
 
     protected getElementsByFieldType(wrapper:XMLGen, name:string, properties:IFieldProperties):void {
-        var modelInstanceName = _.camelCase(this.schema.name),
+        var modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             formName = `${modelInstanceName}Form`,
             input = new XMLGen('input', true),
             ngMessages:Array<XMLGen> = [];

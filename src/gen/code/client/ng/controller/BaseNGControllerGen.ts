@@ -86,16 +86,17 @@ export abstract class BaseNGControllerGen {
 
     protected generateRoute() {
         var ctrlName = _.camelCase(this.config.name),
-            pathParts = [];
+            pathParts = [],
+            viewName = 'master';
         if (this.config.module) {
             pathParts.push(this.config.module);
+            viewName = [`${_.kebabCase(this.config.module)}-content`, this.config.module].join('@');
         }
         pathParts.push(ctrlName);
         var url = ctrlName,
             state = pathParts.join('.'),
             templateUrl = '';
         if (this.isSpecialController) {
-            url = pathParts.join('/');
             templateUrl = `tpl/${url}/${ctrlName}List.html`;
         } else {
             templateUrl = `tpl/${ctrlName}.html`;
@@ -105,7 +106,7 @@ export abstract class BaseNGControllerGen {
         var code = `${codeFirstLine}
         url: '/${url}',
         views: {
-            'master': {
+            '${viewName}': {
                 templateUrl: '${templateUrl}',
                 controller: '${ctrlName}Controller',
                 controllerAs: 'vm'

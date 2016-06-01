@@ -2,15 +2,19 @@ import * as _ from "lodash";
 import {BaseFormGen} from "./BaseFormGen";
 import {XMLGen} from "../../../../core/XMLGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
-import {Field} from "vesta-schema/Field";
+import {Field, FieldType} from "vesta-schema/Field";
+import {ModelGen} from "../../../ModelGen";
 
 export class MaterialFormGen extends BaseFormGen {
 
-    private static getInputContainer(title?:string):XMLGen {
+    private static getInputContainer(title?:string, noFloat?:boolean):XMLGen {
         var wrapper = new XMLGen('md-input-container');
         wrapper.addClass('md-block');
         if (title) {
             var label = new XMLGen('label');
+            if (noFloat) {
+                label.addClass('md-no-float');
+            }
             label.text(title).setAttribute('for', title);
             wrapper.append(label);
         }
@@ -26,13 +30,18 @@ export class MaterialFormGen extends BaseFormGen {
     }
 
     protected genElementForField(field:Field):XMLGen {
-        var wrapper = MaterialFormGen.getInputContainer(field.fieldName);
+        var isCheckbox = field.properties.type == FieldType.Boolean;
+        var wrapper = MaterialFormGen.getInputContainer(field.fieldName, isCheckbox);
         this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
         return wrapper;
     }
 
+    protected genCheckboxField():XMLGen {
+        return new XMLGen('md-checkbox', true);
+    }
+
     public wrap(config:INGFormWrapperConfig):XMLGen {
-        var modelInstanceName = _.camelCase(this.schema.name),
+        var modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             modelClassName = _.capitalize(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'md-dialog' : 'div'),
             form = new XMLGen('form');
