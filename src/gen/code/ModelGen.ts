@@ -165,7 +165,7 @@ export class ModelGen {
     private importFromSQL() {
         var SQLConnection = new Connection(<config>{
             server: '192.168.2.105',
-            port: '1433',
+            port: 1433,
             user: 'sa',
             password: 'tntfx256',
             database: 'TestDB',
