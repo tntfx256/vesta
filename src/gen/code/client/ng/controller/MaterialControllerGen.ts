@@ -112,7 +112,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         var editMethod = this.controllerClass.addMethod(`edit${modelName}`);
         editMethod.addParameter({name: 'event', type: 'MouseEvent'});
         editMethod.addParameter({name: 'id', type: 'number'});
-        editMethod.setContent(`this.$mdDialog.show(<IDialogOptions>{
+        editMethod.setContent(`event.stopPropagation();
+        this.$mdDialog.show(<IDialogOptions>{
             controller: '${ctrlName}EditController',
             controllerAs: 'vm',
             templateUrl: 'tpl/${url}${ctrlName}EditForm.html',
