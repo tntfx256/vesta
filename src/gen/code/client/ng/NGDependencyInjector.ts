@@ -1,7 +1,7 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
-import * as inquirer from "inquirer";
+import {Question} from "inquirer";
 import {ClassGen} from "../../../core/ClassGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {Util} from "../../../../util/Util";
@@ -9,7 +9,6 @@ import {CordovaGen} from "../../../file/CordovaGen";
 import {Vesta} from "../../../file/Vesta";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {FsUtil} from "../../../../util/FsUtil";
-import {Question} from "inquirer";
 
 
 export interface INGInjectable {
@@ -88,25 +87,24 @@ export class NGDependencyInjector {
     public static updateImportAndAppFile(file:TsFileGen, type:string, destination:string, placeHolder:string, importPath:string) {
         var className = file.name,
             instanceName = _.camelCase(className),
-            appFilePath = 'src/app/app.ts',
             importFilePath = 'src/app/config/import.ts';
         if (/.+Filter$/.exec(instanceName)) {
             instanceName = instanceName.replace(/Filter$/, '');
         }
+        // creating the ts file and write it's content
         FsUtil.writeFile(path.join(destination, className + '.ts'), file.generate());
 
         var importFileCode = fs.readFileSync(importFilePath, {encoding: 'utf8'}),
-            importCode = `export {${className}} from '${importPath}/${className}';`,
-            appFileCode = fs.readFileSync(appFilePath, {encoding: 'utf8'}),
-            embedCode = `clientApp.module.${type}('${instanceName}', imp.${className});\n    ${placeHolder}`;
+        // import statement code
+            importCode = `import {${className}} from '${importPath}/${className}';`,
+        // adding module as property to exporter variable code
+            embedCode = `,\n        ${instanceName} = ${className}\n${placeHolder}`;
 
-        if (appFileCode.indexOf(placeHolder) < 0) return;
         if (importFileCode.indexOf(importCode) >= 0) return;
 
-        appFileCode = appFileCode.replace(placeHolder, embedCode);
-        importFileCode += '\n' + importCode;
+        importFileCode = importFileCode.replace('///<vesta:import/>', `${importCode}\n///<vesta:import/>`);
+        importFileCode = importFileCode.replace(placeHolder, embedCode);
 
-        FsUtil.writeFile(appFilePath, appFileCode);
         FsUtil.writeFile(importFilePath, importFileCode);
     }
 
@@ -121,12 +119,12 @@ export class NGDependencyInjector {
             injectableNames.push(injectables[i].name);
         }
         return new Promise(resolve=> {
-            inquirer.prompt(<Question>{
+            Util.prompt<{injects:Array<string>}>(<Question>{
                 name: 'injects',
                 type: 'checkbox',
                 message: 'Injectables: ',
                 choices: injectableNames
-            }, answer=> {
+            }).then(answer=> {
                 var selected:Array<INGInjectable> = [];
                 for (var i = answer['injects'].length; i--;) {
                     for (var j = injectables.length; j--;) {
