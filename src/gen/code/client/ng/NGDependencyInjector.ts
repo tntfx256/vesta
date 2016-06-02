@@ -96,9 +96,9 @@ export class NGDependencyInjector {
 
         var importFileCode = fs.readFileSync(importFilePath, {encoding: 'utf8'}),
         // import statement code
-            importCode = `import {${className}} from '${importPath}/${className}';`,
+            importCode = `import {${className}} from "${importPath}/${className}";`,
         // adding module as property to exporter variable code
-            embedCode = `,\n        ${instanceName} = ${className}\n${placeHolder}`;
+            embedCode = `,\n        ${instanceName}: ${className}${placeHolder}`;
 
         if (importFileCode.indexOf(importCode) >= 0) return;
 

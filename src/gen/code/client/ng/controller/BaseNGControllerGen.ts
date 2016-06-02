@@ -35,16 +35,16 @@ export abstract class BaseNGControllerGen {
         this.controllerFile = new TsFileGen(_.capitalize(ctrlClassName));
         this.controllerClass = this.controllerFile.addClass();
         this.controllerClass.setParentClass('BaseController');
-        this.controllerFile.addImport('{BaseController}', Util.genRelativePath(this.path, `src/app/modules/BaseController`));
         this.controllerClass.setConstructor().setContent(`super();`);
         this.templatePath = path.join(this.templatePath, config.module);
-        this.addAclMethod();
         if (config.model) {
             this.form = new NGFormGen(config);
             this.path = path.join(this.path, ctrlName);
             this.templatePath = path.join(this.templatePath, ctrlName);
             this.setModelRequiredInjections();
         }
+        this.addAclMethod();
+        this.controllerFile.addImport('{BaseController}', Util.genRelativePath(this.path, `src/app/modules/BaseController`));
         FsUtil.mkdir(this.path, this.templatePath);
         for (var i = config.injects.length; i--;) {
             if (config.injects[i].name == '$scope') {
@@ -189,7 +189,6 @@ export abstract class BaseNGControllerGen {
         if (this.hasScope) {
             this.createScope();
         }
-        1
         NGDependencyInjector.inject(this.controllerFile, this.config.injects, this.path, this.isSpecialController);
         if (this.config.model && !this.isSpecialController) {
             this.generateForm();
