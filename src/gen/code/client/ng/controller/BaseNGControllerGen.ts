@@ -97,7 +97,7 @@ export abstract class BaseNGControllerGen {
             state = pathParts.join('.'),
             templateUrl = '';
         if (this.isSpecialController) {
-            templateUrl = `tpl/${pathParts.join('/')}/${ctrlName}List.html`;
+            templateUrl = `tpl/${pathParts.join('/')}/${ctrlName}.html`;
         } else {
             templateUrl = `tpl/${ctrlName}.html`;
         }
@@ -157,7 +157,8 @@ export abstract class BaseNGControllerGen {
             pageName = _.camelCase(this.config.name);
         template.setAttribute('id', `${pageName}-page`).addClass('page');
         pageName = _.capitalize(_.camelCase(this.config.name));
-        template.html(`<h1>${pageName} Page</h1>`);
+        template.html(`<h1>${pageName} Page</h1>
+    <div ng-include="'tpl/${this.config.module}/${_.camelCase(this.config.name)}/${_.camelCase(this.config.name)}List.html'"></div>`);
         var sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
         FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());

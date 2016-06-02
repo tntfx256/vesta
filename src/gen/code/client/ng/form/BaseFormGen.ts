@@ -158,9 +158,11 @@ export abstract class BaseFormGen {
         var fields = Object.keys(this.fields),
             codes:Array<string> = [];
         fields.forEach(fieldName=> {
-            var elm = this.genElementForField(this.fields[fieldName]);
-            //this.elements.push(elm);
-            codes.push(elm.generate());
+            if(fieldName != 'id') {
+                var elm = this.genElementForField(this.fields[fieldName]);
+                //this.elements.push(elm);
+                codes.push(elm.generate());
+            }
         });
         return codes.join('\n');
     }

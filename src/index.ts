@@ -103,7 +103,7 @@ function generateCode(args:Array<string>) {
     var name = args[0];
     var vesta = Vesta.getInstance(),
         projectConfig = vesta.getConfig();
-    if (name || (type != 'controller' && projectConfig.type != ProjectGen.Type.ServerSide)) {
+    if (name || (type != 'controller')) {
         if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
             return Log.error('Please enter a valid name');
         }
@@ -111,11 +111,27 @@ function generateCode(args:Array<string>) {
     switch (type) {
         case 'controller':
             if (projectConfig.type == ProjectGen.Type.ClientSide) {
-                NGControllerGen.getGeneratorConfig(config => {
-                    config.name = name;
-                    var ngController = new NGControllerGen(config);
-                    ngController.generate();
+                NGControllerGen.getGeneratorConfig(name ,config => {
+                    if (config.model instanceof Array) {
+                        for (var i = config.model.length; i--;) {
+                            var parts = config.model[i].split(/[\/\\]/);
+                            var modelName = parts[parts.length - 1];
+                            var ngController = new NGControllerGen({
+                                name: modelName,
+                                module: config.module,
+                                model: config.model[i],
+                                injects:config.injects.slice(0),
+                            });
+                            ngController.generate();
+                        }
+                    } else {
+                        config.name = name;
+                        var ngController = new NGControllerGen(config);
+                        ngController.generate();
+                    }
+
                 });
+
             } else {
                 ExpressControllerGen.getGeneratorConfig(name, config => {
                     if (config.model instanceof Array) {

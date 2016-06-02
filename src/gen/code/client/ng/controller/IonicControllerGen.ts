@@ -12,7 +12,8 @@ export class IonicControllerGen extends BaseNGControllerGen {
             pageName = _.camelCase(this.config.name);
         template.setAttribute('id', `${pageName}-page`);
         pageName = _.capitalize(_.camelCase(this.config.name));
-        template.html(`<h1>${pageName} Page</h1>`);
+        template.html(`<h1>${pageName} Page</h1>
+<div ng-include="'tpl/${this.config.module}/${_.camelCase(this.config.name)}/${_.camelCase(this.config.name)}List.html'"></div>`);
         var sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
         FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
