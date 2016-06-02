@@ -31,11 +31,14 @@ export abstract class BaseNGControllerGen {
         }
         var ctrlName = _.camelCase(config.name);
         var ctrlClassName = `${ctrlName}Controller`;
+        this.path = path.join(this.path, config.module);
         this.controllerFile = new TsFileGen(_.capitalize(ctrlClassName));
         this.controllerClass = this.controllerFile.addClass();
-        this.controllerClass.setConstructor();
-        this.path = path.join(this.path, config.module);
+        this.controllerClass.setParentClass('BaseController');
+        this.controllerFile.addImport('{BaseController}', Util.genRelativePath(this.path, `src/app/modules/BaseController`));
+        this.controllerClass.setConstructor().setContent(`super();`);
         this.templatePath = path.join(this.templatePath, config.module);
+        this.addAclMethod();
         if (config.model) {
             this.form = new NGFormGen(config);
             this.path = path.join(this.path, ctrlName);
@@ -50,6 +53,16 @@ export abstract class BaseNGControllerGen {
                 break;
             }
         }
+    }
+
+    protected addAclMethod() {
+        // importing AuthService
+        this.controllerFile.addImport('{AuthService}', Util.genRelativePath(this.path, `src/app/service/AuthService`));
+        // generating registerPermissions
+        var aclMethod = this.controllerClass.addMethod('registerPermissions', ClassGen.Access.Public, true);
+        var stateName = (this.config.module ? `${this.config.module}.` : ``) + _.camelCase(this.config.name);
+        // this will assume that the state name from the client side is the same as edge name from server side
+        aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read']});`);
     }
 
     /**
@@ -175,6 +188,7 @@ export abstract class BaseNGControllerGen {
         if (this.hasScope) {
             this.createScope();
         }
+        1
         NGDependencyInjector.inject(this.controllerFile, this.config.injects, this.path, this.isSpecialController);
         if (this.config.model && !this.isSpecialController) {
             this.generateForm();
