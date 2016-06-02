@@ -58,8 +58,17 @@ export class ClassGen extends AbstractStructureGen {
         if (this.constructorMethod) {
             code += this.constructorMethod.generate();
         }
+        var staticMethods:Array<MethodGen> = [];
         for (var i = 0, il = this.methods.length; i < il; ++i) {
-            code += `\n${this.methods[i].generate()}`;
+            if (this.methods[i].isStatic()) {
+                staticMethods.push(this.methods[i]);
+            } else {
+                code += `\n${this.methods[i].generate()}`;
+            }
+        }
+        // placing the static methods at the end of class body
+        for (var i = 0, il = staticMethods.length; i < il; ++i) {
+            code += `\n${staticMethods[i].generate()}`;
         }
         this.mixins.forEach(mixin => {
             code += mixin.code;

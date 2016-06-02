@@ -16,7 +16,7 @@ export class MethodGen {
     private returnType:string = '';
     private accessType:string = '';
     private isConstructor:boolean = false;
-    private isStatic:boolean = false;
+    private isStaticMethod:boolean = false;
     private isAbstract:boolean = false;
     private shouldBeExported:boolean = false;
     private isSimpleMethod:boolean = false;
@@ -31,7 +31,7 @@ export class MethodGen {
     }
 
     public setAsStatic(isStatic:boolean = true) {
-        this.isStatic = isStatic;
+        this.isStaticMethod = isStatic;
     }
 
     public setAsAbstract(isAbstract:boolean = true) {
@@ -52,6 +52,10 @@ export class MethodGen {
 
     public isSimple(isSimple:boolean = true) {
         this.isSimpleMethod = isSimple;
+    }
+
+    public isStatic():boolean {
+        return this.isStaticMethod;
     }
 
     public addParameter(parameter:IMethodParameter) {
@@ -131,7 +135,7 @@ export class MethodGen {
         if (this.isInterface) {
             return `    ${this.name}(${parametersCode})${this.returnType};`;
         }
-        var st = this.isStatic ? ' static' : '';
+        var st = this.isStaticMethod ? ' static' : '';
         if (this.isAbstract) {
             return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};`;
         }
@@ -148,7 +152,7 @@ export class MethodGen {
     }\n`
         }
         // not a constructor
-        var st = this.isStatic ? ' static' : '';
+        var st = this.isStaticMethod ? ' static' : '';
         if (this.isAbstract) {
             return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};\n`;
         }
