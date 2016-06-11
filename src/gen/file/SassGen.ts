@@ -1,6 +1,6 @@
-import * as _ from 'lodash';
-import * as fs from 'fs-extra';
-import * as path from 'path';
+import * as _ from "lodash";
+import * as fs from "fs-extra";
+import * as path from "path";
 import {Util} from "../../util/Util";
 import {Placeholder} from "../core/Placeholder";
 import {FsUtil} from "../../util/FsUtil";
@@ -9,7 +9,7 @@ export class SassGen {
     static Type = {Font: 'font', Component: 'component', Directive: 'directive', Page: 'page'};
     private basePath = 'src/scss';
 
-    constructor(public name: string, public type: string = SassGen.Type.Page) {
+    constructor(public name:string, public type:string = SassGen.Type.Page) {
 
     }
 
@@ -32,7 +32,7 @@ export class SassGen {
         } catch (e) {
         }
         FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
-        pattern[Placeholder.SassFont] = `${Placeholder.SassFont}\n@import 'fonts/${this.name}';`;
+        pattern[Placeholder.SassFont] = `@import 'fonts/${this.name}';\n${Placeholder.SassFont}`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }
 
@@ -47,7 +47,7 @@ export class SassGen {
         } catch (e) {
         }
         FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
-        pattern[Placeholder.SassPage] = `${Placeholder.SassPage}\n@import 'pages/${this.name}';`;
+        pattern[Placeholder.SassPage] = `@import 'pages/${this.name}';\n${Placeholder.SassPage}`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }
 
@@ -62,7 +62,7 @@ export class SassGen {
         } catch (e) {
         }
         FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
-        pattern[Placeholder.SassComponent] = `${Placeholder.SassComponent}\n@import 'components/${this.name}';`;
+        pattern[Placeholder.SassComponent] = `@import 'components/${this.name}';\n${Placeholder.SassComponent}`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }
 
@@ -77,7 +77,7 @@ export class SassGen {
         } catch (e) {
         }
         FsUtil.writeFile(path.join(dir, `_${this.name}.scss`), code);
-        pattern[Placeholder.SassDirective] = `${Placeholder.SassDirective}\n@import 'directives/${this.name}';`;
+        pattern[Placeholder.SassDirective] = `@import 'directives/${this.name}';\n${Placeholder.SassDirective}`;
         Util.findInFileAndReplace(path.join(this.basePath, '_common.scss'), pattern, true);
     }
 
