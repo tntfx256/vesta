@@ -259,6 +259,7 @@ export class ModelGen {
             });
             this.modelInterface.addProperty(iProperty);
         }
+        this.modelFile.addMixin(`schema.freeze();`, TsFileGen.CodeLocation.AfterEnum);
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
 

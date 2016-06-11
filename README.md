@@ -33,17 +33,14 @@ which will be copied/submoduled  into a sub directory of generated project. Even
 
 If you want to init git repository you have to create them on your remote git repository server before using `vesta create`. 
 The most important repository is the commonCode repository. 
-### `vesta gen (sass | controller | directive | filter) name`
+### `vesta gen (sass | model | controller | directive | filter) name`
 Generate each of the mentioned
 * **sass** `vesta gen sass (font|component|directive|page) name`
+* **model** `vesta gen model name` Creates a model step by step by asking several questions
 * **controller** `vesta gen controller name` Based on the type of project this will generate a server side (express) or 
     client side (angular) controller
 * **directive** `vesta gen directive name` Generates an angular directive
 * **filter** `vesta gen filter name` Generates an angular filter
-
-### `vesta plugin (add | rm) cordova-plugin`
-Adding or removing a cordova plugin. Without the `cordova-plugin` all the plugins will be added or removed.
-Since there is no JSON config file for listing installed cordova plugins, these plugins will be listed in _vesta.json_ file
 
 ### `vesta deploy (httpGitRepository | previousDeployConfigFile)`<sup>1</sup>
 After asking `username` and `password` the deploy process starts.

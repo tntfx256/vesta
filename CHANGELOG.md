@@ -1,3 +1,14 @@
+# 0.6.3
+### Features
+* Separating each submodule of common code into new module
+* creating multiple controllers from multiple models (without controller name) `vesta gen controller`
+* adding controllers with ACL registration (client & server side)
+* freezing schema after being created by code generator to prevent accidental changes
+### Bug Fixes
+* code generator material md-table
+* code generator on CRUD controllers 
+* routing  
+
 # 0.6.1
 ### Features
 * Moving deploy to project template (deploy.sh script)
