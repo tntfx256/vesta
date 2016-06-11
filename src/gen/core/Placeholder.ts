@@ -1,5 +1,6 @@
 export class Placeholder {
-    static Router = '///<vesta:router/>';
+    static Import = '///<vesta:import/>';
+    static ExpressController = '///<vesta:expressController/>';
     static ModelDefinition = '///<vesta:modelDefinition/>';
     static ModelRelation = '///<vesta:modelRelation/>';
     static NGController = '///<vesta:ngController/>';

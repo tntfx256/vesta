@@ -113,17 +113,16 @@ export class ExpressControllerGen {
             this.addCRUDOperations();
         }
         FsUtil.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
-        var filePath = 'src/api/ApiFactory.ts';
+        var apiVersion = this.vesta.getVersion().api;
+        var filePath = `src/api/${apiVersion}/import.ts`;
         var code = fs.readFileSync(filePath, {encoding: 'utf8'});
-        if (code.search(Placeholder.Router)) {
-            var relPath = Util.genRelativePath('src/api', this.path);
+        if (code.search(Placeholder.ExpressController)) {
+            var relPath = Util.genRelativePath(`src/api/${apiVersion}`, this.path);
             var importCode = `import {${this.controllerClass.name}} from '${relPath}/${this.controllerClass.name}';`;
             if (code.indexOf(importCode) >= 0) return;
-            var controllerCamel = _.camelCase(this.controllerClass.name);
-            var embedCode = `var ${controllerCamel} = new ${this.controllerClass.name}(setting, acl, database);
-        ${controllerCamel}.route(router);
-        ${Placeholder.Router}`;
-            code = importCode + '\n' + code.replace(Placeholder.Router, embedCode);
+            var embedCode = `${_.camelCase(this.config.name)}: ${this.controllerClass.name},`;
+            code = code.replace(Placeholder.Import, `${importCode}\n${Placeholder.Import}`);
+            code = code.replace(Placeholder.ExpressController, `${embedCode}\n\t\t${Placeholder.ExpressController}`);
             FsUtil.writeFile(filePath, code);
         }
     }
@@ -140,7 +139,7 @@ export class ExpressControllerGen {
         var config:IExpressControllerConfig = <IExpressControllerConfig>{},
             models = Object.keys(ModelGen.getModelsList());
         models.unshift('None');
-        if(name) {
+        if (name) {
             var q:Array<Question> = [
                 <Question>{
                     name: 'routingPath',
@@ -165,7 +164,7 @@ export class ExpressControllerGen {
                 config.route = answer['routingPath'];
                 callback(config);
             });
-        }else{
+        } else {
             var q:Array<Question> = [
                 <Question>{
                     name: 'routingPath',
