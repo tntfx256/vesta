@@ -162,12 +162,13 @@ export class ModelGen {
         })
     }
 
+    // todo import from existing database
     private importFromSQL() {
         var SQLConnection = new Connection(<config>{
-            server: '192.168.2.105',
+            server: 'localhost',
             port: 1433,
             user: 'sa',
-            password: 'tntfx256',
+            password: '',
             database: 'TestDB',
             pool: {
                 min: 5,
