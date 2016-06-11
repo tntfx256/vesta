@@ -11,6 +11,7 @@ import {Placeholder} from "../../../../core/Placeholder";
 import {XMLGen} from "../../../../core/XMLGen";
 import {SassGen} from "../../../../file/SassGen";
 import {FsUtil} from "../../../../../util/FsUtil";
+import {ModelGen} from "../../../ModelGen";
 
 /**
  * @property {boolean} isSpecialController If true, the controller is of type addController or editController
@@ -30,10 +31,11 @@ export abstract class BaseNGControllerGen {
         }
         var ctrlName = _.camelCase(config.name);
         var ctrlClassName = `${ctrlName}Controller`;
+        this.path = path.join(this.path, config.module);
         this.controllerFile = new TsFileGen(_.capitalize(ctrlClassName));
         this.controllerClass = this.controllerFile.addClass();
-        this.controllerClass.setConstructor();
-        this.path = path.join(this.path, config.module);
+        this.controllerClass.setParentClass('BaseController');
+        this.controllerClass.setConstructor().setContent(`super();`);
         this.templatePath = path.join(this.templatePath, config.module);
         if (config.model) {
             this.form = new NGFormGen(config);
@@ -41,6 +43,8 @@ export abstract class BaseNGControllerGen {
             this.templatePath = path.join(this.templatePath, ctrlName);
             this.setModelRequiredInjections();
         }
+        this.addAclMethod();
+        this.controllerFile.addImport('{BaseController}', Util.genRelativePath(this.path, `src/app/modules/BaseController`));
         FsUtil.mkdir(this.path, this.templatePath);
         for (var i = config.injects.length; i--;) {
             if (config.injects[i].name == '$scope') {
@@ -49,6 +53,16 @@ export abstract class BaseNGControllerGen {
                 break;
             }
         }
+    }
+
+    protected addAclMethod() {
+        // importing AuthService
+        this.controllerFile.addImport('{AuthService}', Util.genRelativePath(this.path, `src/app/service/AuthService`));
+        // generating registerPermissions
+        var aclMethod = this.controllerClass.addMethod('registerPermissions', ClassGen.Access.Public, true);
+        var stateName = (this.config.module ? `${this.config.module}.` : ``) + _.camelCase(this.config.name);
+        // this will assume that the state name from the client side is the same as edge name from server side
+        aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read']});`);
     }
 
     /**
@@ -64,12 +78,13 @@ export abstract class BaseNGControllerGen {
 
     protected setModelRequiredInjections() {
         // importing model
+        var modelName = ModelGen.extractModelName(this.config.model);
         this.controllerClass.addProperty({
-            name: _.camelCase(this.config.model),
-            type: this.config.model,
+            name: _.camelCase(modelName),
+            type: modelName,
             access: ClassGen.Access.Private
         });
-        this.controllerFile.addImport(`{I${this.config.model}, ${this.config.model}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${this.config.model}`));
+        this.controllerFile.addImport(`{I${modelName}, ${modelName}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${this.config.model}`));
         // importing Err
         this.controllerFile.addImport('{Err}', 'vesta-util/Err');
         // importing apiService
@@ -84,17 +99,18 @@ export abstract class BaseNGControllerGen {
 
     protected generateRoute() {
         var ctrlName = _.camelCase(this.config.name),
-            pathParts = [];
+            pathParts = [],
+            viewName = 'master';
         if (this.config.module) {
             pathParts.push(this.config.module);
+            viewName = [`${_.kebabCase(this.config.module)}-content`, this.config.module].join('@');
         }
         pathParts.push(ctrlName);
         var url = ctrlName,
             state = pathParts.join('.'),
             templateUrl = '';
         if (this.isSpecialController) {
-            url = pathParts.join('/');
-            templateUrl = `tpl/${url}/${ctrlName}List.html`;
+            templateUrl = `tpl/${pathParts.join('/')}/${ctrlName}.html`;
         } else {
             templateUrl = `tpl/${ctrlName}.html`;
         }
@@ -103,7 +119,7 @@ export abstract class BaseNGControllerGen {
         var code = `${codeFirstLine}
         url: '/${url}',
         views: {
-            'master': {
+            '${viewName}': {
                 templateUrl: '${templateUrl}',
                 controller: '${ctrlName}Controller',
                 controllerAs: 'vm'
@@ -152,9 +168,10 @@ export abstract class BaseNGControllerGen {
     protected createEmptyTemplate() {
         var template = new XMLGen('div'),
             pageName = _.camelCase(this.config.name);
-        template.setAttribute('id', `${pageName}-page`);
+        template.setAttribute('id', `${pageName}-page`).addClass('page');
         pageName = _.capitalize(_.camelCase(this.config.name));
-        template.html(`<h1>${pageName} Page</h1>`);
+        template.html(`<h1>${pageName} Page</h1>
+    <div ng-include="'tpl/${this.config.module}/${_.camelCase(this.config.name)}/${_.camelCase(this.config.name)}List.html'"></div>`);
         var sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
         FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());

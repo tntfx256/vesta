@@ -71,6 +71,10 @@ export class FieldGen {
         })
     }
 
+    public addProperty(name,type){
+        this.properties[name] = type;
+    }
+
     private getFileTypes(answer:string):Array<string> {
         let arr = answer.split(','),
             fileTypes = [];

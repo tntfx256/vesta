@@ -13,7 +13,7 @@ export class DatabaseCodeGen {
 
     private getQueryCodeForMultiInstance():string {
         return `var query = new Vql('${this.model}');
-        query.filter(req.params.query).limitTo(+req.params.limit || 50);
+        query.filter(req.query.query).limitTo(+req.query.limit || 50);
         ${this.model}.findByQuery(query)
             .then(result=>res.json(result))
             .catch(err=>this.handleError(res, Err.Code.DBQuery, err.message));`;
@@ -48,7 +48,7 @@ export class DatabaseCodeGen {
         }
         ${this.model}.findById<I${this.model}>(${modelInstanceName}.id)
             .then(result=> {
-                if (result.items.length == 1) return ${modelInstanceName}.update();
+                if (result.items.length == 1) return ${modelInstanceName}.update().then(result=>res.json(result));
                 this.handleError(res, Err.Code.DBUpdate);
             })
             .catch(err=> this.handleError(res, Err.Code.DBUpdate, err.message));`;

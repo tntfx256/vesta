@@ -101,23 +101,54 @@ function handleCordovaPlugin(args:Array<string>) {
 function generateCode(args:Array<string>) {
     var type = args.shift().toLowerCase();
     var name = args[0];
-    if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
-        return Log.error('Please enter a valid name');
-    }
     var vesta = Vesta.getInstance(),
         projectConfig = vesta.getConfig();
+    if (name || (type != 'controller')) {
+        if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
+            return Log.error('Please enter a valid name');
+        }
+    }
     switch (type) {
         case 'controller':
             if (projectConfig.type == ProjectGen.Type.ClientSide) {
-                NGControllerGen.getGeneratorConfig(config => {
-                    config.name = name;
-                    var ngController = new NGControllerGen(config);
-                    ngController.generate();
+                NGControllerGen.getGeneratorConfig(name ,config => {
+                    if (config.model instanceof Array) {
+                        for (var i = config.model.length; i--;) {
+                            var parts = config.model[i].split(/[\/\\]/);
+                            var modelName = parts[parts.length - 1];
+                            var ngController = new NGControllerGen({
+                                name: modelName,
+                                module: config.module,
+                                model: config.model[i],
+                                injects:config.injects.slice(0),
+                            });
+                            ngController.generate();
+                        }
+                    } else {
+                        config.name = name;
+                        var ngController = new NGControllerGen(config);
+                        ngController.generate();
+                    }
+
                 });
+
             } else {
                 ExpressControllerGen.getGeneratorConfig(name, config => {
-                    var controller = new ExpressControllerGen(config);
-                    controller.generate();
+                    if (config.model instanceof Array) {
+                        for (var i = config.model.length; i--;) {
+                            var parts = config.model[i].split(/[\/\\]/);
+                            var modelName = parts[parts.length - 1];
+                            var controller = new ExpressControllerGen({
+                                name: modelName,
+                                route: config.route,
+                                model: config.model[i],
+                            });
+                            controller.generate();
+                        }
+                    } else {
+                        var controller = new ExpressControllerGen(config);
+                        controller.generate();
+                    }
                 });
             }
             break;
@@ -165,11 +196,11 @@ function generateCode(args:Array<string>) {
 
 function initProject() {
     Util.prompt<{initType:string}>(<Question>{
-            name: 'initType',
-            message: 'Choose one of the following operations',
-            type: 'list',
-            choices: ['Install Docker', 'Install DockerCompose']
-        })
+        name: 'initType',
+        message: 'Choose one of the following operations',
+        type: 'list',
+        choices: ['Install Docker', 'Install DockerCompose']
+    })
         .then(answer=> {
             switch (answer.initType) {
                 case 'Install Docker':

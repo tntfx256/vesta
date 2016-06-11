@@ -40,11 +40,13 @@
     "inquirer": "^0.11.0",
     "is-root": "^1.0.0",
     "lodash": "^3.10.1",
+    "mssql": "^3.3.0",
     "shelljs": "^0.6.0",
     "speakeasy": "^1.0.3",
     "vesta-datetime-gregorian": "^0.3.2",
     "vesta-schema": "^0.2.5",
     "vesta-util": "^0.2.6",
+    "xml-to-json": "^0.1.1",
     "yamljs": "^0.2.7"
   },
   "devDependencies": {

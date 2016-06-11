@@ -1,8 +1,8 @@
 import * as path from "path";
 import * as fse from "fs-extra";
+import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import {Log} from "./Log";
-import * as inquirer from "inquirer";
 
 export class Util {
 
@@ -14,7 +14,7 @@ export class Util {
 
     static plural(name:string):string {
         var lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
-        if (['a', 'i', 'u'].indexOf(lastChar) >= 0) {
+        if (['a', 'i', 'u', 's'].indexOf(lastChar) >= 0) {
             return name + 'es';
         }
         if (['y'].indexOf(name.charAt(name.length - 1)) >= 0) {
