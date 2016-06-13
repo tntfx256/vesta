@@ -8,5 +8,9 @@
   "files": [
     "typings/tsd.d.ts",
     "src/index.ts"
+  ],
+  "exclude": [
+    "bin",
+    "node_modules"
   ]
 }

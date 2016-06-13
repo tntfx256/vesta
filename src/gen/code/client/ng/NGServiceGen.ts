@@ -37,7 +37,7 @@ export class NGServiceGen {
 
     generate() {
         NGDependencyInjector.inject(this.serviceFile, this.config.injects, this.path);
-        NGDependencyInjector.updateImportAndAppFile(this.serviceFile, 'service', this.path, Placeholder.NGService, '../service');
+        NGDependencyInjector.updateImportFile(this.serviceFile, 'service', this.path, Placeholder.NGService, '../service');
     }
 
     static getGeneratorConfig(callback) {

@@ -9,6 +9,7 @@ import {CordovaGen} from "../../../file/CordovaGen";
 import {Vesta} from "../../../file/Vesta";
 import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {FsUtil} from "../../../../util/FsUtil";
+import {Placeholder} from "../../../core/Placeholder";
 
 
 export interface INGInjectable {
@@ -45,6 +46,10 @@ export class NGDependencyInjector {
         return services;
     }
 
+    /**
+     This function does not import the required class, function, etc
+     The import statement must be
+     */
     public static inject(file:TsFileGen, injects:Array<INGInjectable>, destination:string, ignoreDependencies:boolean = false) {
         var staticInject = '',
             theClass = file.getClass(file.name),
@@ -61,7 +66,7 @@ export class NGDependencyInjector {
                 importPath = injectable.path;
             } else {
                 instanceName = _.camelCase(injectable.name);
-                importPath = Util.genRelativePath(destination, injectable.path);
+                importPath = injectable.path ? Util.genRelativePath(destination, injectable.path) : '';
             }
             cm.addParameter({name: instanceName, type: injectable.type, access: ClassGen.Access.Private});
             if (importPath) {
@@ -84,7 +89,7 @@ export class NGDependencyInjector {
         //}
     }
 
-    public static updateImportAndAppFile(file:TsFileGen, type:string, destination:string, placeHolder:string, importPath:string) {
+    public static updateImportFile(file:TsFileGen, type:string, destination:string, placeHolder:string, importPath:string) {
         var className = file.name,
             instanceName = _.camelCase(className),
             importFilePath = 'src/app/config/import.ts';
@@ -98,13 +103,16 @@ export class NGDependencyInjector {
         // import statement code
             importCode = `import {${className}} from "${importPath}/${className}";`,
         // adding module as property to exporter variable code
-            embedCode = `,\n        ${instanceName}: ${className}${placeHolder}`;
+            embedCode = `${instanceName}: ${className},`;
 
-        if (importFileCode.indexOf(importCode) >= 0) return;
-
-        importFileCode = importFileCode.replace('///<vesta:import/>', `${importCode}\n///<vesta:import/>`);
-        importFileCode = importFileCode.replace(placeHolder, embedCode);
-
+        if (importFileCode.indexOf(importCode) < 0) {
+            importCode += `\n${Placeholder.Import}`;
+            importFileCode = importFileCode.replace(Placeholder.Import, importCode);
+        }
+        if (importFileCode.indexOf(embedCode) < 0) {
+            embedCode += `\n        ${placeHolder}`;
+            importFileCode = importFileCode.replace(placeHolder, embedCode);
+        }
         FsUtil.writeFile(importFilePath, importFileCode);
     }
 

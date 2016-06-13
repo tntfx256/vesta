@@ -37,6 +37,8 @@ export abstract class BaseNGControllerGen {
         this.controllerClass.setParentClass('BaseController');
         this.controllerClass.setConstructor().setContent(`super();`);
         this.templatePath = path.join(this.templatePath, config.module);
+        // importing authService for acl (no path property is provided since it has been imported by ACL)
+        this.addInjection({name: 'authService', type: 'AuthService'});
         if (config.model) {
             this.form = new NGFormGen(config);
             this.path = path.join(this.path, ctrlName);
@@ -57,7 +59,13 @@ export abstract class BaseNGControllerGen {
 
     protected addAclMethod() {
         // importing AuthService
-        this.controllerFile.addImport('{AuthService}', Util.genRelativePath(this.path, `src/app/service/AuthService`));
+        this.controllerFile.addImport('{AuthService, IAclActions}', Util.genRelativePath(this.path, `src/app/service/AuthService`));
+        // adding acl property
+        this.controllerClass.addProperty({
+            name: 'acl',
+            type: `IAclActions`,
+            access: ClassGen.Access.Public
+        });
         // generating registerPermissions
         var aclMethod = this.controllerClass.addMethod('registerPermissions', ClassGen.Access.Public, true);
         var stateName = (this.config.module ? `${this.config.module}.` : ``) + _.camelCase(this.config.name);
@@ -97,23 +105,30 @@ export abstract class BaseNGControllerGen {
         });
     }
 
-    protected generateRoute() {
+    protected getTemplatePath() {
         var ctrlName = _.camelCase(this.config.name),
-            pathParts = [],
-            viewName = 'master';
+            pathParts = ['tpl'];
         if (this.config.module) {
             pathParts.push(this.config.module);
+        }
+        if (this.config.model) {
+            pathParts.push(ctrlName);
+        }
+        return pathParts.join('/');
+    }
+
+    protected generateRoute() {
+        var ctrlName = _.camelCase(this.config.name),
+            stateNameParts = [],
+            viewName = 'master';
+        if (this.config.module) {
+            stateNameParts.push(this.config.module);
             viewName = [`${_.kebabCase(this.config.module)}-content`, this.config.module].join('@');
         }
-        pathParts.push(ctrlName);
+        stateNameParts.push(ctrlName);
         var url = ctrlName,
-            state = pathParts.join('.'),
-            templateUrl = '';
-        if (this.isSpecialController) {
-            templateUrl = `tpl/${pathParts.join('/')}/${ctrlName}.html`;
-        } else {
-            templateUrl = `tpl/${ctrlName}.html`;
-        }
+            state = stateNameParts.join('.'),
+            templateUrl = `${this.getTemplatePath()}/${ctrlName}.html`;
         var codeFirstLine = `$stateProvider.state('${state}', {`;
         if (Util.fileHasContent('src/app/config/route.ts', codeFirstLine)) return;
         var code = `${codeFirstLine}
@@ -165,13 +180,13 @@ export abstract class BaseNGControllerGen {
 
     public abstract setAsEditController();
 
-    protected createEmptyTemplate() {
+    protected createPageTemplate() {
         var template = new XMLGen('div'),
             pageName = _.camelCase(this.config.name);
+        var list = this.config.model ? `\n    <div ng-include="'${this.getTemplatePath()}/${_.camelCase(this.config.name)}List.html'"></div>` : '';
         template.setAttribute('id', `${pageName}-page`).addClass('page');
         pageName = _.capitalize(_.camelCase(this.config.name));
-        template.html(`<h1>${pageName} Page</h1>
-    <div ng-include="'tpl/${this.config.module}/${_.camelCase(this.config.name)}/${_.camelCase(this.config.name)}List.html'"></div>`);
+        template.html(`<h1>${pageName} Page</h1>${list}`);
         var sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
         FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
@@ -194,9 +209,9 @@ export abstract class BaseNGControllerGen {
             this.generateForm();
             this.setAsListController();
         } else {
-            this.createEmptyTemplate();
+            this.createPageTemplate();
         }
         this.generateRoute();
-        NGDependencyInjector.updateImportAndAppFile(this.controllerFile, 'controller', this.path, Placeholder.NGController, Util.genRelativePath('src/app/config', this.path));
+        NGDependencyInjector.updateImportFile(this.controllerFile, 'controller', this.path, Placeholder.NGController, Util.genRelativePath('src/app/config', this.path));
     }
 }

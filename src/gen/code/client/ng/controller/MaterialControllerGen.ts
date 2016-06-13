@@ -71,6 +71,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             label: {text: 'Records', of: 'of'},
             loadMore: this.loadMore.bind(this)
         };
+        this.acl = authService.getActionsOn('${modelInstanceName}');
         apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}')
             .then(result=> {
                 if (result.error) return this.notificationService.toast(result.error.message);
@@ -178,8 +179,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
                 }
                 this.$mdDialog.hide(result.items[0]);
             })
-            .catch(reason=> {
-                this.$mdDialog.cancel(reason);
+            .catch(err=> {
+                this.notificationService.toast(err.message);
             });`);
     }
 
@@ -223,8 +224,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
                 }
                 this.$mdDialog.hide(result.items[0]);
             })
-            .catch(reason=> {
-                this.$mdDialog.cancel(reason);
+            .catch(err=> {
+                this.notificationService.toast(err.message);
             });`);
     }
 }

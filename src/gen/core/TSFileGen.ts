@@ -167,15 +167,6 @@ export class TsFileGen {
         return code ? `\n${code}` : '';
     }
 
-    private getNewLine(code:string, double:boolean = false) {
-        var nl = '';
-        if (code) {
-            nl += '\n';
-            if (double) nl += '\n';
-        }
-        return nl;
-    }
-
     public generate():string {
         var code = '';
         code += this.refs.join('\n');
@@ -183,25 +174,25 @@ export class TsFileGen {
         code += this.getMixin(TsFileGen.CodeLocation.AfterImport);
         // enum
         for (var i = 0, il = this.enums.length; i < il; ++i) {
-            code += this.getNewLine(code, true);
+            code += code ? '\n' : '';
             code += this.enums[i].generate();
         }
         code += this.getMixin(TsFileGen.CodeLocation.AfterEnum);
         // interface
         for (var i = 0, il = this.interfaces.length; i < il; ++i) {
-            code += this.getNewLine(code, true);
+            code += code ? '\n' : '';
             code += this.interfaces[i].generate();
         }
         code += this.getMixin(TsFileGen.CodeLocation.AfterInterface);
         // classes
         for (var i = 0, il = this.classes.length; i < il; ++i) {
-            code += this.getNewLine(code, true);
+            code += code ? '\n' : '';
             code += this.classes[i].generate();
         }
         code += this.getMixin(TsFileGen.CodeLocation.AfterClass);
         // methods
         for (var i = 0, il = this.methods.length; i < il; ++i) {
-            code += this.getNewLine(code, true);
+            code += code ? '\n' : '';
             code += this.methods[i].generate();
         }
         code += this.getMixin(TsFileGen.CodeLocation.AfterMethod);
