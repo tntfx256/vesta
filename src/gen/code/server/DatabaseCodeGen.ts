@@ -8,7 +8,7 @@ export class DatabaseCodeGen {
     private getQueryCodeForSingleInstance():string {
         return `${this.model}.findById<I${this.model}>(req.params.id)
             .then(result=> res.json(result))
-            .catch(err=> this.handleError(res, Err.Code.DBQuery, err.message));`;
+            .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
     }
 
     private getQueryCodeForMultiInstance():string {
@@ -16,7 +16,7 @@ export class DatabaseCodeGen {
         query.filter(req.query.query).limitTo(Math.max(+req.query.limit || 50, 50));
         ${this.model}.findByQuery(query)
             .then(result=>res.json(result))
-            .catch(err=>this.handleError(res, Err.Code.DBQuery, err.message));`;
+            .catch(reason=>this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
     }
 
     public getQueryCode(isSingle:boolean):string {
@@ -34,7 +34,7 @@ export class DatabaseCodeGen {
         }
         ${modelInstanceName}.insert<I${this.model}>()
             .then(result=> res.json(result))
-            .catch(err=> this.handleError(res, Err.Code.DBInsert, err.message));`;
+            .catch(reason=> this.handleError(res, Err.Code.DBInsert, reason.error.message));`;
     }
 
     public getUpdateCode():string {
@@ -48,10 +48,10 @@ export class DatabaseCodeGen {
         }
         ${this.model}.findById<I${this.model}>(${modelInstanceName}.id)
             .then(result=> {
-                if (result.items.length == 1) return ${modelInstanceName}.update().then(result=>res.json(result));
+                if (result.items.length == 1) return ${modelInstanceName}.update<I${this.model}>().then(result=>res.json(result));
                 this.handleError(res, Err.Code.DBUpdate);
             })
-            .catch(err=> this.handleError(res, Err.Code.DBUpdate, err.message));`;
+            .catch(reason=> this.handleError(res, Err.Code.DBUpdate, reason.error.message));`;
     }
 
     public getDeleteCode():string {
@@ -59,6 +59,6 @@ export class DatabaseCodeGen {
         return `var ${modelInstanceName} = new ${this.model}({id: req.body.id});
         ${modelInstanceName}.delete()
             .then(result=> res.json(result))
-            .catch(err=> this.handleError(res, Err.Code.DBDelete, err.message));`;
+            .catch(reason=> this.handleError(res, Err.Code.DBDelete, reason.error.message));`;
     }
 }

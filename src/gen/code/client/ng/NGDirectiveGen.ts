@@ -109,7 +109,7 @@ export class NGDirectiveGen {
         } else {
             this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `template: '${templateCode}',`));
         }
-        NGDependencyInjector.updateImportAndAppFile(this.file, 'directive', this.path, Placeholder.NGDirective, '../directive');
+        NGDependencyInjector.updateImportFile(this.file, 'directive', this.path, Placeholder.NGDirective, '../directive');
         if (this.config.generateSass) {
             this.sassFile.generate();
         }

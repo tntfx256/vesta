@@ -36,19 +36,19 @@ export class MaterialListGen {
         var modelName = ModelGen.extractModelName(this.config.model);
         var pluralModel = Util.plural(modelName);
         return `
-    <md-toolbar class="md-table-toolbar md-default" ng-show="!vm.dtOption.showFilter&&!vm.selected${pluralModel}List.length">
+    <md-toolbar class="md-table-toolbar md-default" ng-hide="vm.dtOption.showFilter || (vm.acl.delete && vm.selected${pluralModel}List.length)">
         <div class="md-toolbar-tools">
             <h2 class="box-title">{{vm.dtOption.title}}</h2>
             <div flex></div>
             <md-button class="md-icon-button" ng-click="vm.dtOption.showFilter=true">
                 <md-icon>filter_list</md-icon>
             </md-button>
-            <md-button class="md-icon-button" ng-click="vm.add${modelName}($event)">
+            <md-button ng-if="vm.acl.create" class="md-icon-button" ng-click="vm.add${modelName}($event)">
                 <md-icon>add</md-icon>
             </md-button>
         </div>
     </md-toolbar>
-    <md-toolbar class="md-table-toolbar md-default" ng-show="vm.selected${pluralModel}List.length">
+    <md-toolbar class="md-table-toolbar md-default" ng-show="vm.selected${pluralModel}List.length && vm.acl.delete">
         <div class="md-toolbar-tools">
             <p>Number of selected records: {{vm.selected${pluralModel}List.length}}</p>
             <div flex></div>
@@ -58,7 +58,7 @@ export class MaterialListGen {
         </div>
     </md-toolbar>
 
-    <md-toolbar class="md-table-toolbar md-default" ng-show="vm.dtOption.showFilter&&!vm.selected${pluralModel}List.length">
+    <md-toolbar class="md-table-toolbar md-default" ng-show="vm.dtOption.showFilter && !vm.selected${pluralModel}List.length">
         <div class="md-toolbar-tools">
             <md-button class="md-icon-button">
                 <md-icon>search</md-icon>
@@ -83,8 +83,9 @@ export class MaterialListGen {
             fields:IModelFields = schema.getFields(),
             headerCode = `<th md-column>row</th>`,
             rowCode = `<td md-cell>{{$index + 1 + (vm.dtOption.page - 1 ) * vm.dtOption.limit }}</td>`,
-            splitter = '\n\t\t\t\t';
+            splitter = '\n                ';
         Object.keys(fields).forEach(fieldName => {
+            if (fieldName == 'id') return;
             var properties = fields[fieldName].properties;
             switch (properties.type) {
                 case FieldType.String :
@@ -127,14 +128,14 @@ export class MaterialListGen {
             <thead md-head md-order="vm.dtOption.order">
             <tr>
                 ${headerCode}
-                <th md-column>&nbsp;</th>
+                <th md-column ng-if="vm.acl.update">&nbsp;</th>
             </tr>
             </thead>
             <tbody md-body>
             <tr md-row md-auto-select md-select="${modelInstanceName}.id"
                 ng-repeat="${modelInstanceName} in vm.${pluralInstance}List  | filter:vm.dtOption.filter | pagination:vm.dtOption.page:vm.dtOption.limit:vm.dtOption.total:vm.dtOption.loadMore track by $index">
                 ${rowCode}
-                <td md-cell>
+                <td md-cell ng-if="vm.acl.update">
                     <md-button class="md-icon-button" ng-click="vm.edit${modelName}($event, ${modelInstanceName}.id)">
                         <md-icon>mode_edit</md-icon>
                     </md-button>

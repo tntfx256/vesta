@@ -37,7 +37,7 @@ export class NGFilterGen {
             fs.mkdirSync(tplPath);
         } catch (e) {
         }
-        NGDependencyInjector.updateImportAndAppFile(this.file, 'filter', this.path, Placeholder.NGFilter, '../filter');
+        NGDependencyInjector.updateImportFile(this.file, 'filter', this.path, Placeholder.NGFilter, '../filter');
     }
 
     static getGeneratorConfig(cb:(config:IFilterGenConfig)=>void) {
