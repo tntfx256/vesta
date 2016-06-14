@@ -262,7 +262,7 @@ export class FieldGen {
     }
 
     public generate():string {
-        var code = `schema.addField('${this.name}').type(${this.getCodeForFieldType()})`;
+        var code = `${this.modelFile.name}.schema.addField('${this.name}').type(${this.getCodeForFieldType()})`;
         if (this.properties.required) code += '.required()';
         if (this.properties.primary) code += '.primary()';
         if (this.properties.unique) code += '.unique()';
