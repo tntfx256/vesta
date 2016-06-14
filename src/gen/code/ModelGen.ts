@@ -244,7 +244,7 @@ export class ModelGen {
     private write() {
         var fieldNames = Object.keys(this.fields);
         for (var i = 0, il = fieldNames.length; i < il; ++i) {
-            this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterEnum);
+            this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
             var {fieldName, fieldType, interfaceFieldType, defaultValue} = this.fields[fieldNames[i]].getNameTypePair();
             var property:IStructureProperty = {
                 name: fieldName,
@@ -259,7 +259,7 @@ export class ModelGen {
             });
             this.modelInterface.addProperty(iProperty);
         }
-        this.modelFile.addMixin(`schema.freeze();`, TsFileGen.CodeLocation.AfterEnum);
+        this.modelFile.addMixin(`schema.freeze();`, TsFileGen.CodeLocation.AfterClass);
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
 
