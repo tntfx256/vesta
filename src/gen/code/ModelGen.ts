@@ -147,11 +147,11 @@ export class ModelGen {
                             type = 'boolean';
                             break;
                     }
-                    var field = new FieldGen(this.modelFile, fieldName);
+                    var field = new FieldGen(model.modelFile, fieldName);
                     field.addProperty('type', type);
                     model.fields[fieldName] = field;
                 }
-                var id = new FieldGen(this.modelFile, 'id');
+                var id = new FieldGen(model.modelFile, 'id');
                 id.addProperty('type', 'integer');
                 id.setAsPrimary();
                 model.fields['id'] = id;
