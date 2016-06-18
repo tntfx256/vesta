@@ -59,12 +59,11 @@ export class ModelGen {
         cm.setContent(`super(${modelName}.schema, ${modelName}.database);
         this.setValues(values);`);
 
-        this.modelFile.addMixin(`var schema = new Schema('${modelName}');`, TsFileGen.CodeLocation.AfterEnum);
         this.modelClass.addProperty({
             name: 'schema',
             type: 'Schema',
             access: ClassGen.Access.Public,
-            defaultValue: 'schema',
+            defaultValue: `new Schema('${modelName}')`,
             isStatic: true
         });
         this.modelClass.addProperty({
@@ -244,7 +243,7 @@ export class ModelGen {
     private write() {
         var fieldNames = Object.keys(this.fields);
         for (var i = 0, il = fieldNames.length; i < il; ++i) {
-            this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterEnum);
+            this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
             var {fieldName, fieldType, interfaceFieldType, defaultValue} = this.fields[fieldNames[i]].getNameTypePair();
             var property:IStructureProperty = {
                 name: fieldName,
@@ -259,7 +258,7 @@ export class ModelGen {
             });
             this.modelInterface.addProperty(iProperty);
         }
-        this.modelFile.addMixin(`schema.freeze();`, TsFileGen.CodeLocation.AfterEnum);
+        this.modelFile.addMixin(`${this.modelFile.name}.schema.freeze();`, TsFileGen.CodeLocation.AfterClass);
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
 

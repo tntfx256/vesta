@@ -171,13 +171,16 @@ export class TsFileGen {
         var code = '';
         code += this.refs.join('\n');
         code += this.importStatements.join('\n');
+        code += this.importStatements.length ? '\n' : '';
         code += this.getMixin(TsFileGen.CodeLocation.AfterImport);
         // enum
         for (var i = 0, il = this.enums.length; i < il; ++i) {
             code += code ? '\n' : '';
             code += this.enums[i].generate();
         }
-        code += this.getMixin(TsFileGen.CodeLocation.AfterEnum);
+        code += this.enums.length ? '\n' : '';
+        var mixin = this.getMixin(TsFileGen.CodeLocation.AfterEnum);
+        code += mixin + (mixin ? '\n' : '');
         // interface
         for (var i = 0, il = this.interfaces.length; i < il; ++i) {
             code += code ? '\n' : '';
