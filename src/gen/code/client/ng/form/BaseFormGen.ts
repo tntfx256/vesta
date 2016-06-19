@@ -101,7 +101,7 @@ export abstract class BaseFormGen {
                 break;
             case FieldType.Timestamp:
                 input = this.genDateTimeField();
-                ngMessages.push(new XMLGen('div').setAttribute('ng-message', 'date').text(`Invalid date`));
+                ngMessages.push(new XMLGen('div').setAttribute('ng-message', 'date').setAttribute('show-picker', 'true').text(`Invalid date`));
                 break;
             case FieldType.Boolean:
                 input = this.genCheckboxField();

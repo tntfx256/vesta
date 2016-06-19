@@ -13,7 +13,7 @@ export class DatabaseCodeGen {
 
     private getQueryCodeForMultiInstance():string {
         return `var query = new Vql('${this.model}');
-        query.filter(req.query.query).limitTo(Math.max(+req.query.limit || 50, 50));
+        query.filter(req.query.query).limitTo(Math.min(+req.query.limit || 50, 50)).fromPage(+req.query.page || 1);
         ${this.model}.findByQuery(query)
             .then(result=>res.json(result))
             .catch(reason=>this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
