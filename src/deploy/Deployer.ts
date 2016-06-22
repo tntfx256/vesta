@@ -79,7 +79,7 @@ export class Deployer {
         config.projectName = Deployer.getProjectName(config.repositoryUrl);
         Deployer.ConfigFile = `${config.projectName}.json`;
         config.args = args.slice(1);
-        Promise.resolve(config);
+        return Promise.resolve(config);
     }
 
     public static fetchConfig(filename:string):IDeployConfig {
