@@ -113,8 +113,10 @@ export abstract class BaseFormGen {
             //case FieldType.Object:
             //    break;
         }
-        input.setAttribute('name', name);
-        input.setAttribute('ng-model', `vm.${modelInstanceName}.${name}`).setAttribute('id', name);
+        input.setAttribute('name', name)
+            .setAttribute('id', name)
+            .setAttribute('ng-model', `vm.${modelInstanceName}.${name}`)
+            .setAttribute('ng-model-options', `{ debounce: 500 }`);
         wrapper.append(input);
         if (properties.required) {
             input.setAttribute('required');
@@ -158,7 +160,7 @@ export abstract class BaseFormGen {
         var fields = Object.keys(this.fields),
             codes:Array<string> = [];
         fields.forEach(fieldName=> {
-            if(fieldName != 'id') {
+            if (fieldName != 'id') {
                 var elm = this.genElementForField(this.fields[fieldName]);
                 //this.elements.push(elm);
                 codes.push(elm.generate());

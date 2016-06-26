@@ -1,6 +1,6 @@
 {
   "name": "vesta",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "description": "Vesta Platform",
   "keywords": [
     "Code Generator",
@@ -43,7 +43,7 @@
     "mssql": "^3.3.0",
     "shelljs": "^0.6.0",
     "speakeasy": "^1.0.3",
-    "vesta-datetime-gregorian": "^0.3.2",
+    "vesta-datetime-gregorian": "^0.3.4",
     "vesta-schema": "^0.2.5",
     "vesta-util": "^0.2.6",
     "xml-to-json": "^0.1.1",

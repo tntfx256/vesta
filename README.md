@@ -42,6 +42,9 @@ Generate each of the mentioned
 * **directive** `vesta gen directive name` Generates an angular directive
 * **filter** `vesta gen filter name` Generates an angular filter
 
+### `vesta update`
+This command will update all `vesta-*` packages that are installed in your project and listed in `package.json`
+
 ### `vesta deploy (httpGitRepository | previousDeployConfigFile) [ext params]`<sup>1</sup>
 After asking `username` and `password` the deploy process starts.
 Deploy process Will move `resources/ci/deploy.sh` file to the project's root directory and  execute it.

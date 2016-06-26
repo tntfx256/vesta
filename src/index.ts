@@ -28,9 +28,10 @@ program
     .option('init', 'Initiate a server')
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
-    .option('plugin', 'Adding a Cordova Plugin')
+    // .option('plugin', 'Adding a Cordova Plugin')
     .option('gen [model, controller, directive, service] name', 'Generate code for mentioned type')
     .option('deploy [httpRepoPath]')
+    .option('update')
     .option('docker [cleanup]')
     .option('backup [deployFileName]');
 //program
@@ -54,6 +55,9 @@ switch (command) {
         break;
     case 'gen':
         generateCode(args);
+        break;
+    case 'update':
+        Vesta.updatePackages();
         break;
     case 'deploy':
         deployProject(args);

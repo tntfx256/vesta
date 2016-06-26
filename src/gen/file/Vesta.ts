@@ -3,6 +3,7 @@ import {IProjectGenConfig} from "../ProjectGen";
 import {IProjectConfig, Config} from "../../Config";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
+import {CmdUtil} from "../../util/CmdUtil";
 
 export interface IProjectVersion {
     app:string;
@@ -60,6 +61,16 @@ export class Vesta {
 
     public getConfig():IProjectGenConfig {
         return this.json.config;
+    }
+
+    public static updatePackages() {
+        try {
+            let content = JSON.parse(fs.readFileSync(`package.json`, {encoding: 'utf8'}));
+            var pkgs = Object.keys(content['dependencies']).filter(pkg=> pkg.search(/^vesta-/i) >= 0);
+            CmdUtil.execSync(`npm install --save ${pkgs.join(' ')}`);
+        } catch (err) {
+            console.log(err);
+        }
     }
 
     public getProjectConfig():IProjectConfig {
