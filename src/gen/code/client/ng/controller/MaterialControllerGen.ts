@@ -167,7 +167,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         closeMethod.setContent('this.$mdDialog.cancel();');
         var addMethod = this.controllerClass.addMethod(`add${modelName}`);
         addMethod.setContent(`var validate = this.formService.evaluate(this.${modelInstanceName}.validate(), this.${formName});
-        if (!validate) return;
+        if (!validate) return this.notificationService.toast('Invalid form data');
         var ${modelInstanceName} = this.${modelInstanceName}.getValues<I${modelName}>();
         this.apiService.post<I${modelName}, IUpsertResult<I${modelName}>>('${edge}', ${modelInstanceName})
             .then(result=> {
@@ -207,12 +207,9 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         var closeMethod = this.controllerClass.addMethod('closeFormModal');
         closeMethod.setContent('this.$mdDialog.cancel();');
         var updateMethod = this.controllerClass.addMethod(`edit${modelName}`);
-        updateMethod.setContent(`if (this.${formName}.$dirty == false) {
-            this.$mdDialog.cancel();
-            return;
-        }
+        updateMethod.setContent(`if (!this.${formName}.$dirty) return this.notificationService.toast('Nothing changed');
         var validate = this.formService.evaluate(this.${modelInstanceName}.validate(), this.${formName});
-        if (!validate) return;
+        if (!validate) return this.notificationService.toast('Invalid form data');
         var ${modelInstanceName} = this.${modelInstanceName}.getValues<I${modelName}>();
         this.apiService.put<I${modelName}, IUpsertResult<I${modelName}>>('${edge}', ${modelInstanceName})
             .then(result=> {

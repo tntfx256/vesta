@@ -42,14 +42,11 @@ export class Backuper {
         }
         var volumeOption = [],
             dirsToBackup = [];
-        // todo directory nesting (e.g. compose-prod-sa.yml)
         for (var volume in volumeDirectoryMap) {
             if (volumeDirectoryMap.hasOwnProperty(volume)) {
-                if (DockerUtil.isVolumeDriver(volume)) {
+                if (!DockerUtil.isVolumeDriver(volume)) {
                     var volumeName = `${this.volumePrefix}_${volume}`;
                     volumeOption.push(`-v ${volumeName}:${volumeDirectoryMap[volume]}`);
-                } else {
-                    volumeOption.push(`-v ${volume}:${volumeDirectoryMap[volume]}`);
                 }
                 dirsToBackup.push(volumeDirectoryMap[volume]);
             }
