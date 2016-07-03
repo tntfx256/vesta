@@ -14,9 +14,9 @@ export class CommonGen {
 
     private addSubModule() {
         if (!this.config.repository.common) return;
-        var dir = this.config.name;
-        var destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
-        var repo = this.config.repository;
+        let dir = this.config.name;
+        let destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
+        let repo = this.config.repository;
         return CmdUtil.execSync(`git submodule add -b dev ${GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.common)} ${destDir}`, {cwd: dir});
     }
 
@@ -29,7 +29,7 @@ export class CommonGen {
      * git push origin dev
      */
     private createCommonProject() {
-        var repository = this.config.repository,
+        let repository = this.config.repository,
             templateRepo = this.vesta.getProjectConfig().repository,
             cmnDir = repository.common,
             execOptions:IExecOptions = {cwd: cmnDir};
@@ -40,12 +40,12 @@ export class CommonGen {
         CmdUtil.execSync(`git commit -m Vesta-init`, execOptions);
         CmdUtil.execSync(`git remote add origin ${GitGen.getRepoUrl(repository.baseUrl, repository.group, repository.common)}`, execOptions);
         CmdUtil.execSync(`git push -u origin master`, execOptions);
-        CmdUtil.execSync(`git checkout -b dev`, execOptions);
-        CmdUtil.execSync(`git push -u origin dev`, execOptions);
+        // CmdUtil.execSync(`git checkout -b dev`, execOptions);
+        // CmdUtil.execSync(`git push -u origin dev`, execOptions);
     }
 
     private initWithoutSubModule() {
-        var dir = this.config.name,
+        let dir = this.config.name,
             templateRepo = this.vesta.getProjectConfig().repository,
             destDir = path.join(dir, this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn');
         FsUtil.mkdir(destDir);

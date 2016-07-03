@@ -48,13 +48,13 @@ export class ProjectGen {
     }
 
     public generate() {
-        var dir = this.config.name;
-        var projectRepo = this.vesta.getProjectConfig().repository;
-        var projectTemplateName = projectRepo.express;
-        var repoInfo = this.config.repository;
-        var replacement = {};
-        var isClientSideProject = this.config.type == ProjectGen.Type.ClientSide;
-        var execOption:IExecOptions = {cwd: dir};
+        let dir = this.config.name;
+        let projectRepo = this.vesta.getProjectConfig().repository;
+        let projectTemplateName = projectRepo.express;
+        let repoInfo = this.config.repository;
+        let replacement = {};
+        let isClientSideProject = this.config.type == ProjectGen.Type.ClientSide;
+        let execOption:IExecOptions = {cwd: dir};
         if (isClientSideProject) {
             projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
         }
@@ -75,12 +75,12 @@ export class ProjectGen {
         CmdUtil.execSync(`git commit -m Vesta-common`, execOption);
         CmdUtil.execSync(`git remote add origin ${GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name)}`, execOption);
         CmdUtil.execSync(`git push -u origin master`, execOption);
-        CmdUtil.execSync(`git checkout -b dev`, execOption);
-        CmdUtil.execSync(`git push -u origin dev`, execOption);
+        // CmdUtil.execSync(`git checkout -b dev`, execOption);
+        // CmdUtil.execSync(`git push -u origin dev`, execOption);
     }
 
     public static getGeneratorConfig(name:string, category:string):Promise<IProjectGenConfig> {
-        var appConfig:IProjectGenConfig = <IProjectGenConfig>{};
+        let appConfig:IProjectGenConfig = <IProjectGenConfig>{};
         appConfig.name = _.camelCase(name);
         appConfig.client = <IClientAppConfig>{};
         appConfig.server = <IServerAppConfig>{};
@@ -90,7 +90,7 @@ export class ProjectGen {
             common: '',
             name: appConfig.name
         };
-        var questions:Array<Question> = [<Question>{
+        let questions:Array<Question> = [<Question>{
             type: 'list',
             name: 'type',
             message: 'Project Type: ',

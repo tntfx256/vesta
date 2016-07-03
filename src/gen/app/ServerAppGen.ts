@@ -1,12 +1,11 @@
-import * as inqurer from "inquirer";
 import {Question} from "inquirer";
 import {Vesta} from "../file/Vesta";
 import {DatabaseGen} from "../core/DatabaseGen";
 import {IProjectGenConfig} from "../ProjectGen";
 import {ExpressAppGen} from "./server/ExpressAppGen";
 import {GitGen} from "../file/GitGen";
-import {FsUtil} from "../../util/FsUtil";
-var speakeasy = require('speakeasy');
+import {Util} from "../../util/Util";
+let speakeasy = require('speakeasy');
 
 export interface IServerAppConfig {
     type:string;
@@ -31,11 +30,12 @@ export class ServerAppGen {
     }
 
     private cloneTemplate() {
-        var dir = this.config.name,
+        let dir = this.config.name,
             repo = this.vesta.getProjectConfig().repository;
         GitGen.clone(GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
         GitGen.cleanClonedRepo(dir);
-        FsUtil.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`);
+        // server app no longer contains variant settings
+        // FsUtil.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`);
     }
 
     public generate() {
@@ -43,17 +43,17 @@ export class ServerAppGen {
     }
 
     static getGeneratorConfig():Promise<IServerAppConfig> {
-        var config:IServerAppConfig = <IServerAppConfig>{type: 'express'};
+        let config:IServerAppConfig = <IServerAppConfig>{type: 'express'};
         return new Promise<IServerAppConfig>(resolve=> {
-            var question = <Question>{
+            let question = <Question>{
                 type: 'list',
                 name: 'database',
                 message: 'Database: ',
                 choices: [DatabaseGen.MySQL, DatabaseGen.Mongodb],
                 default: DatabaseGen.MySQL
             };
-            inqurer.prompt(question, answer=> {
-                config.database = answer['database'];
+            Util.prompt<{database:string}>(question).then(answer=> {
+                config.database = answer.database;
                 resolve(config);
             });
         });

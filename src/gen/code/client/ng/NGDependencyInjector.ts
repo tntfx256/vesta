@@ -47,20 +47,18 @@ export class NGDependencyInjector {
     }
 
     /**
-     This function does not import the required class, function, etc
-     The import statement must be
+     This function will create import statement only if an injectable sets the `path` in INGInjectable
      */
     public static inject(file:TsFileGen, injects:Array<INGInjectable>, destination:string, ignoreDependencies:boolean = false) {
-        var staticInject = '',
+        let staticInject = '',
             theClass = file.getClass(file.name),
             cm = theClass.getConstructor(),
             injecteds = [],
-            vesta = Vesta.getInstance(),
             plugins = [];
-        for (var i = 0, il = injects.length; i < il; ++i) {
+        for (let i = 0, il = injects.length; i < il; ++i) {
             if (injecteds.indexOf(injects[i].name) >= 0) continue;
             injecteds.push(injects[i].name);
-            var instanceName, importPath, injectable = injects[i];
+            let instanceName, importPath, injectable = injects[i];
             if (injectable.isLib) {
                 instanceName = injectable.name;
                 importPath = injectable.path;
@@ -100,9 +98,9 @@ export class NGDependencyInjector {
         FsUtil.writeFile(path.join(destination, className + '.ts'), file.generate());
 
         var importFileCode = fs.readFileSync(importFilePath, {encoding: 'utf8'}),
-        // import statement code
+            // import statement code
             importCode = `import {${className}} from "${importPath}/${className}";`,
-        // adding module as property to exporter variable code
+            // adding module as property to exporter variable code
             embedCode = `${instanceName}: ${className},`;
 
         if (importFileCode.indexOf(importCode) < 0) {

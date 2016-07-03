@@ -7,7 +7,7 @@ import {Question} from "inquirer";
 import {ProjectGen, IProjectGenConfig} from "./gen/ProjectGen";
 import {Vesta} from "./gen/file/Vesta";
 import {ModelGen} from "./gen/code/ModelGen";
-import {NGControllerGen} from "./gen/code/client/ng/NGControllerGen";
+import {NGControllerGen, ControllerType} from "./gen/code/client/ng/NGControllerGen";
 import {NGDirectiveGen} from "./gen/code/client/ng/NGDirectiveGen";
 import {NGServiceGen} from "./gen/code/client/ng/NGServiceGen";
 import {NGFormGen} from "./gen/code/client/ng/NGFormGen";
@@ -21,7 +21,7 @@ import {Log} from "./util/Log";
 import {Util} from "./util/Util";
 import {DockerUtil} from "./util/DockerUtil";
 
-var packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
+let packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
 program.version(`Vesta Platform v${packageInfo.version}`);
 
 program
@@ -41,10 +41,10 @@ program
 
 program.parse(process.argv);
 
-var args:Array<string> = program['rawArgs'];
+let args:Array<string> = program['rawArgs'];
 args.shift();
 args.shift();
-var command = args.shift();
+let command = args.shift();
 
 switch (command) {
     case 'create':
@@ -76,7 +76,7 @@ switch (command) {
 }
 
 function createProject() {
-    var [projectCategory,projectName] = program['create'].split('/');
+    let [projectCategory,projectName] = program['create'].split('/');
     if (!projectName) {
         projectName = projectCategory;
         projectCategory = '';
@@ -87,13 +87,13 @@ function createProject() {
     projectName = _.camelCase(projectName);
     ProjectGen.getGeneratorConfig(projectName, projectCategory)
         .then((config:IProjectGenConfig) => {
-            var project = new ProjectGen(config);
+            let project = new ProjectGen(config);
             project.generate();
         })
 }
 
 function handleCordovaPlugin(args:Array<string>) {
-    var cordova = CordovaGen.getInstance(),
+    let cordova = CordovaGen.getInstance(),
         subCommand = args.shift();
     if (subCommand == 'add') {
         cordova.install(...args);
@@ -103,9 +103,9 @@ function handleCordovaPlugin(args:Array<string>) {
 }
 
 function generateCode(args:Array<string>) {
-    var type = args.shift().toLowerCase();
-    var name = args[0];
-    var vesta = Vesta.getInstance(),
+    let type = args.shift().toLowerCase();
+    let name = args[0];
+    let vesta = Vesta.getInstance(),
         projectConfig = vesta.getConfig();
     if (name || (type != 'controller')) {
         if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
@@ -115,22 +115,23 @@ function generateCode(args:Array<string>) {
     switch (type) {
         case 'controller':
             if (projectConfig.type == ProjectGen.Type.ClientSide) {
-                NGControllerGen.getGeneratorConfig(name ,config => {
+                NGControllerGen.getGeneratorConfig(name, config => {
                     if (config.model instanceof Array) {
-                        for (var i = config.model.length; i--;) {
-                            var parts = config.model[i].split(/[\/\\]/);
-                            var modelName = parts[parts.length - 1];
-                            var ngController = new NGControllerGen({
+                        for (let i = config.model.length; i--;) {
+                            let parts = config.model[i].split(/[\/\\]/);
+                            let modelName = parts[parts.length - 1];
+                            let ngController = new NGControllerGen({
                                 name: modelName,
+                                type: ControllerType.List,
                                 module: config.module,
                                 model: config.model[i],
-                                injects:config.injects.slice(0),
+                                injects: config.injects.slice(0),
                             });
                             ngController.generate();
                         }
                     } else {
                         config.name = name;
-                        var ngController = new NGControllerGen(config);
+                        let ngController = new NGControllerGen(config);
                         ngController.generate();
                     }
 
@@ -139,10 +140,10 @@ function generateCode(args:Array<string>) {
             } else {
                 ExpressControllerGen.getGeneratorConfig(name, config => {
                     if (config.model instanceof Array) {
-                        for (var i = config.model.length; i--;) {
-                            var parts = config.model[i].split(/[\/\\]/);
-                            var modelName = parts[parts.length - 1];
-                            var controller = new ExpressControllerGen({
+                        for (let i = config.model.length; i--;) {
+                            let parts = config.model[i].split(/[\/\\]/);
+                            let modelName = parts[parts.length - 1];
+                            let controller = new ExpressControllerGen({
                                 name: modelName,
                                 route: config.route,
                                 model: config.model[i],
@@ -150,34 +151,34 @@ function generateCode(args:Array<string>) {
                             controller.generate();
                         }
                     } else {
-                        var controller = new ExpressControllerGen(config);
+                        let controller = new ExpressControllerGen(config);
                         controller.generate();
                     }
                 });
             }
             break;
         case 'model':
-            var model = new ModelGen(args);
+            let model = new ModelGen(args);
             model.generate();
             break;
         case 'directive':
             NGDirectiveGen.getGeneratorConfig(config=> {
                 config.name = name;
-                var ngDirective = new NGDirectiveGen(config);
+                let ngDirective = new NGDirectiveGen(config);
                 ngDirective.generate();
             });
             break;
         case 'filter':
             NGFilterGen.getGeneratorConfig(config=> {
                 config.name = name;
-                var ngFilter = new NGFilterGen(config);
+                let ngFilter = new NGFilterGen(config);
                 ngFilter.generate();
             });
             break;
         case 'service':
             NGServiceGen.getGeneratorConfig(config => {
                 config.name = name;
-                var ngService = new NGServiceGen(config);
+                let ngService = new NGServiceGen(config);
                 ngService.generate();
             });
             break;
@@ -185,12 +186,12 @@ function generateCode(args:Array<string>) {
             NGFormGen.getGeneratorConfig(config => {
                 config.name = name;
                 config.writeToFile = true;
-                var ngForm = new NGFormGen(config);
+                let ngForm = new NGFormGen(config);
                 ngForm.generate();
             });
             break;
         case 'sass':
-            var sass = new SassGen(args[1], args[0]);
+            let sass = new SassGen(args[1], args[0]);
             sass.generate();
             break;
         default:
@@ -220,7 +221,7 @@ function initProject() {
 function deployProject(args:Array<string>) {
     Deployer.getDeployConfig(args)
         .then(config=> {
-            var deployer = new Deployer(config);
+            let deployer = new Deployer(config);
             deployer.deploy();
         })
 }
@@ -228,7 +229,7 @@ function deployProject(args:Array<string>) {
 function backupProject(args:Array<string>) {
     Backuper.getDeployConfig(args)
         .then(config=> {
-            var backuper = new Backuper(config);
+            let backuper = new Backuper(config);
             backuper.backup();
         })
 }

@@ -1,7 +1,7 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
-import {INGControllerConfig, NGControllerGen} from "../NGControllerGen";
+import {INGControllerConfig, NGControllerGen, ControllerType} from "../NGControllerGen";
 import {TsFileGen} from "../../../../core/TSFileGen";
 import {ClassGen} from "../../../../core/ClassGen";
 import {NGFormGen, INGFormWrapperConfig} from "../NGFormGen";
@@ -12,6 +12,8 @@ import {XMLGen} from "../../../../core/XMLGen";
 import {SassGen} from "../../../../file/SassGen";
 import {FsUtil} from "../../../../../util/FsUtil";
 import {ModelGen} from "../../../ModelGen";
+import {Model, IModelFields} from "vesta-schema/Model";
+import {FieldType} from "vesta-schema/Field";
 
 /**
  * @property {boolean} isSpecialController If true, the controller is of type addController or editController
@@ -24,13 +26,17 @@ export abstract class BaseNGControllerGen {
     protected form:NGFormGen;
     protected hasScope:boolean = false;
     protected isSpecialController:boolean = false;
+    protected fileTypesFields:IModelFields = null;
+    protected model:Model;
+    protected immutableConfig:INGControllerConfig;
 
     constructor(protected config:INGControllerConfig) {
+        this.immutableConfig = JSON.parse(JSON.stringify(this.config));
         if (/.+controller$/i.exec(config.name)) {
             config.name = config.name.replace(/controller$/i, '');
         }
-        var ctrlName = _.camelCase(config.name);
-        var ctrlClassName = `${ctrlName}Controller`;
+        let ctrlName = _.camelCase(config.name);
+        let ctrlClassName = `${ctrlName}Controller`;
         this.path = path.join(this.path, config.module);
         this.controllerFile = new TsFileGen(_.capitalize(ctrlClassName));
         this.controllerClass = this.controllerFile.addClass();
@@ -40,15 +46,15 @@ export abstract class BaseNGControllerGen {
         // importing authService for acl (no path property is provided since it has been imported by ACL)
         this.addInjection({name: 'authService', type: 'AuthService'});
         if (config.model) {
+            this.fileTypesFields = ModelGen.getFieldsByType(config.model, FieldType.File);
             this.form = new NGFormGen(config);
             this.path = path.join(this.path, ctrlName);
             this.templatePath = path.join(this.templatePath, ctrlName);
-            this.setModelRequiredInjections();
         }
         this.addAclMethod();
         this.controllerFile.addImport('{BaseController}', Util.genRelativePath(this.path, `src/app/modules/BaseController`));
         FsUtil.mkdir(this.path, this.templatePath);
-        for (var i = config.injects.length; i--;) {
+        for (let i = config.injects.length; i--;) {
             if (config.injects[i].name == '$scope') {
                 config.injects.splice(i, 1);
                 this.hasScope = true;
@@ -67,10 +73,21 @@ export abstract class BaseNGControllerGen {
             access: ClassGen.Access.Public
         });
         // generating registerPermissions
-        var aclMethod = this.controllerClass.addMethod('registerPermissions', ClassGen.Access.Public, true);
-        var stateName = (this.config.module ? `${this.config.module}.` : ``) + _.camelCase(this.config.name);
+        let aclMethod = this.controllerClass.addMethod('registerPermissions', ClassGen.Access.Public, true);
+        let stateName = (this.config.module ? `${this.config.module}.` : ``) + _.camelCase(this.config.name);
         // this will assume that the state name from the client side is the same as edge name from server side
-        aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read']});`);
+        switch (this.config.type) {
+            case ControllerType.List:
+                aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read']});`);
+                break;
+            case ControllerType.Add:
+                aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read', 'add']});`);
+                break;
+            case ControllerType.Edit:
+                aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read', 'update']});`);
+                break;
+        }
+
     }
 
     /**
@@ -78,7 +95,7 @@ export abstract class BaseNGControllerGen {
      * @param inject
      */
     protected addInjection(inject:INGInjectable) {
-        for (var i = this.config.injects.length; i--;) {
+        for (let i = this.config.injects.length; i--;) {
             if (this.config.injects[i].name == inject.name) return;
         }
         this.config.injects.push(inject);
@@ -86,17 +103,29 @@ export abstract class BaseNGControllerGen {
 
     protected setModelRequiredInjections() {
         // importing model
-        var modelName = ModelGen.extractModelName(this.config.model);
+        let modelName = ModelGen.extractModelName(this.config.model);
         this.controllerClass.addProperty({
             name: _.camelCase(modelName),
             type: modelName,
             access: ClassGen.Access.Private
         });
         this.controllerFile.addImport(`{I${modelName}, ${modelName}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${this.config.model}`));
-        // importing Err
-        this.controllerFile.addImport('{Err}', 'vesta-util/Err');
+        let hasFileUpsert = false;
+        if (this.config.type != ControllerType.List) {
+            // importing Err
+            this.controllerFile.addImport('{Err}', 'vesta-util/Err');
+            this.controllerFile.addImport('{ValidationError}', 'vesta-schema/error/ValidationError');
+            if (this.fileTypesFields) {
+                hasFileUpsert = true;
+                this.controllerFile.addImport('{ApiService, IFileKeyValue}', Util.genRelativePath(this.path, `src/app/service/ApiService`));
+            }
+        }
         // importing apiService
-        this.addInjection({name: 'apiService', type: 'ApiService', path: 'src/app/service/ApiService'});
+        this.addInjection({
+            name: 'apiService',
+            type: 'ApiService',
+            path: hasFileUpsert ? '' : 'src/app/service/ApiService'
+        });
         // importing formService
         this.addInjection({name: 'formService', type: 'FormService', path: 'src/app/service/FormService'});
         // importing notificationService
@@ -106,7 +135,7 @@ export abstract class BaseNGControllerGen {
     }
 
     protected getTemplatePath() {
-        var ctrlName = _.camelCase(this.config.name),
+        let ctrlName = _.camelCase(this.config.name),
             pathParts = ['tpl'];
         if (this.config.module) {
             pathParts.push(this.config.module);
@@ -118,7 +147,7 @@ export abstract class BaseNGControllerGen {
     }
 
     protected generateRoute() {
-        var ctrlName = _.camelCase(this.config.name),
+        let ctrlName = _.camelCase(this.config.name),
             stateNameParts = [],
             viewName = 'master';
         if (this.config.module) {
@@ -126,12 +155,12 @@ export abstract class BaseNGControllerGen {
             viewName = [`${_.kebabCase(this.config.module)}-content`, this.config.module].join('@');
         }
         stateNameParts.push(ctrlName);
-        var url = ctrlName,
+        let url = ctrlName,
             state = stateNameParts.join('.'),
             templateUrl = `${this.getTemplatePath()}/${ctrlName}.html`;
-        var codeFirstLine = `$stateProvider.state('${state}', {`;
+        let codeFirstLine = `$stateProvider.state('${state}', {`;
         if (Util.fileHasContent('src/app/config/route.ts', codeFirstLine)) return;
-        var code = `${codeFirstLine}
+        let code = `${codeFirstLine}
         url: '/${url}',
         views: {
             '${viewName}': {
@@ -141,13 +170,13 @@ export abstract class BaseNGControllerGen {
             }
         }
     });\n    ${Placeholder.NGRouter}`;
-        var routerFile = 'src/app/config/route.ts';
-        var routeCode = fs.readFileSync(routerFile, {encoding: 'utf8'});
+        let routerFile = 'src/app/config/route.ts';
+        let routeCode = fs.readFileSync(routerFile, {encoding: 'utf8'});
         FsUtil.writeFile(routerFile, routeCode.replace(Placeholder.NGRouter, code));
     }
 
     protected generateForm() {
-        var ctrlName = _.camelCase(this.config.name),
+        let ctrlName = _.camelCase(this.config.name),
             formName = `${ctrlName}Form`,
             includePath = Util.joinPath('tpl', this.config.module, ctrlName),
             config:INGFormWrapperConfig = <INGFormWrapperConfig>{};
@@ -158,18 +187,22 @@ export abstract class BaseNGControllerGen {
         config.title = `Add ${this.config.model}`;
         config.cancel = 'Cancel';
         config.ok = 'Save';
-        var addForm = this.form.wrap(config);
+        let addForm = this.form.wrap(config);
         FsUtil.writeFile(path.join(this.templatePath, `${ctrlName}AddForm.html`), addForm.generate());
         config.type = NGFormGen.Type.Edit;
         config.title = `Edit ${this.config.model}`;
-        var editForm = this.form.wrap(config);
+        let editForm = this.form.wrap(config);
         FsUtil.writeFile(path.join(this.templatePath, `${ctrlName}EditForm.html`), editForm.generate());
         //
-        var addController = new NGControllerGen(this.config);
+        let addControllerConfig = JSON.parse(JSON.stringify(this.immutableConfig));
+        addControllerConfig.type = ControllerType.Add;
+        let addController = new NGControllerGen(addControllerConfig);
         addController.setAsAddController();
         addController.generate();
         //
-        var editController = new NGControllerGen(this.config);
+        let editControllerConfig = JSON.parse(JSON.stringify(this.immutableConfig));
+        editControllerConfig.type = ControllerType.Edit;
+        let editController = new NGControllerGen(editControllerConfig);
         editController.setAsEditController();
         editController.generate();
     }
@@ -181,20 +214,20 @@ export abstract class BaseNGControllerGen {
     public abstract setAsEditController();
 
     protected createPageTemplate() {
-        var template = new XMLGen('div'),
+        let template = new XMLGen('div'),
             pageName = _.camelCase(this.config.name);
-        var list = this.config.model ? `\n    <div ng-include="'${this.getTemplatePath()}/${_.camelCase(this.config.name)}List.html'"></div>` : '';
+        let list = this.config.model ? `\n    <div ng-include="'${this.getTemplatePath()}/${_.camelCase(this.config.name)}List.html'"></div>` : '';
         template.setAttribute('id', `${pageName}-page`).addClass('page');
         pageName = _.capitalize(_.camelCase(this.config.name));
         template.html(`<h1>${pageName} Page</h1>${list}`);
-        var sass = new SassGen(this.config.name, SassGen.Type.Page);
+        let sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
         FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
     }
 
     protected createScope() {
-        var name = _.capitalize(_.camelCase(this.config.name));
-        var scopeInterface = this.controllerFile.addInterface(`I${name}Scope`);
+        let name = _.capitalize(_.camelCase(this.config.name));
+        let scopeInterface = this.controllerFile.addInterface(`I${name}Scope`);
         scopeInterface.setParentClass('IScope');
         this.controllerFile.addImport('{IScope}', 'angular');
         this.addInjection({name: '$scope', type: scopeInterface.name, path: '', isLib: true});
@@ -204,13 +237,13 @@ export abstract class BaseNGControllerGen {
         if (this.hasScope) {
             this.createScope();
         }
-        NGDependencyInjector.inject(this.controllerFile, this.config.injects, this.path, this.isSpecialController);
         if (this.config.model && !this.isSpecialController) {
             this.generateForm();
             this.setAsListController();
         } else {
             this.createPageTemplate();
         }
+        NGDependencyInjector.inject(this.controllerFile, this.config.injects, this.path, this.isSpecialController);
         this.generateRoute();
         NGDependencyInjector.updateImportFile(this.controllerFile, 'controller', this.path, Placeholder.NGController, Util.genRelativePath('src/app/config', this.path));
     }

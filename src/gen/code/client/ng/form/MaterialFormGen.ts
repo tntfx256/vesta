@@ -29,6 +29,14 @@ export class MaterialFormGen extends BaseFormGen {
         return select;
     }
 
+    protected genMultiSelectField(wrapper:XMLGen, options:Array<any>):XMLGen {
+        let select = new XMLGen('md-select');
+        options.forEach(item=> {
+            select.append(new XMLGen('md-option').setAttribute('ng-value', item).text(item));
+        });
+        return select;
+    }
+
     protected genElementForField(field:Field):XMLGen {
         var isCheckbox = field.properties.type == FieldType.Boolean;
         var wrapper = MaterialFormGen.getInputContainer(field.fieldName, isCheckbox);

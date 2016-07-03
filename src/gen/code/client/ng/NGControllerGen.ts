@@ -9,15 +9,18 @@ export interface INGControllerConfig {
     name:string;
     module:string;
     model:string;
+    type:ControllerType;
     injects:Array<INGInjectable>;
     openFormInModal?:boolean;
 }
+
+export enum ControllerType{List = 1, Add, Edit}
 
 export class NGControllerGen {
     private controller:BaseNGControllerGen;
 
     constructor(private config:INGControllerConfig) {
-        var framework = Vesta.getInstance().getConfig().client.framework;
+        let framework = Vesta.getInstance().getConfig().client.framework;
         this.controller = ControllerGenFactory.create(framework, config);
     }
 
@@ -34,11 +37,12 @@ export class NGControllerGen {
     }
 
     static getGeneratorConfig(name:string, callback) {
-        var models = Object.keys(ModelGen.getModelsList()),
+        let models = Object.keys(ModelGen.getModelsList()),
             config:INGControllerConfig = <INGControllerConfig>{};
-        config.openFormInModal = false;
+        config.openFormInModal = true;
+        config.type = ControllerType.List;
         config.module = '';
-        if(name) {
+        if (name) {
             inquirer.prompt({name: 'module', type: 'input', message: 'Module Name: '}, answer => {
                 if (answer['module']) {
                     config.module = answer['module'];
@@ -64,7 +68,7 @@ export class NGControllerGen {
                         callback(config);
                     });
             });
-        }else{
+        } else {
             inquirer.prompt({name: 'module', type: 'input', message: 'Module Name: '}, answer => {
                 if (answer['module']) {
                     config.module = answer['module'];

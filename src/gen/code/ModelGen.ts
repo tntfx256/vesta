@@ -11,13 +11,13 @@ import {InterfaceGen} from "../core/InterfaceGen";
 import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
-import {Model} from "vesta-schema/Model";
+import {Model, IModelFields} from "vesta-schema/Model";
 import {Connection, config, Request} from "mssql";
 import {Err} from "vesta-util/Err";
 import {DatabaseError} from "vesta-schema/error/DatabaseError";
 import {IStructureProperty} from "../core/AbstractStructureGen";
-import reject = Promise.reject;
-var xml2json = require('xml-to-json');
+import {Schema} from "vesta-schema/Schema";
+let xml2json = require('xml-to-json');
 
 interface IFields {
     [name:string]:FieldGen
@@ -163,7 +163,7 @@ export class ModelGen {
 
     // todo import from existing database
     private importFromSQL() {
-        var SQLConnection = new Connection(<config>{
+        let SQLConnection = new Connection(<config>{
             server: 'localhost',
             port: 1433,
             user: 'sa',
@@ -177,7 +177,7 @@ export class ModelGen {
         });
         SQLConnection.connect((err)=> {
             if (err) {
-                return reject(new DatabaseError(Err.Code.DBConnection, err.message));
+                return Promise.reject(new DatabaseError(Err.Code.DBConnection, err.message));
             }
             (new Request(SQLConnection)).query('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', (err, result)=> {
                 var schema = {};
@@ -294,19 +294,37 @@ export class ModelGen {
      * @returns {Model}
      */
     static getModel(modelName:string):Model {
-        var possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/cmn/models/'],
+        let possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/app/cmn/models/'],
             pathToModel = `${modelName}.js`;
-        modelName = ModelGen.extractModelName(pathToModel);
-        for (var i = possiblePath.length; i--;) {
-            var modelFile = path.join(process.cwd(), possiblePath[i], pathToModel);
+        let className = ModelGen.extractModelName(pathToModel);
+        for (let i = possiblePath.length; i--;) {
+            let modelFile = path.join(process.cwd(), possiblePath[i], pathToModel);
             if (fs.existsSync(modelFile)) {
-                var module = require(modelFile);
-                if (module[modelName]) {
-                    return module[modelName];
+                let module = require(modelFile);
+                if (module[className]) {
+                    return module[className];
                 }
             }
         }
+        console.error(`${modelName} was not found. Please make sure your Gulp task is running!`);
         return null;
+    }
+
+    static getFieldsByType(modelName:string, fieldType:string):IModelFields {
+        let model = ModelGen.getModel(ModelGen.extractModelName(modelName));
+        let fieldsOfType:IModelFields = null;
+        if (!model) return fieldsOfType;
+        let fields:IModelFields = (<Schema>model['schema']).getFields();
+        let names = Object.keys(fields);
+        for (let i = 0, il = names.length; i < il; ++i) {
+            if (fields[names[i]].properties.type == fieldType) {
+                if (!fieldsOfType) {
+                    fieldsOfType = {};
+                }
+                fieldsOfType[names[i]] = fields[names[i]];
+            }
+        }
+        return fieldsOfType;
     }
 
     public static extractModelName(modelPath:string):string {
