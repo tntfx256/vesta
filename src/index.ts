@@ -115,28 +115,30 @@ function generateCode(args:Array<string>) {
     switch (type) {
         case 'controller':
             if (projectConfig.type == ProjectGen.Type.ClientSide) {
-                NGControllerGen.getGeneratorConfig(name, config => {
-                    if (config.model instanceof Array) {
-                        for (let i = config.model.length; i--;) {
-                            let parts = config.model[i].split(/[\/\\]/);
-                            let modelName = parts[parts.length - 1];
-                            let ngController = new NGControllerGen({
-                                name: modelName,
-                                type: ControllerType.List,
-                                module: config.module,
-                                model: config.model[i],
-                                injects: config.injects.slice(0),
-                            });
+                NGControllerGen.getGeneratorConfig(name)
+                    .then(config => {
+                        if (<any>config.model instanceof Array) {
+                            for (let i = config.model.length; i--;) {
+                                let parts = config.model[i].split(/[\/\\]/);
+                                let modelName = parts[parts.length - 1];
+                                let ngController = new NGControllerGen({
+                                    name: modelName,
+                                    type: ControllerType.List,
+                                    module: config.module,
+                                    model: config.model[i],
+                                    injects: config.injects.slice(0),
+                                    openFormInModal: true
+                                });
+                                ngController.generate();
+                            }
+                        } else {
+                            config.name = name;
+                            let ngController = new NGControllerGen(config);
                             ngController.generate();
                         }
-                    } else {
-                        config.name = name;
-                        let ngController = new NGControllerGen(config);
-                        ngController.generate();
-                    }
 
-                });
-
+                    })
+                    .catch(err=> console.error(err.message))
             } else {
                 ExpressControllerGen.getGeneratorConfig(name, config => {
                     if (config.model instanceof Array) {

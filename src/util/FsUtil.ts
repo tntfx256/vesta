@@ -4,7 +4,7 @@ import {Log} from "./Log";
 export class FsUtil {
     public static mkdir(...dirs:Array<string>):void {
         dirs.forEach(dir=> {
-            Log.info(`./> mkdir -p ${dir}`);
+            // Log.info(`./> mkdir -p ${dir}`);
             try {
                 fse.mkdirpSync(dir);
             } catch (e) {

@@ -86,4 +86,8 @@ export class Util {
         }
         return false;
     }
+
+    static clone<T>(object:T) {
+        return <T>JSON.parse(JSON.stringify(object));
+    }
 }

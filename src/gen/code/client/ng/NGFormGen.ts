@@ -1,11 +1,10 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
-import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import {XMLGen} from "../../../core/XMLGen";
 import {Vesta} from "../../../file/Vesta";
-import {BaseFormGen} from "./form/BaseFormGen";
+import {BaseNgFormGen} from "./form/BaseNgFormGen";
 import {MaterialFormGen} from "./form/MaterialFormGen";
 import {ModelGen} from "../../ModelGen";
 import {EmptyFormGen} from "./form/EmptyFormGen";
@@ -13,13 +12,15 @@ import {ClientAppGen} from "../../../app/client/ClientAppGen";
 import {IonicFormGen} from "./form/IonicFormGen";
 import {FsUtil} from "../../../../util/FsUtil";
 import {Log} from "../../../../util/Log";
-import {Model} from "vesta-schema/Model";
+import {IModel} from "vesta-schema/Model";
 import {Schema} from "vesta-schema/Schema";
+import {Util} from "../../../../util/Util";
 
 export interface INGFormConfig {
     name:string;
     model:string;
     module:string;
+    openFormInModal:boolean;
     writeToFile?:boolean;
 }
 
@@ -36,18 +37,18 @@ export class NGFormGen {
 
     static Type = {Add: 'add', Edit: 'edit'};
 
-    vesta:Vesta;
-    model:Model;
-    schema:Schema;
-    form:BaseFormGen;
-    path:string = 'src/app/templates';
+    private vesta:Vesta;
+    private model:IModel;
+    private schema:Schema;
+    private form:BaseNgFormGen;
+    private path:string = 'src/app/templates';
 
     constructor(private config:INGFormConfig) {
         this.vesta = Vesta.getInstance();
         this.model = ModelGen.getModel(config.model);
         if (this.model) {
-            this.schema = this.model['schema'];
-            var projectConfig = this.vesta.getConfig();
+            this.schema = this.model.schema;
+            let projectConfig = this.vesta.getConfig();
             switch (projectConfig.client.framework) {
                 case ClientAppGen.Framework.Material:
                     this.form = new MaterialFormGen(this.model);
@@ -69,7 +70,7 @@ export class NGFormGen {
 
     generate() {
         if (!this.model) return;
-        var code = this.form.generate();
+        let code = this.form.generate();
         if (this.config.writeToFile) FsUtil.writeFile(path.join(this.path, 'form.html'), code);
         return code;
     }
@@ -79,24 +80,27 @@ export class NGFormGen {
     }
 
     static getGeneratorConfig(callback) {
-        var models = Object.keys(ModelGen.getModelsList()),
+        let models = Object.keys(ModelGen.getModelsList()),
             config:INGFormConfig = <INGFormConfig>{};
         config.module = '';
 
-        var qs:Array<Question> = [
+        let qs:Array<Question> = [
             {name: 'module', type: 'input', message: 'Module Name: '}
         ];
         if (models.length) {
             qs.push({name: 'model', type: 'list', message: 'Model: ', choices: models, default: models[0]});
+            qs.push({name: 'modal', type: 'confirm', message: 'Show in modal: ', default: true});
         } else {
             return Log.error('There is no model to generate form upon');
         }
-        inquirer.prompt(qs, answer => {
-            if (answer['module']) {
-                config.module = answer['module'];
-            }
-            config.model = answer['model'];
-            callback(config);
-        })
+        Util.prompt<{module:string; model:string; modal:boolean;}>(qs)
+            .then(answer => {
+                if (answer.module) {
+                    config.module = answer.module;
+                }
+                config.model = answer.model;
+                config.openFormInModal = answer.modal;
+                callback(config);
+            })
     }
 }

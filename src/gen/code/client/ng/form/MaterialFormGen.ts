@@ -1,17 +1,20 @@
 import * as _ from "lodash";
-import {BaseFormGen} from "./BaseFormGen";
+import {BaseNgFormGen} from "./BaseNgFormGen";
 import {XMLGen} from "../../../../core/XMLGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
-import {Field, FieldType} from "vesta-schema/Field";
+import {Field, FieldType, RelationType, IFieldProperties} from "vesta-schema/Field";
 import {ModelGen} from "../../../ModelGen";
+import {Util} from "../../../../../util/Util";
 
-export class MaterialFormGen extends BaseFormGen {
+export class MaterialFormGen extends BaseNgFormGen {
+
+    private static AutoCompleteDelay = 300;
 
     private static getInputContainer(title?:string, noFloat?:boolean):XMLGen {
-        var wrapper = new XMLGen('md-input-container');
+        let wrapper = new XMLGen('md-input-container');
         wrapper.addClass('md-block');
         if (title) {
-            var label = new XMLGen('label');
+            let label = new XMLGen('label');
             if (noFloat) {
                 label.addClass('md-no-float');
             }
@@ -21,27 +24,131 @@ export class MaterialFormGen extends BaseFormGen {
         return wrapper;
     }
 
-    protected genSelectField(wrapper:XMLGen, options:Array<any>):XMLGen {
-        var select = new XMLGen('md-select');
-        options.forEach(item=> {
-            select.append(new XMLGen('md-option').setAttribute('ng-value', item).text(item));
-        });
-        return select;
-    }
-
-    protected genMultiSelectField(wrapper:XMLGen, options:Array<any>):XMLGen {
+    /**
+     * Normal select control
+     */
+    protected genSelectField(wrapper:XMLGen, fieldName:string, properties:IFieldProperties):XMLGen {
         let select = new XMLGen('md-select');
-        options.forEach(item=> {
+        properties.enum.forEach(item=> {
             select.append(new XMLGen('md-option').setAttribute('ng-value', item).text(item));
         });
+        // ng-messages
+        let ngMessages = this.getNgMessage(fieldName, properties);
+        if (ngMessages.getChildren().length) select.append(ngMessages);
         return select;
     }
 
-    protected genElementForField(field:Field):XMLGen {
-        var isCheckbox = field.properties.type == FieldType.Boolean;
-        var wrapper = MaterialFormGen.getInputContainer(field.fieldName, isCheckbox);
-        this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
+    /**
+     * Select for relations of types RelationType.One2Many & RelationType.One2One
+     */
+    protected genAutoCompleteField(field:Field):XMLGen {
+        let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
+            targetFieldName = ModelGen.getUniqueFieldNameOfRelatedModel(field);
+        let wrapper = new XMLGen('md-autocomplete');
+        wrapper.setAttribute('md-input-name', field.fieldName)
+            .setAttribute('md-input-id', `${field.fieldName}`)
+            .setAttribute('md-delay', MaterialFormGen.AutoCompleteDelay)
+            .setAttribute('md-no-cache', 'true')
+            .setAttribute('md-floating-label', field.fieldName)
+            .setAttribute('md-search-text', `vm.${field.fieldName}SearchText`)
+            .setAttribute('md-min-length', '2')
+            .setAttribute('md-selected-item', `vm.${modelInstanceName}.${field.fieldName}`)
+            .setAttribute('md-item-text', `item.${targetFieldName}`)
+            // .setAttribute('ng-disabled', `!vm.${field.fieldName}.length`)
+            .setAttribute('md-items', `item in vm.search${_.capitalize(field.fieldName)}(vm.${field.fieldName}SearchText)`);
+        //
+        let content = new XMLGen('md-item-template');
+        content.html(`<span>{{item.${targetFieldName}}}</span>`);
+        wrapper.append(content);
+        // ng messages
+        let ngMessages = this.getNgMessage(field.fieldName, field.properties);
+        if (ngMessages.getChildren().length) wrapper.append(ngMessages);
         return wrapper;
+    }
+
+    /**
+     * Multi-select for relations of type RelationType.Many2Many
+     * <div.md-input-wrapper>
+     *     <md-chips>...</md-chips>
+     *     <div ng-messages></div>
+     * </div>
+     */
+    protected genMultiSelectField(field:Field, forceMath?:boolean):XMLGen {
+        let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name));
+        let outerWrapper = new XMLGen('div');
+        outerWrapper.addClass('md-input-wrapper');
+        let wrapper = new XMLGen('md-chips');
+        let targetFieldName = ModelGen.getUniqueFieldNameOfRelatedModel(field);
+        wrapper.setAttribute('ng-model', `vm.${modelInstanceName}.${field.fieldName}`)
+            .setAttribute('md-require-match', forceMath ? 'true' : 'false');
+        wrapper.appendTo(outerWrapper);
+        // auto complete
+        let autoComplete = new XMLGen('md-autocomplete');
+        autoComplete.setAttribute('md-input-name', field.fieldName)
+            .setAttribute('md-input-id', field.fieldName)
+            .setAttribute('md-search-text', `vm.${field.fieldName}SearchText`)
+            .setAttribute('md-items', `item in vm.search${_.capitalize(field.fieldName)}(vm.${field.fieldName}SearchText)`)
+            .setAttribute('md-item-text', `item.${targetFieldName}`)
+            .setAttribute('md-delay', MaterialFormGen.AutoCompleteDelay)
+            .setAttribute('placeholder', field.fieldName);
+        autoComplete.html(`<span>{{item.${targetFieldName}}}</span>`);
+        wrapper.append(autoComplete);
+        // chip
+        let chipWrapper = new XMLGen('md-chip-template');
+        chipWrapper.html(`<span>{{$chip.${targetFieldName}}}</span>`);
+        wrapper.append(chipWrapper);
+        // ng-messages
+        let ngMessages = this.getNgMessage(field.fieldName, field.properties);
+        if (ngMessages.getChildren().length) outerWrapper.append(ngMessages);
+        return outerWrapper;
+    }
+
+    /**
+     * Multi-select auto-complete component for type of FieldType.List
+     */
+    protected genListField(field:Field):XMLGen {
+        let itemProperties = Util.clone<IFieldProperties>(field.properties);
+        itemProperties.type = field.properties.list;
+        if (itemProperties.type == FieldType.File) {
+            let wrapper = MaterialFormGen.getInputContainer(field.fieldName);
+            this.getElementsByFieldType(wrapper, field.fieldName, itemProperties);
+            // ng-messages is set from this.getElementsByFieldType method
+            return wrapper;
+        }
+        let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name));
+        let outerWrapper = new XMLGen('div');
+        outerWrapper.addClass('md-input-wrapper');
+        let wrapper = new XMLGen('md-chips');
+        let targetFieldName = field.fieldName;
+        wrapper.setAttribute('ng-model', `vm.${modelInstanceName}.${field.fieldName}`);
+        // chip
+        let chipWrapper = new XMLGen('md-chip-template');
+        chipWrapper.html(`<span>{{$chip.${targetFieldName}}}</span>`);
+        wrapper.append(chipWrapper);
+        outerWrapper.append(wrapper);
+        // ng-messages
+        let ngMessages = this.getNgMessage(field.fieldName, field.properties);
+        if (ngMessages.getChildren().length) outerWrapper.append(ngMessages);
+        return outerWrapper;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected genElementForField(field:Field):XMLGen {
+        switch (field.properties.type) {
+            case FieldType.Relation:
+                return field.properties.relation.type == RelationType.Many2Many ?
+                    this.genMultiSelectField(field, true) :
+                    this.genAutoCompleteField(field);
+            case FieldType.List:
+                return this.genListField(field);
+            default:
+                let isCheckbox = field.properties.type == FieldType.Boolean;
+                let wrapper = MaterialFormGen.getInputContainer(field.fieldName, isCheckbox);
+                this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
+                return wrapper;
+        }
     }
 
     protected genCheckboxField():XMLGen {
@@ -49,7 +156,7 @@ export class MaterialFormGen extends BaseFormGen {
     }
 
     public wrap(config:INGFormWrapperConfig):XMLGen {
-        var modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
+        let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             modelClassName = _.capitalize(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'md-dialog' : 'div'),
             form = new XMLGen('form');
@@ -58,33 +165,34 @@ export class MaterialFormGen extends BaseFormGen {
             .setAttribute('ng-submit', `vm.${config.type}${modelClassName}()`)
             .setAttribute('novalidate')
             .appendTo(wrapper);
-
         if (config.isModal) {
-            var toolbar = new XMLGen('md-toolbar'),
+            let toolbar = new XMLGen('md-toolbar'),
                 actionBar = new XMLGen('md-dialog-actions'),
                 contentWrapper = new XMLGen('md-dialog-content');
-            toolbar.html(`
-            <div class="md-toolbar-tools">
+            toolbar.html(`<div class="md-toolbar-tools">
                 <h3 class="box-title">${config.title}</h3>
-
                 <div flex></div>
                 <md-button type="button" class="md-icon-button" ng-click="vm.closeFormModal()">
                     <md-icon>clear</md-icon>
                 </md-button>
             </div>`);
-            contentWrapper.html(`
-            <div ng-include="'${config.formPath}'"></div>`);
+            contentWrapper.html(`<div ng-include="'${config.formPath}'"></div>`);
             actionBar
                 .setAttribute('layout', 'row')
-                .html(`
-            <md-button type="submit" class="md-primary md-raised">${config.ok}</md-button>
+                .html(`<md-button type="submit" class="md-primary md-raised">${config.ok}</md-button>
             <md-button type="button" class="md-primary" ng-click="vm.closeFormModal()">${config.cancel}</md-button>`);
             form.append(toolbar, contentWrapper, actionBar);
         } else {
-            var contentWrapper = new XMLGen('div');
-            contentWrapper.setAttribute('ng-include', `'${config.formPath}'`)
-                .appendTo(form);
-            // btns
+            form.addClass('non-modal-form');
+            let title = new XMLGen('h2');
+            title.html(config.title);
+            let contentWrapper = new XMLGen('div');
+            contentWrapper.addClass('form-elements')
+                .html(`<div ng-include="'${config.formPath}'"></div>`);
+            let actionsWrapper = new XMLGen('div');
+            actionsWrapper.addClass('form-actions').html(`<md-button type="submit" class="md-primary md-raised">${config.ok}</md-button>
+            <md-button type="button" class="md-primary" ng-click="vm.closeFormModal()">${config.cancel}</md-button>`);
+            form.append(title, contentWrapper, actionsWrapper);
         }
         return wrapper;
     }

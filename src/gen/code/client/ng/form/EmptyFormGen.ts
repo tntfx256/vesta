@@ -1,9 +1,9 @@
-import {BaseFormGen} from "./BaseFormGen";
+import {BaseNgFormGen} from "./BaseNgFormGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
 import {XMLGen} from "../../../../core/XMLGen";
 import {Field} from "vesta-schema/Field";
 
-export class EmptyFormGen extends BaseFormGen {
+export class EmptyFormGen extends BaseNgFormGen {
 
     protected genElementForField(field:Field):XMLGen {
         var wrapper = new XMLGen('div');

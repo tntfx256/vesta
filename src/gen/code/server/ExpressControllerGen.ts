@@ -31,6 +31,7 @@ export class ExpressControllerGen {
     private vesta:Vesta;
     private apiVersion:string;
     private filesFields:IModelFields = null;
+    private relationsFields:IModelFields = null;
 
     constructor(private config:IExpressControllerConfig) {
         this.vesta = Vesta.getInstance();
@@ -48,7 +49,10 @@ export class ExpressControllerGen {
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
-        this.controllerFile.addImport('* as path', 'path');
+        this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        if (this.filesFields) {
+            this.controllerFile.addImport('* as path', 'path');
+        }
         this.controllerFile.addImport('{Response, Router}', 'express');
         this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
@@ -74,7 +78,7 @@ export class ExpressControllerGen {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName),
             modelClassName = _.capitalize(modelInstanceName);
-        this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         this.controllerFile.addImport(`{Err}`, 'vesta-util/Err');
         // this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
         this.controllerFile.addImport(`{ValidationError}`, 'vesta-schema/error/ValidationError');
@@ -146,7 +150,16 @@ export class ExpressControllerGen {
 
     private getQueryCodeForSingleInstance():string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        return `${this.config.model}.findById<I${modelName}>(req.params.id)
+        let code = '';
+        if (this.relationsFields) {
+            let fieldsTofetch = Object.keys(this.relationsFields);
+            code = `let query = new Vql(${modelName}.schema.name);
+        query.filter({id: req.params.id}).fetchRecordFor('${fieldsTofetch.join("', '")}');
+        ${this.config.model}.findByQuery<I${modelName}>(query)`;
+        } else {
+            code = `${this.config.model}.findById<I${modelName}>(req.params.id)`
+        }
+        return `${code}
             .then(result=> res.json(result))
             .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
     }
@@ -217,7 +230,7 @@ export class ExpressControllerGen {
                 ${modelInstanceName}.image = upl.${fileNames[0]};
                 return this.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
         } else {
-            code = `let delList:Array<Promise<I${modelName}>> = [];`;
+            code = `let delList:Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
                 let oldName = `old${_.capitalize(fileNames[i])}`;
                 code += `

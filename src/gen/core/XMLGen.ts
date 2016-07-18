@@ -1,15 +1,15 @@
 export class XMLGen {
-    private classNames: Array<string> = [];
-    private noValueAttributes: Array<string> = [];
-    private attributes: any = {};
-    private children: Array<XMLGen> = [];
-    private textContent: string = '';
-    private htmlContent: string = '';
+    private classNames:Array<string> = [];
+    private noValueAttributes:Array<string> = [];
+    private attributes:any = {};
+    private children:Array<XMLGen> = [];
+    private textContent:string = '';
+    private htmlContent:string = '';
 
-    constructor(public tagName: string, public isSingleTag: boolean = false) {
+    constructor(public tagName:string, public isSingleTag:boolean = false) {
     }
 
-    addClass(className: string): XMLGen {
+    addClass(className:string):XMLGen {
         var classes = className.split('\W');
         classes.forEach(className=> {
             if (this.classNames.indexOf(className) < 0) {
@@ -19,7 +19,7 @@ export class XMLGen {
         return this;
     }
 
-    removeClass(className: string): XMLGen {
+    removeClass(className:string):XMLGen {
         var index = -1,
             classes = className.split('\W');
         classes.forEach(className=> {
@@ -30,7 +30,7 @@ export class XMLGen {
         return this;
     }
 
-    setAttribute(name: string, value?: any): XMLGen {
+    setAttribute(name:string, value?:any):XMLGen {
         if ('undefined' == typeof value) {
             if (this.noValueAttributes.indexOf(name) < 0) {
                 this.noValueAttributes.push(name);
@@ -41,11 +41,11 @@ export class XMLGen {
         return this;
     }
 
-    getAttribute(name: string): string {
+    getAttribute(name:string):string {
         return this.attributes[name];
     }
 
-    removeAttribute(name): XMLGen {
+    removeAttribute(name):XMLGen {
         var index = this.noValueAttributes.indexOf(name);
         if (index >= 0) {
             this.noValueAttributes.splice(index, 1);
@@ -55,22 +55,22 @@ export class XMLGen {
         return this;
     }
 
-    append(...children: Array<XMLGen>): XMLGen {
+    append(...children:Array<XMLGen>):XMLGen {
         this.children = this.children.concat(children);
         return this;
     }
 
-    prepend(...children: Array<XMLGen>): XMLGen {
+    prepend(...children:Array<XMLGen>):XMLGen {
         this.children = children.concat(this.children);
         return this;
     }
 
-    appendTo(parent: XMLGen): XMLGen {
+    appendTo(parent:XMLGen):XMLGen {
         parent.append(this);
         return this;
     }
 
-    insertAfter(siblingTagName: string, newElement: XMLGen): XMLGen {
+    insertAfter(siblingTagName:string, newElement:XMLGen):XMLGen {
         var lastIndex = -1;
         for (var i = this.children.length; i--;) {
             if (this.children[i].tagName == siblingTagName) {
@@ -85,7 +85,7 @@ export class XMLGen {
         return this;
     }
 
-    insertBefore(siblingTagName: string, newElement: XMLGen) {
+    insertBefore(siblingTagName:string, newElement:XMLGen) {
         var firstIndex = -1;
         for (var i = this.children.length; i--;) {
             if (this.children[i].tagName == siblingTagName) {
@@ -101,22 +101,26 @@ export class XMLGen {
         return this;
     }
 
-    prependTo(parent: XMLGen): XMLGen {
+    prependTo(parent:XMLGen):XMLGen {
         parent.prepend(this);
         return this;
     }
 
-    html(html: string): XMLGen {
+    html(html:string):XMLGen {
         this.htmlContent = html;
         return this;
     }
 
-    text(text: string): XMLGen {
+    text(text:string):XMLGen {
         this.textContent = text;
         return this;
     }
 
-    getChildById(id: string): XMLGen {
+    getChildren():Array<XMLGen> {
+        return [].concat(this.children);
+    }
+
+    getChildById(id:string):XMLGen {
         for (var i = this.children.length; i--;) {
             if (this.children[i].getAttribute('id') == id) {
                 return this.children[i];
@@ -125,8 +129,8 @@ export class XMLGen {
         return null;
     }
 
-    getChildrenByTagName(tagName: string): Array<XMLGen> {
-        var result: Array<XMLGen> = [];
+    getChildrenByTagName(tagName:string):Array<XMLGen> {
+        var result:Array<XMLGen> = [];
         for (var i = this.children.length; i--;) {
             if (this.children[i].tagName == tagName) {
                 result.push(this.children[i]);
@@ -135,8 +139,8 @@ export class XMLGen {
         return result;
     }
 
-    getChildrenByAttribute(attribute: string, value?: string): Array<XMLGen> {
-        var result: Array<XMLGen> = [];
+    getChildrenByAttribute(attribute:string, value?:string):Array<XMLGen> {
+        var result:Array<XMLGen> = [];
         for (var i = this.children.length; i--;) {
             if (this.children[i].attributes[attribute]) {
                 if (value === undefined || this.children[i].attributes[attribute] == value) {
@@ -147,8 +151,7 @@ export class XMLGen {
         return result;
     }
 
-
-    generate(indent: string = ''): string {
+    generate(indent:string = ''):string {
         var code = `${indent}<${this.tagName}`;
         if (this.classNames.length) {
             code += ` class="${this.classNames.join(' ')}"`;
@@ -182,5 +185,4 @@ export class XMLGen {
         }
         return code;
     }
-
 }

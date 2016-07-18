@@ -19,6 +19,7 @@ import {FieldType} from "vesta-schema/Field";
  * @property {boolean} isSpecialController If true, the controller is of type addController or editController
  */
 export abstract class BaseNGControllerGen {
+    protected preInitiatedServices = ['apiService', 'formService', 'notificationService', 'logService', 'authService'];
     protected controllerFile:TsFileGen;
     protected controllerClass:ClassGen;
     protected path:string = 'src/app/modules';
@@ -27,6 +28,7 @@ export abstract class BaseNGControllerGen {
     protected hasScope:boolean = false;
     protected isSpecialController:boolean = false;
     protected fileTypesFields:IModelFields = null;
+    protected relationTypesFields:IModelFields = null;
     protected model:Model;
     protected immutableConfig:INGControllerConfig;
 
@@ -47,6 +49,7 @@ export abstract class BaseNGControllerGen {
         this.addInjection({name: 'authService', type: 'AuthService'});
         if (config.model) {
             this.fileTypesFields = ModelGen.getFieldsByType(config.model, FieldType.File);
+            this.relationTypesFields = ModelGen.getFieldsByType(config.model, FieldType.Relation);
             this.form = new NGFormGen(config);
             this.path = path.join(this.path, ctrlName);
             this.templatePath = path.join(this.templatePath, ctrlName);
@@ -81,10 +84,12 @@ export abstract class BaseNGControllerGen {
                 aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read']});`);
                 break;
             case ControllerType.Add:
-                aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read', 'add']});`);
+                let addState = this.config.openFormInModal ? stateName : `${stateName}-add`;
+                aclMethod.setContent(`AuthService.registerPermissions('${addState}', {'${stateName}': ['read', 'add']});`);
                 break;
             case ControllerType.Edit:
-                aclMethod.setContent(`AuthService.registerPermissions('${stateName}', {'${stateName}': ['read', 'update']});`);
+                let editState = this.config.openFormInModal ? stateName : `${stateName}-edit`;
+                aclMethod.setContent(`AuthService.registerPermissions('${editState}', {'${stateName}': ['read', 'update']});`);
                 break;
         }
 
@@ -95,6 +100,7 @@ export abstract class BaseNGControllerGen {
      * @param inject
      */
     protected addInjection(inject:INGInjectable) {
+        if (this.preInitiatedServices.indexOf(inject.name) >= 0) return;
         for (let i = this.config.injects.length; i--;) {
             if (this.config.injects[i].name == inject.name) return;
         }
@@ -151,25 +157,55 @@ export abstract class BaseNGControllerGen {
             stateNameParts = [],
             viewName = 'master';
         if (this.config.module) {
-            stateNameParts.push(this.config.module);
-            viewName = [`${_.kebabCase(this.config.module)}-content`, this.config.module].join('@');
+            // if parent state exists then configs are updated for nested ui-view
+            if (Util.fileHasContent('src/app/config/route.ts', `$stateProvider.state('${this.config.module}', {`)) {
+                stateNameParts.push(this.config.module);
+                viewName = [`${_.kebabCase(this.config.module)}-content`, this.config.module].join('@');
+            }
+            // else the only difference will be the additional directory by the name of config.module as paren directory
         }
         stateNameParts.push(ctrlName);
         let url = ctrlName,
             state = stateNameParts.join('.'),
-            templateUrl = `${this.getTemplatePath()}/${ctrlName}.html`;
+            templateUrl = this.getTemplatePath();
         let codeFirstLine = `$stateProvider.state('${state}', {`;
         if (Util.fileHasContent('src/app/config/route.ts', codeFirstLine)) return;
         let code = `${codeFirstLine}
         url: '/${url}',
         views: {
             '${viewName}': {
-                templateUrl: '${templateUrl}',
+                templateUrl: '${templateUrl}/${ctrlName}.html',
                 controller: '${ctrlName}Controller',
                 controllerAs: 'vm'
             }
         }
-    });\n    ${Placeholder.NGRouter}`;
+    });`;
+        // adding router for add and edit state
+        if (!this.config.openFormInModal) {
+            url = _.capitalize(url);
+            code += `
+    $stateProvider.state('${state}-add', {
+        url: '/add${url}',
+        views: {
+            '${viewName}': {
+                templateUrl: '${templateUrl}/${ctrlName}AddForm.html',
+                controller: '${ctrlName}AddController',
+                controllerAs: 'vm'
+            }
+        }
+    });
+    $stateProvider.state('${state}-edit', {
+        url: '/edit${url}/:id',
+        views: {
+            '${viewName}': {
+                templateUrl: '${templateUrl}/${ctrlName}EditForm.html',
+                controller: '${ctrlName}EditController',
+                controllerAs: 'vm'
+            }
+        }
+    });`;
+        }
+        code += `\n    ${Placeholder.NGRouter}`;
         let routerFile = 'src/app/config/route.ts';
         let routeCode = fs.readFileSync(routerFile, {encoding: 'utf8'});
         FsUtil.writeFile(routerFile, routeCode.replace(Placeholder.NGRouter, code));
@@ -182,7 +218,7 @@ export abstract class BaseNGControllerGen {
             config:INGFormWrapperConfig = <INGFormWrapperConfig>{};
         config.formPath = Util.joinPath(includePath, `${formName}.html`);
         FsUtil.writeFile(path.join(this.templatePath, `${ctrlName}Form.html`), this.form.generate());
-        config.isModal = true;
+        config.isModal = this.config.openFormInModal;
         config.type = NGFormGen.Type.Add;
         config.title = `Add ${this.config.model}`;
         config.cancel = 'Cancel';

@@ -1,16 +1,16 @@
 import * as _ from "lodash";
-import {BaseFormGen} from "./BaseFormGen";
+import {BaseNgFormGen} from "./BaseNgFormGen";
 import {XMLGen} from "../../../../core/XMLGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
-import {Field} from "vesta-schema/Field";
+import {Field, IFieldProperties} from "vesta-schema/Field";
 
-export class IonicFormGen extends BaseFormGen {
+export class IonicFormGen extends BaseNgFormGen {
 
 
-    protected genSelectField(wrapper:XMLGen, options:Array<any>):XMLGen {
+    protected genSelectField(wrapper:XMLGen, fieldName:string, properties:IFieldProperties):XMLGen {
         wrapper.addClass('item-select');
         var select = new XMLGen('select');
-        options.forEach(item=> {
+        properties.enum.forEach(item=> {
             select.append(new XMLGen('option').setAttribute('value', item).text(item));
         });
         return select;

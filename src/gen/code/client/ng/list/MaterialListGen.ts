@@ -6,7 +6,7 @@ import {INGControllerConfig} from "../NGControllerGen";
 import {Util} from "../../../../../util/Util";
 import {ModelGen} from "../../../ModelGen";
 import {FsUtil} from "../../../../../util/FsUtil";
-import {Model, IModelFields} from "vesta-schema/Model";
+import {IModelFields, IModel} from "vesta-schema/Model";
 import {Schema} from "vesta-schema/Schema";
 import {FieldType} from "vesta-schema/Field";
 
@@ -15,7 +15,7 @@ export class MaterialListGen {
     private path:string = 'src/app/templates';
 
     constructor(private config:INGControllerConfig) {
-        var ctrlName = _.camelCase(this.config.name);
+        let ctrlName = _.camelCase(this.config.name);
         this.list = new XMLGen('div');
         this.list.setAttribute('layout', 'column').addClass('dt-wrapper');
         this.path = path.join(this.path, config.module, ctrlName);
@@ -26,15 +26,17 @@ export class MaterialListGen {
     }
 
     generate() {
-        var ctrlName = _.camelCase(this.config.name),
+        let ctrlName = _.camelCase(this.config.name),
             code = this.createHeader() + this.createContent() + this.getPaginator();
         this.list.html(code);
         FsUtil.writeFile(path.join(this.path, `${ctrlName}List.html`), this.list.generate());
     }
 
     private createHeader() {
-        var modelName = ModelGen.extractModelName(this.config.model);
-        var pluralModel = Util.plural(modelName);
+        let modelName = ModelGen.extractModelName(this.config.model);
+        let modelInstanceName = _.camelCase(modelName);
+        let pluralModel = Util.plural(modelName);
+        let addAction = this.config.openFormInModal ? `ng-click="vm.add${modelName}($event)"` : `ui-sref="${modelInstanceName}-add"`;
         return `
     <md-toolbar class="md-table-toolbar md-default" ng-hide="vm.dtOption.showFilter || (vm.acl.delete && vm.selected${pluralModel}List.length)">
         <div class="md-toolbar-tools">
@@ -43,7 +45,7 @@ export class MaterialListGen {
             <md-button class="md-icon-button" ng-click="vm.dtOption.showFilter=true">
                 <md-icon>filter_list</md-icon>
             </md-button>
-            <md-button ng-if="vm.acl.create" class="md-icon-button" ng-click="vm.add${modelName}($event)">
+            <md-button ng-if="vm.acl.create" class="md-icon-button" ${addAction}>
                 <md-icon>add</md-icon>
             </md-button>
         </div>
@@ -74,19 +76,20 @@ export class MaterialListGen {
     }
 
     private createContent() {
-        var modelName = ModelGen.extractModelName(this.config.model),
+        let modelName = ModelGen.extractModelName(this.config.model),
             pluralModel = Util.plural(modelName),
             pluralInstance = _.camelCase(pluralModel),
             modelInstanceName = _.camelCase(modelName),
-            model:Model = ModelGen.getModel(this.config.model),
-            schema:Schema = model['schema'],
+            model:IModel = ModelGen.getModel(this.config.model),
+            schema:Schema = model.schema,
             fields:IModelFields = schema.getFields(),
             headerCode = `<th md-column>row</th>`,
             rowCode = `<td md-cell>{{$index + 1 + (vm.dtOption.page - 1 ) * vm.dtOption.limit }}</td>`,
             splitter = '\n                ';
+        let editAction = this.config.openFormInModal ? `ng-click="vm.edit${modelName}($event, ${modelInstanceName}.id)"` : `ui-sref="${modelInstanceName}-edit({id: ${modelInstanceName}.id})"`;
         Object.keys(fields).forEach(fieldName => {
             if (fieldName == 'id') return;
-            var properties = fields[fieldName].properties;
+            let properties = fields[fieldName].properties;
             switch (properties.type) {
                 case FieldType.String :
                 case FieldType.Text :
@@ -136,7 +139,7 @@ export class MaterialListGen {
                 ng-repeat="${modelInstanceName} in vm.${pluralInstance}List  | filter:vm.dtOption.filter | pagination:vm.dtOption.page:vm.dtOption.limit:vm.dtOption.total:vm.dtOption.loadMore track by $index">
                 ${rowCode}
                 <td md-cell ng-if="vm.acl.update">
-                    <md-button class="md-icon-button" ng-click="vm.edit${modelName}($event, ${modelInstanceName}.id)">
+                    <md-button class="md-icon-button" ${editAction}>
                         <md-icon>mode_edit</md-icon>
                     </md-button>
                 </td>

@@ -1,9 +1,11 @@
-import * as inquirer from "inquirer";
+import {Question} from "inquirer";
 import {INGInjectable, NGDependencyInjector} from "./NGDependencyInjector";
 import {BaseNGControllerGen} from "./controller/BaseNGControllerGen";
 import {ControllerGenFactory} from "./controller/NGControllerGenFactory";
 import {Vesta} from "../../../file/Vesta";
 import {ModelGen} from "../../ModelGen";
+import {Err} from "vesta-util/Err";
+import {Util} from "../../../../util/Util";
 
 export interface INGControllerConfig {
     name:string;
@@ -11,7 +13,7 @@ export interface INGControllerConfig {
     model:string;
     type:ControllerType;
     injects:Array<INGInjectable>;
-    openFormInModal?:boolean;
+    openFormInModal:boolean;
 }
 
 export enum ControllerType{List = 1, Add, Edit}
@@ -36,64 +38,32 @@ export class NGControllerGen {
         this.controller.generate();
     }
 
-    static getGeneratorConfig(name:string, callback) {
+    static getGeneratorConfig(name:string):Promise<INGControllerConfig> {
+        if (!name) return Promise.reject(new Err(Err.Code.WrongInput));
         let models = Object.keys(ModelGen.getModelsList()),
             config:INGControllerConfig = <INGControllerConfig>{};
         config.openFormInModal = true;
         config.type = ControllerType.List;
         config.module = '';
-        if (name) {
-            inquirer.prompt({name: 'module', type: 'input', message: 'Module Name: '}, answer => {
-                if (answer['module']) {
-                    config.module = answer['module'];
+        return NGDependencyInjector.getCliInjectables([{name: '$scope', isLib: true}])
+            .then(injectables => {
+                config.injects = injectables;
+                let qs:Array<Question> = [{name: 'module', type: 'input', message: 'Module Name: '}];
+                if (models.length) {
+                    qs.push({name: 'model', type: 'list', message: 'Model: ', choices: models, default: 'None'});
+                    qs.push({name: 'modal', type: 'confirm', message: 'Show in modal: ', default: true});
                 }
-                NGDependencyInjector.getCliInjectables([{name: '$scope', isLib: true}])
-                    .then(injectables => {
-                        config.injects = injectables;
-                        if (models.length) {
-                            models.splice(0, 0, 'None');
-                            return inquirer.prompt({
-                                name: 'model',
-                                type: 'list',
-                                message: 'Model: ',
-                                choices: models,
-                                default: 'None'
-                            }, answer=> {
-                                if (answer['model'] != 'None') {
-                                    config.model = answer['model'];
-                                }
-                                callback(config);
-                            });
-                        }
-                        callback(config);
-                    });
-            });
-        } else {
-            inquirer.prompt({name: 'module', type: 'input', message: 'Module Name: '}, answer => {
-                if (answer['module']) {
-                    config.module = answer['module'];
+                return Util.prompt<{module:string; model:string; modal:boolean;}>(qs)
+            })
+            .then(answer => {
+                if (answer.module) {
+                    config.module = answer.module;
                 }
-                NGDependencyInjector.getCliInjectables([{name: '$scope', isLib: true}])
-                    .then(injectables => {
-                        config.injects = injectables;
-                        if (models.length) {
-                            models.splice(0, 0, 'None');
-                            return inquirer.prompt({
-                                name: 'model',
-                                type: 'checkbox',
-                                message: 'Model: ',
-                                choices: models,
-                                default: 'None'
-                            }, answer=> {
-                                if (answer['model'] != 'None') {
-                                    config.model = answer['model'];
-                                }
-                                callback(config);
-                            });
-                        }
-                        callback(config);
-                    });
+                if (answer.model != 'None') {
+                    config.model = answer.model;
+                }
+                config.openFormInModal = answer.modal;
+                return config;
             });
-        }
     }
 }
