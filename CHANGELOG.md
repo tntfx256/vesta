@@ -1,7 +1,15 @@
+# 0.7.0
+* adding Relation (One2One, One2Many, Many2Many) field type for model generator 
+* adding List field type for model generator 
+* adding Validation and form component for Relations and Lists
+* adding `vesta update` to update all vesta packages automatically
+* adding multiple file upload form element + preview for images
+* adding the ability to display the form (Insert/Edit) out of modal
+
 # 0.6.3
 
 ### Features
-* Separating each submodule of common code into new module
+* separating each submodule of common code into new module
 * creating multiple controllers from multiple models (without controller name) `vesta gen controller`
 * adding controllers with ACL registration (client & server side)
 * freezing schema after being created by code generator to prevent accidental changes

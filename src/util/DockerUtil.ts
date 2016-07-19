@@ -20,7 +20,7 @@ export class DockerUtil {
     public static installEngine() {
         if (!isRoot()) return Log.error('You must run this command as root!');
         CmdUtil.execSync(`apt-get update -y`);
-        CmdUtil.execSync(`apt-get install -y apt-transport-https ca-certificates`);
+        CmdUtil.execSync(`apt-get install -y apt-transport-https ca-certificates systemctl`);
         CmdUtil.execSync(`apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D`);
         CmdUtil.execSync(`echo "deb https://apt.dockerproject.org/repo ubuntu-${OsUtil.getOsCodeName()} main" > /etc/apt/sources.list.d/docker.list`);
         CmdUtil.execSync(`apt-get update -y`);

@@ -25,7 +25,7 @@ let packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.js
 program.version(`Vesta Platform v${packageInfo.version}`);
 
 program
-    .option('init', 'Initiate a server')
+    .option('init [option]', 'Initiate a server')
     .option('create [projectName]', 'Create new project by interactive CLI')
     .option('deploy', 'Deploy a project from remote repository')
     // .option('plugin', 'Adding a Cordova Plugin')
@@ -66,7 +66,7 @@ switch (command) {
         backupProject(args);
         break;
     case 'init':
-        initProject();
+        initProject(args);
         break;
     case 'docker':
         DockerUtil.cleanup();
@@ -201,7 +201,11 @@ function generateCode(args:Array<string>) {
     }
 }
 
-function initProject() {
+function initProject(args:Array<String>) {
+    if (args.length) {
+        if (args.indexOf('docker-compose') >= 0) return DockerUtil.installEngine();
+        if (args.indexOf('docker') >= 0) return DockerUtil.installEngine();
+    }
     Util.prompt<{initType:string}>(<Question>{
         name: 'initType',
         message: 'Choose one of the following operations',
