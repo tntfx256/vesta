@@ -203,7 +203,7 @@ function generateCode(args:Array<string>) {
 
 function initProject(args:Array<String>) {
     if (args.length) {
-        if (args.indexOf('docker-compose') >= 0) return DockerUtil.installEngine();
+        if (args.indexOf('docker-compose') >= 0) return DockerUtil.installCompose();
         if (args.indexOf('docker') >= 0) return DockerUtil.installEngine();
     }
     Util.prompt<{initType:string}>(<Question>{
