@@ -50,7 +50,13 @@ export class NGControllerGen {
                 config.injects = injectables;
                 let qs:Array<Question> = [{name: 'module', type: 'input', message: 'Module Name: '}];
                 if (models.length) {
-                    qs.push({name: 'model', type: 'list', message: 'Model: ', choices: models, default: 'None'});
+                    qs.push({
+                        name: 'model',
+                        type: 'list',
+                        message: 'Model: ',
+                        choices: ['None'].concat(models),
+                        default: 'None'
+                    });
                     qs.push({name: 'modal', type: 'confirm', message: 'Show in modal: ', default: true});
                 }
                 return Util.prompt<{module:string; model:string; modal:boolean;}>(qs)

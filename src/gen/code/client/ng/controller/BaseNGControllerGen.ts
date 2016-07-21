@@ -19,7 +19,6 @@ import {FieldType} from "vesta-schema/Field";
  * @property {boolean} isSpecialController If true, the controller is of type addController or editController
  */
 export abstract class BaseNGControllerGen {
-    protected preInitiatedServices = ['apiService', 'formService', 'notificationService', 'logService', 'authService'];
     protected controllerFile:TsFileGen;
     protected controllerClass:ClassGen;
     protected path:string = 'src/app/modules';
@@ -45,8 +44,6 @@ export abstract class BaseNGControllerGen {
         this.controllerClass.setParentClass('BaseController');
         this.controllerClass.setConstructor().setContent(`super();`);
         this.templatePath = path.join(this.templatePath, config.module);
-        // importing authService for acl (no path property is provided since it has been imported by ACL)
-        this.addInjection({name: 'authService', type: 'AuthService'});
         if (config.model) {
             this.fileTypesFields = ModelGen.getFieldsByType(config.model, FieldType.File);
             this.relationTypesFields = ModelGen.getFieldsByType(config.model, FieldType.Relation);
@@ -100,7 +97,7 @@ export abstract class BaseNGControllerGen {
      * @param inject
      */
     protected addInjection(inject:INGInjectable) {
-        if (this.preInitiatedServices.indexOf(inject.name) >= 0) return;
+        if (NGDependencyInjector.preInitiatedServices.indexOf(inject.name) >= 0) return;
         for (let i = this.config.injects.length; i--;) {
             if (this.config.injects[i].name == inject.name) return;
         }
@@ -116,28 +113,14 @@ export abstract class BaseNGControllerGen {
             access: ClassGen.Access.Private
         });
         this.controllerFile.addImport(`{I${modelName}, ${modelName}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${this.config.model}`));
-        let hasFileUpsert = false;
         if (this.config.type != ControllerType.List) {
             // importing Err
             this.controllerFile.addImport('{Err}', 'vesta-util/Err');
             this.controllerFile.addImport('{ValidationError}', 'vesta-schema/error/ValidationError');
             if (this.fileTypesFields) {
-                hasFileUpsert = true;
-                this.controllerFile.addImport('{ApiService, IFileKeyValue}', Util.genRelativePath(this.path, `src/app/service/ApiService`));
+                this.controllerFile.addImport('{IFileKeyValue}', Util.genRelativePath(this.path, `src/app/service/ApiService`));
             }
         }
-        // importing apiService
-        this.addInjection({
-            name: 'apiService',
-            type: 'ApiService',
-            path: hasFileUpsert ? '' : 'src/app/service/ApiService'
-        });
-        // importing formService
-        this.addInjection({name: 'formService', type: 'FormService', path: 'src/app/service/FormService'});
-        // importing notificationService
-        this.addInjection({
-            name: 'notificationService', type: 'NotificationService', path: 'src/app/service/NotificationService'
-        });
     }
 
     protected getTemplatePath() {

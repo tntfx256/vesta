@@ -251,8 +251,6 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         code.upload = `
                 if (Object.keys(files).length) return this.upload(\`${edge}/file/\${this.${modelInstanceName}.id}\`, files);`;
         if (!isInsert) {
-            this.controllerFile.addImport('{IClientAppSetting}', Util.genRelativePath(this.path, 'src/app/config/setting'));
-            this.addInjection({name: 'Setting', type: 'IClientAppSetting', isLib: true});
             let fileNames = Object.keys(this.fileTypesFields);
             for (let i = 0, il = fileNames.length; i < il; ++i) {
                 let isList = model.schema.getField(fileNames[i]).properties.type == FieldType.List;

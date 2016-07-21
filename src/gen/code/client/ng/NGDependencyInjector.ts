@@ -22,6 +22,7 @@ export interface INGInjectable {
 }
 
 export class NGDependencyInjector {
+    public static preInitiatedServices = ['apiService', 'formService', 'notificationService', 'logService', 'authService', 'Setting'];
 
     public static getServices():Array<INGInjectable> {
         var fetchPlugins = Vesta.getInstance().getConfig().client.platform == ClientAppGen.Platform.Cordova,
@@ -122,7 +123,9 @@ export class NGDependencyInjector {
             }].concat(extraInjectables, NGDependencyInjector.getServices()),
             injectableNames = [];
         for (var i = 0, il = injectables.length; i < il; ++i) {
-            injectableNames.push(injectables[i].name);
+            if (NGDependencyInjector.preInitiatedServices.indexOf(injectables[i].name) == -1) {
+                injectableNames.push(injectables[i].name);
+            }
         }
         return new Promise(resolve=> {
             Util.prompt<{injects:Array<string>}>(<Question>{
