@@ -57,19 +57,25 @@ export class NGControllerGen {
                         choices: ['None'].concat(models),
                         default: 'None'
                     });
-                    qs.push({name: 'modal', type: 'confirm', message: 'Show in modal: ', default: true});
                 }
-                return Util.prompt<{module:string; model:string; modal:boolean;}>(qs)
+                return Util.prompt<{module:string; model:string;}>(qs)
             })
             .then(answer => {
-                if (answer.module) {
-                    config.module = answer.module;
-                }
+                config.module = answer.module;
                 if (answer.model != 'None') {
                     config.model = answer.model;
+                    return Util.prompt<{modal:boolean}>({
+                        name: 'modal',
+                        type: 'confirm',
+                        message: 'Show forms in modal: ',
+                        default: true
+                    });
                 }
+                return {modal: true};
+            })
+            .then(answer=> {
                 config.openFormInModal = answer.modal;
                 return config;
-            });
+            })
     }
 }

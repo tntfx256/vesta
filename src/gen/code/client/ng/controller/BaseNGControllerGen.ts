@@ -164,7 +164,7 @@ export abstract class BaseNGControllerGen {
         }
     });`;
         // adding router for add and edit state
-        if (!this.config.openFormInModal) {
+        if (this.config.model && !this.config.openFormInModal) {
             url = _.capitalize(url);
             code += `
     $stateProvider.state('${state}-add', {
