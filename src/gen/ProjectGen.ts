@@ -1,4 +1,3 @@
-import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import * as _ from "lodash";
 import {Vesta} from "./file/Vesta";
@@ -59,14 +58,15 @@ export class ProjectGen {
             projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
         }
         FsUtil.mkdir(dir);
-        //
+        // having the client or server to generate it's projects
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
         CmdUtil.execSync(`git init`, execOption);
         this.vesta.generate();
         replacement[projectTemplateName] = this.config.name;
         Util.findInFileAndReplace(`${dir}/package.json`, replacement);
-        // Initiating the git repo -> create dev branch
+        Util.findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
+        // Initiating the git repo
         CmdUtil.execSync(`git add .`, execOption);
         CmdUtil.execSync(`git commit -m Vesta-init`, execOption);
         this.commonApp.generate();
@@ -75,8 +75,6 @@ export class ProjectGen {
         CmdUtil.execSync(`git commit -m Vesta-common`, execOption);
         CmdUtil.execSync(`git remote add origin ${GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name)}`, execOption);
         CmdUtil.execSync(`git push -u origin master`, execOption);
-        // CmdUtil.execSync(`git checkout -b dev`, execOption);
-        // CmdUtil.execSync(`git push -u origin dev`, execOption);
     }
 
     public static getGeneratorConfig(name:string, category:string):Promise<IProjectGenConfig> {
@@ -98,8 +96,8 @@ export class ProjectGen {
             default: ProjectGen.Type.ClientSide
         }];
         return new Promise((resolve, reject)=> {
-            inquirer.prompt(questions, answer => {
-                appConfig.type = answer['type'];
+            Util.prompt<{type:string}>(questions).then(answer => {
+                appConfig.type = answer.type;
                 if (ProjectGen.Type.ServerSide == appConfig.type) {
                     resolve(ServerAppGen.getGeneratorConfig()
                         .then((serverAppConfig:IServerAppConfig)=> {

@@ -51,6 +51,9 @@ Generate each of the mentioned
 
 ### `vesta update`
 This command will update all `vesta-*` packages that are installed in your project and listed in `package.json`
+* `vesta update` will only update all vesta packages
+* `vesta update all` will update all packages mentioned at `dependencies` 
+* `vesta update all dev` will update all packages mentioned at `devDependencies` 
 
 ### `vesta deploy (httpGitRepository | previousDeployConfigFile) [ext params]`<sup>1</sup>
 After asking `username` and `password` the deploy process starts.

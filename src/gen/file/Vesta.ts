@@ -63,13 +63,16 @@ export class Vesta {
         return this.json.config;
     }
 
-    public static updatePackages() {
+    public static updatePackages(args:Array<string>) {
         try {
             let content = JSON.parse(fs.readFileSync(`package.json`, {encoding: 'utf8'}));
-            let pkgs = Object.keys(content['dependencies']).filter(pkg=> pkg.search(/^vesta-/i) >= 0);
-            pkgs.forEach(pkg=> delete content['dependencies'][pkg]);
+            var isDev = args.indexOf('dev') >= 0;
+            let pkgKeyName = isDev ? 'devDependencies' : 'dependencies';
+            let allPackages = Object.keys(content[pkgKeyName]);
+            let pkgs = args.indexOf('all') >= 0 ? allPackages : allPackages.filter(pkg=> pkg.search(/^vesta-/i) >= 0);
+            pkgs.forEach(pkg=> delete content[pkgKeyName][pkg]);
             fs.writeFileSync(`package.json`, JSON.stringify(content, null, 2), {encoding: 'utf8'});
-            CmdUtil.execSync(`npm install --save ${pkgs.join(' ')}`);
+            CmdUtil.execSync(`npm install --save${isDev ? '-dev' : ''} ${pkgs.join(' ')}`);
         } catch (err) {
             console.log(err);
         }

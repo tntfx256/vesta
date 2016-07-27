@@ -17,7 +17,7 @@ export class CommonGen {
         let dir = this.config.name;
         let destDir = this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn';
         let repo = this.config.repository;
-        return CmdUtil.execSync(`git submodule add -b dev ${GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.common)} ${destDir}`, {cwd: dir});
+        return CmdUtil.execSync(`git submodule add ${GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.common)} ${destDir}`, {cwd: dir});
     }
 
     /**

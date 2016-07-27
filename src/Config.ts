@@ -5,6 +5,7 @@ export interface IProjectConfigRepository {
     express:string;
     ionic:string;
     material:string;
+    cpanel:string;
 }
 
 export interface IProjectConfig {
@@ -18,6 +19,7 @@ export var Config:IProjectConfig = {
         common: 'commonCodeTemplate',
         express: 'expressJsTemplate',
         ionic: 'ionicCordovaTemplate',
-        material: 'materialWebTemplate'
+        material: 'materialWebTemplate',
+        cpanel: 'material-cpanel-template',
     }
 };

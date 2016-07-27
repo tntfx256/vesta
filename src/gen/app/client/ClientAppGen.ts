@@ -1,4 +1,3 @@
-import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import {Vesta} from "../../file/Vesta";
 import {IProjectGenConfig} from "../../ProjectGen";
@@ -9,6 +8,7 @@ import {Log} from "../../../util/Log";
 
 export interface IClientAppConfig {
     platform:string;
+    isAdminPanel:boolean;
     type:string;
     framework:string;
 }
@@ -32,6 +32,8 @@ export abstract class ClientAppGen {
             repo = this.vesta.getProjectConfig().repository;
         if (this.config.client.platform == ClientAppGen.Platform.Cordova) {
             name = repo.ionic;
+        } else if (this.config.client.isAdminPanel) {
+            name = repo.cpanel;
         } else {
             name = repo.material;
         }
@@ -70,11 +72,24 @@ export abstract class ClientAppGen {
                 choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova]
             }];
         Log.info(`For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)`);
-        return new Promise<IClientAppConfig>((resolve)=> {
-            inquirer.prompt(qs, answer=> {
+        return new Promise((resolve)=> {
+            Util.prompt<{platform:string}>(qs).then(answer=> {
                 config.type = ClientAppGen.Type.Angular;
-                config.platform = answer['platform'];
-                config.framework = config.platform == ClientAppGen.Platform.Browser ? ClientAppGen.Framework.Material : ClientAppGen.Framework.Ionic;
+                config.platform = answer.platform;
+                if (config.platform == ClientAppGen.Platform.Browser) {
+                    config.framework = ClientAppGen.Framework.Material;
+                    return Util.prompt<{isCPanel:boolean}>({
+                        type: 'confirm',
+                        name: 'isCPanel',
+                        message: 'Is Admin Panel',
+                        default: false
+                    }).then(answer=> {
+                        config.isAdminPanel = answer.isCPanel;
+                        resolve(config);
+                    })
+                } else {
+                    config.framework = ClientAppGen.Framework.Ionic;
+                }
                 resolve(config);
             });
         });

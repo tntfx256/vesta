@@ -31,7 +31,7 @@ program
     // .option('plugin', 'Adding a Cordova Plugin')
     .option('gen [model, controller, directive, service] name', 'Generate code for mentioned type')
     .option('deploy [httpRepoPath]')
-    .option('update')
+    .option('update [options]')
     .option('docker [cleanup]')
     .option('backup [deployFileName]');
 //program
@@ -57,7 +57,7 @@ switch (command) {
         generateCode(args);
         break;
     case 'update':
-        Vesta.updatePackages();
+        Vesta.updatePackages(args);
         break;
     case 'deploy':
         deployProject(args);
