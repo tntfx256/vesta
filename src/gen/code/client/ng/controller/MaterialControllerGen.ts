@@ -68,8 +68,9 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             access: ClassGen.Access.Private,
             defaultValue: 'false'
         });
-        this.controllerClass.getConstructor().appendContent(`this.dtOption = this.getDataTableOptions('List of ${modelPlural}', this.loadMore.bind(this));
+        this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle('${modelName}');
         this.acl = this.authService.getActionsOn('${modelInstanceName}');
+        this.dtOption = this.getDataTableOptions('List of ${modelPlural}', this.loadMore.bind(this));
         this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}')
             .then(result=> {
                 this.${modelListName}.set(result.items);
@@ -160,6 +161,10 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
         this.controllerFile.addImport(`{IUpsertResult, IQueryResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport('{IFormController}', 'angular');
+        if (this.config.openFormInModal) {
+            this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle('${modelName} :: Add');
+        `);
+        }
         this.controllerClass.getConstructor().appendContent(`this.${modelInstanceName} = new ${modelName}();`);
         let closeMethod = this.controllerClass.addMethod('closeFormModal');
         closeMethod.setContent('this.$mdDialog.cancel();');
@@ -201,6 +206,10 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         let thenCode = this.fileTypesFields ? `{
                 this.${modelInstanceName} = new ${modelName}(result.items[0]);${fileCodes.address}
             }` : `this.${modelInstanceName} = new ${modelName}(result.items[0])`;
+        if (this.config.openFormInModal) {
+            this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle('${modelName} :: Edit');
+        `);
+        }
         this.controllerClass.getConstructor().appendContent(`this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>(\`${edge}/\${this.locals.id}\`)
             .then(result=> ${thenCode})
             .catch(reason=> $mdDialog.cancel(reason));`);
