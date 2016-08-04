@@ -155,9 +155,9 @@ export class ExpressControllerGen {
             let fieldsTofetch = Object.keys(this.relationsFields);
             code = `let query = new Vql(${modelName}.schema.name);
         query.filter({id: req.params.id}).fetchRecordFor('${fieldsTofetch.join("', '")}');
-        ${this.config.model}.findByQuery<I${modelName}>(query)`;
+        ${modelName}.findByQuery<I${modelName}>(query)`;
         } else {
-            code = `${this.config.model}.findById<I${modelName}>(req.params.id)`
+            code = `${modelName}.findById<I${modelName}>(req.params.id)`
         }
         return `${code}
             .then(result=> res.json(result))
