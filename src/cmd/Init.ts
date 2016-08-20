@@ -36,7 +36,7 @@ export class Init {
         process.stdout.write(`
 Usage: vesta init [options...]
 
-Creating new project after asking a series of questions through interactive shell
+Preparing a server (ubuntu 14.4 and up)
 
 Options:
     --docker            Installs the docker engine

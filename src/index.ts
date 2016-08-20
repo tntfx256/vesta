@@ -7,6 +7,7 @@ import {Gen} from "./cmd/Gen";
 import {Update} from "./cmd/Update";
 import {Deploy} from "./cmd/Deploy";
 import {Backup} from "./cmd/Backup";
+import {Docker} from "./cmd/Docker";
 
 let args = process.argv;
 args.shift();
@@ -26,13 +27,18 @@ Usage: vesta COMMAND [args...]
 
 Vesta platform command line
 
+Options:
+    -h, --help      Displays this help
+    -v, --version   Displays the version of vesta platform
+
 Commands:
-    init    Preparing a server (ubuntu 14.4 and up) 
-    create  Creating new project
-    gen     Generate code for mentioned type
-    deploy  Deploy a project from remote repository
-    backup  Backup all storage data into a single tar file
-    update  Updates a package to it's latest version
+    init            Preparing a server (ubuntu 14.4 and up) 
+    create          Creating new project
+    gen             Generate code for mentioned type
+    deploy          Deploy a project from remote repository
+    backup          Backup all storage data into a single tar file
+    docker          Manage docker relevant operations
+    update          Updates a package to it's latest version
 
 Run 'vesta COMMAND --help' for more information on COMMAND
 `);
@@ -55,9 +61,12 @@ switch (command) {
     case 'backup':
         Backup.parse(args);
         break;
+    case 'docker':
+        Docker.parse(args);
+        break;
     case 'update':
         Update.parse(args);
-            break;
-        default:
+        break;
+    default:
         process.stderr.write(`vesta: '${command}' is not a vesta command\nSee 'Vesta --help'\n`);
 }

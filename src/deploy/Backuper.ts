@@ -22,7 +22,7 @@ export class Backuper {
     }
 
     public backup() {
-        this.volumePrefix = DockerUtil.getComposicName(this.config.projectName);
+        this.volumePrefix = DockerUtil.getContainerName(this.config.projectName);
         var composeFilePath = `${this.config.deployPath}/${this.config.projectName}/docker-compose.yml`;
         if (!fs.existsSync(composeFilePath)) {
             return Log.error(`docker-compose.yml file does not exist at ${composeFilePath}`);
