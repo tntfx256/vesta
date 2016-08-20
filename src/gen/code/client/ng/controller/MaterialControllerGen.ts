@@ -9,11 +9,11 @@ import {FieldType} from "vesta-schema/Field";
 
 interface IFileFieldsCode {
     // updating address file src of fetched record (e.g. Setting.asset/model/record.image)
-    address:string;
+    address: string;
     // extracting files from model value (e.g. var image = model.image; delete model.image)
-    extraction:string;
+    extraction: string;
     // uploading extracted file (e.g. this.upload({image: image}))
-    upload:string;
+    upload: string;
 }
 
 export class MaterialControllerGen extends BaseNGControllerGen {
@@ -236,8 +236,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             });`);
     }
 
-    private genCodeForFiles(isInsert:boolean):IFileFieldsCode {
-        let code:IFileFieldsCode = {address: '', extraction: '', upload: ''};
+    private genCodeForFiles(isInsert: boolean): IFileFieldsCode {
+        let code: IFileFieldsCode = {address: '', extraction: '', upload: ''};
         if (!this.fileTypesFields) return code;
         let ctrlName = _.camelCase(this.config.name),
             modelName = ModelGen.extractModelName(this.config.model),

@@ -7,7 +7,7 @@ import {Field, IFieldProperties} from "vesta-schema/Field";
 export class IonicFormGen extends BaseNgFormGen {
 
 
-    protected genSelectField(wrapper:XMLGen, fieldName:string, properties:IFieldProperties):XMLGen {
+    protected genSelectField(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): XMLGen {
         wrapper.addClass('item-select');
         var select = new XMLGen('select');
         properties.enum.forEach(item=> {
@@ -16,7 +16,7 @@ export class IonicFormGen extends BaseNgFormGen {
         return select;
     }
 
-    private static getInputContainer(title?:string):XMLGen {
+    private static getInputContainer(title?: string): XMLGen {
         var wrapper = new XMLGen('label');
         wrapper.addClass('item item-input item-floating-label');
         if (title) {
@@ -27,13 +27,13 @@ export class IonicFormGen extends BaseNgFormGen {
         return wrapper;
     }
 
-    protected genElementForField(field:Field):XMLGen {
+    protected genElementForField(field: Field): XMLGen {
         var wrapper = IonicFormGen.getInputContainer(field.fieldName);
         this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
         return wrapper;
     }
 
-    wrap(config:INGFormWrapperConfig):XMLGen {
+    wrap(config: INGFormWrapperConfig): XMLGen {
         var modelInstanceName = _.camelCase(this.schema.name),
             modelClassName = _.capitalize(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'ion-modal-view' : 'div'),

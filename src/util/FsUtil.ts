@@ -2,7 +2,7 @@ import * as fse from "fs-extra";
 import {Log} from "./Log";
 
 export class FsUtil {
-    public static mkdir(...dirs:Array<string>):void {
+    public static mkdir(...dirs: Array<string>): void {
         dirs.forEach(dir=> {
             // Log.info(`./> mkdir -p ${dir}`);
             try {
@@ -13,7 +13,7 @@ export class FsUtil {
         })
     };
 
-    public static readJsonFile(path:string) {
+    public static readJsonFile(path: string) {
         try {
             return JSON.parse(fse.readFileSync(path, {encoding: 'utf8'}));
         } catch (e) {
@@ -22,7 +22,7 @@ export class FsUtil {
         }
     }
 
-    public static writeFile(path:string, content:string) {
+    public static writeFile(path: string, content: string) {
         try {
             fse.writeFileSync(path, content);
         } catch (e) {
@@ -30,7 +30,7 @@ export class FsUtil {
         }
     }
 
-    public static copy(src:string, dest:string) {
+    public static copy(src: string, dest: string) {
         Log.info(`./> cp ${src} ${dest}`);
         try {
             fse.copySync(src, dest);
@@ -39,7 +39,7 @@ export class FsUtil {
         }
     }
 
-    public static rename(src:string, dest:string) {
+    public static rename(src: string, dest: string) {
         Log.info(`./> mv ${src} ${dest}`);
         try {
             fse.renameSync(src, dest);
@@ -48,7 +48,7 @@ export class FsUtil {
         }
     }
 
-    public static remove(...path:Array<string>) {
+    public static remove(...path: Array<string>) {
         path.forEach(p=> {
             Log.info(`./> rm -rf ${p}`);
             try {
@@ -59,7 +59,7 @@ export class FsUtil {
         })
     }
 
-    public static unixPath(path:string) {
+    public static unixPath(path: string) {
         return path.replace(/\\/g, '/');
     }
 }

@@ -3,17 +3,17 @@ import {AbstractStructureGen} from "./AbstractStructureGen";
 
 export class InterfaceGen extends AbstractStructureGen {
 
-    constructor(name:string) {
+    constructor(name: string) {
         super(name);
     }
 
-    public addMethod(name:string):MethodGen {
+    public addMethod(name: string): MethodGen {
         var method = super.addMethod(name);
         method.isInterfaceMethod(true);
         return method;
     }
 
-    private getPropertiesCode():string {
+    private getPropertiesCode(): string {
         var codes = [];
         for (var i = 0, il = this.properties.length; i < il; ++i) {
             var code = this.properties[i].name;
@@ -25,7 +25,7 @@ export class InterfaceGen extends AbstractStructureGen {
         return codes.join('\n    ');
     }
 
-    public generate():string {
+    public generate(): string {
         var code = this.shouldBeExported ? 'export ' : '';
         code += `interface ${this.name}`;
         if (this.parentClass) code += ' extends ' + this.parentClass;

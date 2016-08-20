@@ -7,16 +7,16 @@ import {TsFileGen} from "../../../core/TSFileGen";
 import {FsUtil} from "../../../../util/FsUtil";
 
 export interface IFilterGenConfig {
-    name:string;
+    name: string;
 }
 
 export class NGFilterGen {
 
     private path = 'src/app/filter';
-    private file:TsFileGen;
-    private method:MethodGen;
+    private file: TsFileGen;
+    private method: MethodGen;
 
-    constructor(config:IFilterGenConfig) {
+    constructor(config: IFilterGenConfig) {
         if (/.+filter$/i.exec(config.name)) {
             config.name = config.name.replace(/filter$/i, '');
         }
@@ -40,7 +40,7 @@ export class NGFilterGen {
         NGDependencyInjector.updateImportFile(this.file, 'filter', this.path, Placeholder.NGFilter, '../filter');
     }
 
-    static getGeneratorConfig(cb:(config:IFilterGenConfig)=>void) {
+    static getGeneratorConfig(cb: (config: IFilterGenConfig)=>void) {
         cb(<IFilterGenConfig>{});
     }
 }

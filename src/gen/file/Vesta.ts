@@ -6,24 +6,24 @@ import {Log} from "../../util/Log";
 import {CmdUtil} from "../../util/CmdUtil";
 
 export interface IProjectVersion {
-    app:string;
-    api:string;
+    app: string;
+    api: string;
 }
 
 export interface IVesta {
-    version:IProjectVersion;
-    config:IProjectGenConfig;
+    version: IProjectVersion;
+    config: IProjectGenConfig;
 }
 
 export class Vesta {
 
-    private static instance:Vesta;
-    private json:IVesta;
+    private static instance: Vesta;
+    private json: IVesta;
     private path = 'vesta.json';
-    private isUpdate:boolean = false;
-    private static projectConfig:IProjectConfig = Config;
+    private isUpdate: boolean = false;
+    private static projectConfig: IProjectConfig = Config;
 
-    constructor(private config:IProjectGenConfig = null) {
+    constructor(private config: IProjectGenConfig = null) {
         if (config) {
             this.json = {
                 version: {app: '0.1.0', api: 'v1'},
@@ -52,24 +52,24 @@ export class Vesta {
         }
     }
 
-    public static getInstance(config:IProjectGenConfig = null):Vesta {
+    public static getInstance(config: IProjectGenConfig = null): Vesta {
         if (!Vesta.instance) {
             Vesta.instance = new Vesta(config);
         }
         return Vesta.instance;
     }
 
-    public getConfig():IProjectGenConfig {
+    public getConfig(): IProjectGenConfig {
         return this.json.config;
     }
 
-    public static updatePackages(args:Array<string>) {
+    public static updatePackages(args: Array<string>) {
         try {
             let content = JSON.parse(fs.readFileSync(`package.json`, {encoding: 'utf8'}));
-            var isDev = args.indexOf('dev') >= 0;
+            var isDev = args.indexOf('--dev') >= 0;
             let pkgKeyName = isDev ? 'devDependencies' : 'dependencies';
             let allPackages = Object.keys(content[pkgKeyName]);
-            let pkgs = args.indexOf('all') >= 0 ? allPackages : allPackages.filter(pkg=> pkg.search(/^vesta-/i) >= 0);
+            let pkgs = args.indexOf('--all') >= 0 ? allPackages : allPackages.filter(pkg=> pkg.search(/^vesta-/i) >= 0);
             pkgs.forEach(pkg=> delete content[pkgKeyName][pkg]);
             fs.writeFileSync(`package.json`, JSON.stringify(content, null, 2), {encoding: 'utf8'});
             CmdUtil.execSync(`npm install --save${isDev ? '-dev' : ''} ${pkgs.join(' ')}`);
@@ -78,7 +78,7 @@ export class Vesta {
         }
     }
 
-    public getProjectConfig():IProjectConfig {
+    public getProjectConfig(): IProjectConfig {
         return Vesta.projectConfig;
     }
 

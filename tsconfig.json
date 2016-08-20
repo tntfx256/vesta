@@ -6,7 +6,7 @@
     "newLine": "LF"
   },
   "files": [
-    "typings/tsd.d.ts",
+    "typings/index.d.ts",
     "src/index.ts"
   ],
   "exclude": [

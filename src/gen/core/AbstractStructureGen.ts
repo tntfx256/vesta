@@ -2,41 +2,41 @@ import * as _ from "lodash";
 import {MethodGen} from "./MethodGen";
 
 export interface IMethods {
-    [name:string]:MethodGen;
+    [name: string]: MethodGen;
 }
 
 export interface IStructureProperty {
-    name:string;
-    type?:string;
-    isOptional?:boolean;
-    access?:string;
-    defaultValue?:string;
-    isStatic?:boolean;
+    name: string;
+    type?: string;
+    isOptional?: boolean;
+    access?: string;
+    defaultValue?: string;
+    isStatic?: boolean;
 }
 
 export abstract class AbstractStructureGen {
-    public name:string;
-    protected shouldBeExported:boolean = true;
-    protected methods:Array<MethodGen> = [];
-    protected properties:Array<IStructureProperty> = [];
-    protected parentClass:string;
-    protected implementations:Array<string> = [];
-    protected constructorMethod:MethodGen;
+    public name: string;
+    protected shouldBeExported: boolean = true;
+    protected methods: Array<MethodGen> = [];
+    protected properties: Array<IStructureProperty> = [];
+    protected parentClass: string;
+    protected implementations: Array<string> = [];
+    protected constructorMethod: MethodGen;
 
-    constructor(name:string) {
+    constructor(name: string) {
         this.name = _.capitalize(_.camelCase(name));
     }
 
-    public setConstructor():MethodGen {
+    public setConstructor(): MethodGen {
         this.constructorMethod = new MethodGen();
         return this.constructorMethod;
     }
 
-    public getConstructor():MethodGen {
+    public getConstructor(): MethodGen {
         return this.constructorMethod;
     }
 
-    public addMethod(name:string):MethodGen {
+    public addMethod(name: string): MethodGen {
         for (var i = this.methods.length; i--;) {
             if (this.methods[i].name == name) {
                 return this.methods[i];
@@ -47,7 +47,7 @@ export abstract class AbstractStructureGen {
         return method;
     }
 
-    public getMethod(name:string):MethodGen {
+    public getMethod(name: string): MethodGen {
         name = _.camelCase(name);
         for (var i = this.methods.length; i--;) {
             if (this.methods[i].name == name) {
@@ -57,15 +57,15 @@ export abstract class AbstractStructureGen {
         return null;
     }
 
-    public shouldExport(shouldBeExported:boolean = true) {
+    public shouldExport(shouldBeExported: boolean = true) {
         this.shouldBeExported = shouldBeExported;
     }
 
-    public setParentClass(className:string) {
+    public setParentClass(className: string) {
         this.parentClass = className;
     }
 
-    public addImplements(...interfaces:Array<string>) {
+    public addImplements(...interfaces: Array<string>) {
         interfaces.forEach(intfc=> {
             if (this.implementations.indexOf(intfc) < 0) {
                 this.implementations.push(intfc);
@@ -73,7 +73,7 @@ export abstract class AbstractStructureGen {
         })
     }
 
-    public addProperty(property:IStructureProperty) {
+    public addProperty(property: IStructureProperty) {
         for (var i = this.properties.length; i--;) {
             if (this.properties[i].name == property.name) {
                 return;
@@ -82,5 +82,5 @@ export abstract class AbstractStructureGen {
         this.properties.push(property);
     }
 
-    public abstract generate():string;
+    public abstract generate(): string;
 }

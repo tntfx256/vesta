@@ -12,42 +12,42 @@ import {ModelGen} from "../../../ModelGen";
  *  rendering system
  */
 export abstract class BaseNgFormGen {
-    protected schema:Schema;
-    protected fields:IModelFields;
+    protected schema: Schema;
+    protected fields: IModelFields;
 
-    constructor(protected model:IModel) {
+    constructor(protected model: IModel) {
         if (model) {
             this.schema = model.schema;
             this.fields = this.schema.getFields();
         }
     }
 
-    protected genTextInputField():XMLGen {
+    protected genTextInputField(): XMLGen {
         let input = new XMLGen('input', true);
         input.setAttribute('type', 'text');
         return input;
     }
 
-    protected genTextField():XMLGen {
+    protected genTextField(): XMLGen {
         let input = new XMLGen('textarea');
         input.setAttribute('resize', 'y');
         return input;
     }
 
-    protected genTypedInputField(type:string):XMLGen {
+    protected genTypedInputField(type: string): XMLGen {
         let input = new XMLGen('input', true);
         input.setAttribute('type', type).setAttribute('dir', 'ltr');
         return input;
     }
 
-    protected genNumberInputField(isFloat:boolean = false):XMLGen {
+    protected genNumberInputField(isFloat: boolean = false): XMLGen {
         let input = new XMLGen('input', true);
         input.setAttribute('type', 'number').setAttribute('dir', 'ltr');
         input.setAttribute('step', isFloat ? 0.01 : 1);
         return input;
     }
 
-    protected genFileField(fileType:Array<string>, isMultiple = false):XMLGen {
+    protected genFileField(fileType: Array<string>, isMultiple = false): XMLGen {
         let input = new XMLGen('input', true);
         input.setAttribute('type', 'file').setAttribute('file-upload');
         if (fileType.length) {
@@ -59,19 +59,19 @@ export abstract class BaseNgFormGen {
         return input;
     }
 
-    protected genDateTimeField():XMLGen {
+    protected genDateTimeField(): XMLGen {
         let input = new XMLGen('input', true);
         input.setAttribute('dir', 'ltr').setAttribute('date-input').setAttribute('show-picker', 'true');
         return input;
     }
 
-    protected genCheckboxField():XMLGen {
+    protected genCheckboxField(): XMLGen {
         let input = new XMLGen('input', true);
         input.setAttribute('type', 'checkbox');
         return input;
     }
 
-    protected genSelectField(wrapper:XMLGen, fieldName:string, properties:IFieldProperties):XMLGen {
+    protected genSelectField(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): XMLGen {
         let select = new XMLGen('select');
         properties.enum.forEach(item=> {
             select.append(new XMLGen('option').setAttribute('value', item).text(item));
@@ -82,7 +82,7 @@ export abstract class BaseNgFormGen {
     /**
      * This method must return <div ng-messages>...<div ng-message></div>...</div>
      */
-    protected getNgMessage(fieldName:string, properties:IFieldProperties):XMLGen {
+    protected getNgMessage(fieldName: string, properties: IFieldProperties): XMLGen {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             formName = `${modelInstanceName}Form`;
         let ngMessages = new XMLGen('div');
@@ -142,7 +142,7 @@ export abstract class BaseNgFormGen {
     /**
      * This method appends the form control and other required elements to the wrapper element
      */
-    protected getElementsByFieldType(wrapper:XMLGen, fieldName:string, properties:IFieldProperties):void {
+    protected getElementsByFieldType(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): void {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             input = new XMLGen('input', true);
         switch (properties.type) {
@@ -194,9 +194,9 @@ export abstract class BaseNgFormGen {
         if (ngMessages.getChildren().length) wrapper.append(ngMessages);
     }
 
-    public generate():string {
+    public generate(): string {
         let fields = Object.keys(this.fields),
-            codes:Array<string> = [];
+            codes: Array<string> = [];
         fields.forEach(fieldName=> {
             if (fieldName != 'id') {
                 let elm = this.genElementForField(this.fields[fieldName]);
@@ -210,7 +210,7 @@ export abstract class BaseNgFormGen {
      * generates the wrapper for each field and then fills the wrapper
      *  with proper form element using this.getElementsByFieldType
      */
-    protected abstract genElementForField(field:Field):XMLGen;
+    protected abstract genElementForField(field: Field): XMLGen;
 
-    public abstract wrap(config:INGFormWrapperConfig):XMLGen;
+    public abstract wrap(config: INGFormWrapperConfig): XMLGen;
 }

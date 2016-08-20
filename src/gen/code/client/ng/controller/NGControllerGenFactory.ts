@@ -5,7 +5,7 @@ import {BaseNGControllerGen} from "./BaseNGControllerGen";
 import {INGControllerConfig} from "../NGControllerGen";
 
 export class ControllerGenFactory {
-    public static create(framework, config:INGControllerConfig):BaseNGControllerGen {
+    public static create(framework, config: INGControllerConfig): BaseNGControllerGen {
         switch (framework) {
             case ClientAppGen.Framework.Material:
                 return new MaterialControllerGen(config);

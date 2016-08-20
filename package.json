@@ -1,6 +1,6 @@
 {
   "name": "vesta",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Vesta Platform",
   "keywords": [
     "Code Generator",
@@ -35,19 +35,17 @@
   },
   "dependencies": {
     "colors": "^1.1.2",
-    "commander": "^2.9.0",
-    "fs-extra": "^0.26.3",
-    "inquirer": "^0.11.0",
+    "fs-extra": "^0.26.7",
+    "inquirer": "^1.1.2",
     "is-root": "^1.0.0",
-    "lodash": "^3.10.1",
-    "mssql": "^3.3.0",
-    "shelljs": "^0.6.0",
-    "speakeasy": "^1.0.3",
+    "lodash": "^4.15.0",
+    "shelljs": "^0.7.3",
+    "speakeasy": "^2.0.0",
     "vesta-datetime-gregorian": "^0.3.4",
-    "vesta-schema": "^0.4.1",
+    "vesta-schema": "^0.5.3",
     "vesta-util": "^0.2.7",
     "xml-to-json": "^0.1.1",
-    "yamljs": "^0.2.7"
+    "yamljs": "^0.2.8"
   },
   "devDependencies": {
     "fs-extra": "^0.26.7",

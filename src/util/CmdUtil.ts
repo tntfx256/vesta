@@ -8,19 +8,19 @@ export interface IExecSyncResult extends ExecOutputReturnValue {
 }
 
 export interface IExecOptions extends ExecOptions {
-    cwd?:string;
-    stdio?:any;
-    customFds?:any;
-    env?:any;
-    encoding?:string;
-    timeout?:number;
-    maxBuffer?:number;
-    killSignal?:string;
+    cwd?: string;
+    stdio?: any;
+    customFds?: any;
+    env?: any;
+    encoding?: string;
+    timeout?: number;
+    maxBuffer?: number;
+    killSignal?: string;
 }
 
 export class CmdUtil {
 
-    static execSync(command, options?:IExecOptions):IExecSyncResult {
+    static execSync(command, options?: IExecOptions): IExecSyncResult {
         options = options || {};
         if (!options.silent) {
             Log.info(`${options.cwd || '.'}/> ${command} `);
@@ -28,8 +28,15 @@ export class CmdUtil {
         return <ExecOutputReturnValue>shell.exec(command, options);
     }
 
-    static getOutputOf(command, options?:IExecOptions):string {
+    static getOutputOf(command, options?: IExecOptions): string {
         options = options || {silent: true};
         return StringUtil.trimLineBreaks(CmdUtil.execSync(command, options).output);
+    }
+
+    static parseCli(args: Array<string>) {
+        let config: any = {};
+        for (var i = 0, il = args.length; i < il; ++i) {
+
+        }
     }
 }

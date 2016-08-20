@@ -1,6 +1,5 @@
 import {ClassGen} from "../core/ClassGen";
 import {DatabaseGen} from "../core/DatabaseGen";
-import {ProjectGen} from "../ProjectGen";
 import {IFileGenerator} from "../core/IFileGenerator";
 import {TsFileGen} from "../core/TSFileGen";
 

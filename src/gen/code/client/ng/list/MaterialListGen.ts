@@ -11,10 +11,10 @@ import {Schema} from "vesta-schema/Schema";
 import {FieldType} from "vesta-schema/Field";
 
 export class MaterialListGen {
-    private list:XMLGen;
-    private path:string = 'src/app/templates';
+    private list: XMLGen;
+    private path: string = 'src/app/templates';
 
-    constructor(private config:INGControllerConfig) {
+    constructor(private config: INGControllerConfig) {
         let ctrlName = _.camelCase(this.config.name);
         this.list = new XMLGen('div');
         this.list.setAttribute('layout', 'column').addClass('dt-wrapper');
@@ -80,9 +80,9 @@ export class MaterialListGen {
             pluralModel = Util.plural(modelName),
             pluralInstance = _.camelCase(pluralModel),
             modelInstanceName = _.camelCase(modelName),
-            model:IModel = ModelGen.getModel(this.config.model),
-            schema:Schema = model.schema,
-            fields:IModelFields = schema.getFields(),
+            model: IModel = ModelGen.getModel(this.config.model),
+            schema: Schema = model.schema,
+            fields: IModelFields = schema.getFields(),
             headerCode = `<th md-column>row</th>`,
             rowCode = `<td md-cell>{{$index + 1 + (vm.dtOption.page - 1 ) * vm.dtOption.limit }}</td>`,
             splitter = '\n                ';

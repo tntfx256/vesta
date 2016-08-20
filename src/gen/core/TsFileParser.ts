@@ -2,12 +2,12 @@ import * as fs from "fs-extra";
 import {TsFileGen} from "./TsFileGen";
 
 export class TsFileParser {
-    private content:string;
-    private parsed:TsFileGen;
-    private tokens:Array<string> = [];
-    private index:number = 0;
+    private content: string;
+    private parsed: TsFileGen;
+    private tokens: Array<string> = [];
+    private index: number = 0;
 
-    constructor(filePath:string) {
+    constructor(filePath: string) {
         this.content = fs.readFileSync(filePath, {encoding: 'utf8'});
         this.parse();
     }

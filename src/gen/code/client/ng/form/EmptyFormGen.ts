@@ -5,13 +5,13 @@ import {Field} from "vesta-schema/Field";
 
 export class EmptyFormGen extends BaseNgFormGen {
 
-    protected genElementForField(field:Field):XMLGen {
+    protected genElementForField(field: Field): XMLGen {
         var wrapper = new XMLGen('div');
         this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
         return wrapper;
     }
 
-    public wrap(config:INGFormWrapperConfig):XMLGen {
+    public wrap(config: INGFormWrapperConfig): XMLGen {
         var wrapper = new XMLGen(config.isModal ? 'md-dialog' : 'div'),
             form = new XMLGen('form');
         wrapper.setAttribute('aria-label', config.title);

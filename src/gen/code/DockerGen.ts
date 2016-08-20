@@ -4,11 +4,11 @@ var speakeasy = require('speakeasy');
 
 export class DockerGen {
 
-    constructor(private config:IProjectGenConfig) {
+    constructor(private config: IProjectGenConfig) {
     }
 
     public compose() {
-        var replace:any = {};
+        var replace: any = {};
         if (this.config.type == ProjectGen.Type.ClientSide) {
 
         } else {

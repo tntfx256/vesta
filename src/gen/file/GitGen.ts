@@ -6,41 +6,41 @@ import {IExecSyncResult, CmdUtil} from "../../util/CmdUtil";
 import {Util} from "../../util/Util";
 
 export interface IRepositoryConfig {
-    baseUrl:string;
-    group:string;
-    name:string;
-    common:string;
+    baseUrl: string;
+    group: string;
+    name: string;
+    common: string;
 }
 
 export class GitGen {
-    public static commonProjectExists:boolean = true;
+    public static commonProjectExists: boolean = true;
 
-    public static clone(repository:string, destination:string = '', branch:string = ''):IExecSyncResult {
+    public static clone(repository: string, destination: string = '', branch: string = ''): IExecSyncResult {
         var branchCmd = branch ? ` -b ${branch} ` : ' ';
         return CmdUtil.execSync(`git clone${branchCmd}${repository} ${destination}`);
     }
 
-    public static getRepoUrl(baseUrl:string, group:string, repository:string):string {
+    public static getRepoUrl(baseUrl: string, group: string, repository: string): string {
         return /^git.+/.exec(baseUrl) ?
             `${baseUrl}:${group}/${repository}.git` :
             `${baseUrl}/${group}/${repository}.git`;
     }
 
-    public static cleanClonedRepo(basePath:string) {
+    public static cleanClonedRepo(basePath: string) {
         FsUtil.remove(`${basePath}/.git`);
         FsUtil.remove(`${basePath}/.gitmodule`);
         FsUtil.remove(`${basePath}/src/cmn`);
         FsUtil.remove(`${basePath}/src/app/cmn`);
     }
 
-    public static getGeneratorConfig(appConfig:IProjectGenConfig):Promise<IProjectGenConfig> {
+    public static getGeneratorConfig(appConfig: IProjectGenConfig): Promise<IProjectGenConfig> {
         return Util.prompt(<Question>{
             type: 'confirm',
             name: 'initRepository',
             message: 'Init git repository: '
         }).then(answer=> {
             if (!answer['initRepository']) return Promise.resolve(appConfig);
-            var qs:Array<Question> = [<Question>{
+            var qs: Array<Question> = [<Question>{
                 type: 'input',
                 name: 'baseUrl',
                 message: 'Repository base url:',
@@ -74,7 +74,7 @@ export class GitGen {
                 name: 'commonExists',
                 message: 'Common project already exists: '
             });
-            return Util.prompt(qs).then(answer=> {
+            return Util.prompt<any>(qs).then(answer=> {
                 if (!appConfig.repository.group && !answer['group']) return appConfig;
                 appConfig.name = answer['projectName'];
                 GitGen.commonProjectExists = answer['commonExists'];

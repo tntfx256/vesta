@@ -1,7 +1,6 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
-import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import {ClassGen} from "../../core/ClassGen";
 import {TsFileGen} from "../../core/TSFileGen";
@@ -16,29 +15,29 @@ import {IModelFields} from "vesta-schema/Model";
 import {FieldType} from "vesta-schema/Field";
 
 export interface IExpressControllerConfig {
-    route:string;
-    name:string;
-    model:string;
+    route: string;
+    name: string;
+    model: string;
 }
 
 export class ExpressControllerGen {
-    private controllerClass:ClassGen;
-    private controllerFile:TsFileGen;
-    private rawName:string;
-    private routeMethod:MethodGen;
-    private path:string = 'src/api';
-    private routingPath:string = '/';
-    private vesta:Vesta;
-    private apiVersion:string;
-    private filesFields:IModelFields = null;
-    private relationsFields:IModelFields = null;
+    private controllerClass: ClassGen;
+    private controllerFile: TsFileGen;
+    private rawName: string;
+    private routeMethod: MethodGen;
+    private path: string = 'src/api';
+    private routingPath: string = '/';
+    private vesta: Vesta;
+    private apiVersion: string;
+    private filesFields: IModelFields = null;
+    private relationsFields: IModelFields = null;
 
-    constructor(private config:IExpressControllerConfig) {
+    constructor(private config: IExpressControllerConfig) {
         this.vesta = Vesta.getInstance();
         this.init(this.vesta.getVersion().api);
     }
 
-    private init(version:string) {
+    private init(version: string) {
         if (!version) {
             return Log.error('Unable to obtain the API version!');
         }
@@ -65,7 +64,7 @@ export class ExpressControllerGen {
         }
     }
 
-    private addResponseMethod(name:string) {
+    private addResponseMethod(name: string) {
         let method = this.controllerClass.addMethod(name);
         method.addParameter({name: 'req', type: 'IExtRequest'});
         method.addParameter({name: 'res', type: 'Response'});
@@ -140,7 +139,7 @@ export class ExpressControllerGen {
         }
     }
 
-    private normalizeRoutingPath():void {
+    private normalizeRoutingPath(): void {
         let edge = _.camelCase(this.config.name);
         this.routingPath = `${this.config.route}`;
         if (this.routingPath.charAt(0) != '/') this.routingPath = `/${this.routingPath}`;
@@ -148,7 +147,7 @@ export class ExpressControllerGen {
         this.routingPath = this.routingPath.replace(/\/{2,}/g, '/');
     }
 
-    private getQueryCodeForSingleInstance():string {
+    private getQueryCodeForSingleInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let code = '';
         if (this.relationsFields) {
@@ -164,7 +163,7 @@ export class ExpressControllerGen {
             .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
     }
 
-    private getQueryCodeForMultiInstance():string {
+    private getQueryCodeForMultiInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         return `let query = new Vql(${modelName}.schema.name);
         query.filter(req.query.query).limitTo(Math.min(+req.query.limit || 50, 50)).fromPage(+req.query.page || 1);
@@ -173,11 +172,11 @@ export class ExpressControllerGen {
             .catch(reason=>this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
     }
 
-    private getQueryCode(isSingle:boolean):string {
+    private getQueryCode(isSingle: boolean): string {
         return isSingle ? this.getQueryCodeForSingleInstance() : this.getQueryCodeForMultiInstance();
     }
 
-    private getInsertCode():string {
+    private getInsertCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}(req.body),
@@ -192,7 +191,7 @@ export class ExpressControllerGen {
             .catch(reason=> this.handleError(res, Err.Code.DBInsert, reason.error.message));`;
     }
 
-    private getUpdateCode():string {
+    private getUpdateCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}(req.body),
@@ -210,7 +209,7 @@ export class ExpressControllerGen {
             .catch(reason=> this.handleError(res, Err.Code.DBUpdate, reason.error.message));`;
     }
 
-    private getDeleteCode():string {
+    private getDeleteCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}({id: req.body.id});
@@ -219,7 +218,7 @@ export class ExpressControllerGen {
             .catch(reason=> this.handleError(res, Err.Code.DBDelete, reason.error.message));`;
     }
 
-    private getUploadCode():string {
+    private getUploadCode(): string {
         this.controllerFile.addImport('{FileUploader}', Util.genRelativePath(this.path, 'src/helpers/FileUploader'));
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
@@ -261,12 +260,12 @@ export class ExpressControllerGen {
             .catch(reason=> this.handleError(res, reason.error.code, reason.error.message));`;
     }
 
-    public static getGeneratorConfig(name:string, callback) {
-        let config:IExpressControllerConfig = <IExpressControllerConfig>{},
+    public static getGeneratorConfig(name: string, callback) {
+        let config: IExpressControllerConfig = <IExpressControllerConfig>{},
             models = Object.keys(ModelGen.getModelsList());
         models.unshift('None');
         if (name) {
-            let q:Array<Question> = [
+            let q: Array<Question> = [
                 <Question>{
                     name: 'routingPath',
                     type: 'input',
@@ -282,16 +281,16 @@ export class ExpressControllerGen {
                     default: 'None'
                 }];
             config.name = name;
-            inquirer.prompt(q, answer => {
-                let modelName = answer['model'];
+            Util.prompt<{routingPath: string; model: string;}>(q).then(answer => {
+                let modelName = answer.model;
                 if (modelName != 'None') {
                     config.model = modelName;
                 }
-                config.route = answer['routingPath'];
+                config.route = answer.routingPath;
                 callback(config);
             });
         } else {
-            let q:Array<Question> = [
+            let q: Array<Question> = [
                 <Question>{
                     name: 'routingPath',
                     type: 'input',
@@ -307,12 +306,12 @@ export class ExpressControllerGen {
                     default: 'None'
                 }];
             config.name = name;
-            inquirer.prompt(q, answer => {
-                let models = answer['models'];
+            Util.prompt<{routingPath: string; models: string;}>(q).then(answer => {
+                let models = answer.models;
                 if (models != 'None') {
                     config.model = models;
                 }
-                config.route = answer['routingPath'];
+                config.route = answer.routingPath;
                 callback(config);
             });
         }

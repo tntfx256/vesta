@@ -3,7 +3,7 @@ import {IProjectGenConfig} from "../../ProjectGen";
 
 export class MaterialAppGen extends ClientAppGen {
 
-    constructor(protected config:IProjectGenConfig) {
+    constructor(protected config: IProjectGenConfig) {
         super(config);
     }
 }

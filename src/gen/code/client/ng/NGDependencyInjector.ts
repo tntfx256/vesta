@@ -13,21 +13,21 @@ import {Placeholder} from "../../../core/Placeholder";
 
 
 export interface INGInjectable {
-    name?:string;
-    type?:string;
-    path?:string;
-    isLib?:boolean;
-    importType?:number;
-    plugins?:Array<string>;
+    name?: string;
+    type?: string;
+    path?: string;
+    isLib?: boolean;
+    importType?: number;
+    plugins?: Array<string>;
 }
 
 export class NGDependencyInjector {
     public static preInitiatedServices = ['apiService', 'formService', 'notificationService', 'logService', 'authService', 'Setting'];
 
-    public static getServices():Array<INGInjectable> {
+    public static getServices(): Array<INGInjectable> {
         var fetchPlugins = Vesta.getInstance().getConfig().client.platform == ClientAppGen.Platform.Cordova,
             serviceDirectory = 'src/app/service',
-            services:Array<INGInjectable> = [];
+            services: Array<INGInjectable> = [];
         try {
             var serviceFiles = fs.readdirSync(serviceDirectory);
             for (var i = 0; i < serviceFiles.length; i++) {
@@ -50,7 +50,7 @@ export class NGDependencyInjector {
     /**
      This function will create import statement only if an injectable sets the `path` in INGInjectable
      */
-    public static inject(file:TsFileGen, injects:Array<INGInjectable>, destination:string, ignoreDependencies:boolean = false) {
+    public static inject(file: TsFileGen, injects: Array<INGInjectable>, destination: string, ignoreDependencies: boolean = false) {
         let staticInject = '',
             theClass = file.getClass(file.name),
             cm = theClass.getConstructor(),
@@ -88,7 +88,7 @@ export class NGDependencyInjector {
         //}
     }
 
-    public static updateImportFile(file:TsFileGen, type:string, destination:string, placeHolder:string, importPath:string) {
+    public static updateImportFile(file: TsFileGen, type: string, destination: string, placeHolder: string, importPath: string) {
         var className = file.name,
             instanceName = _.camelCase(className),
             importFilePath = 'src/app/config/import.ts';
@@ -115,8 +115,8 @@ export class NGDependencyInjector {
         FsUtil.writeFile(importFilePath, importFileCode);
     }
 
-    public static getCliInjectables(extraInjectables:Array<INGInjectable> = []):Promise<Array<INGInjectable>> {
-        var injectables:Array<INGInjectable> = [<INGInjectable>{
+    public static getCliInjectables(extraInjectables: Array<INGInjectable> = []): Promise<Array<INGInjectable>> {
+        var injectables: Array<INGInjectable> = [<INGInjectable>{
                 name: '$rootScope',
                 type: 'IExtRootScopeService',
                 path: 'src/app/ClientApp'
@@ -128,13 +128,13 @@ export class NGDependencyInjector {
             }
         }
         return new Promise(resolve=> {
-            Util.prompt<{injects:Array<string>}>(<Question>{
+            Util.prompt<{injects: Array<string>}>(<Question>{
                 name: 'injects',
                 type: 'checkbox',
                 message: 'Injectables: ',
                 choices: injectableNames
             }).then(answer=> {
-                var selected:Array<INGInjectable> = [];
+                var selected: Array<INGInjectable> = [];
                 for (var i = answer['injects'].length; i--;) {
                     for (var j = injectables.length; j--;) {
                         if (answer['injects'][i] == injectables[j].name) {

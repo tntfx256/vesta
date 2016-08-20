@@ -13,26 +13,26 @@ import {FsUtil} from "../util/FsUtil";
 import {CmdUtil, IExecOptions} from "../util/CmdUtil";
 
 export interface IProjectGenConfig {
-    name:string;
-    type:string;
-    server:IServerAppConfig;
-    client:IClientAppConfig;
-    repository:IRepositoryConfig;
-    i18n:I18nGenConfig;
+    name: string;
+    type: string;
+    server: IServerAppConfig;
+    client: IClientAppConfig;
+    repository: IRepositoryConfig;
+    i18n: I18nGenConfig;
 }
 
 export class ProjectGen {
 
     static Type = {ServerSide: 'serverSide', ClientSide: 'clientSide'};
 
-    private static instance:ProjectGen;
-    public vesta:Vesta;
-    public serverApp:ServerAppGen;
-    public clientApp:ClientAppGen;
-    public commonApp:CommonGen;
-    private docker:DockerGen;
+    private static instance: ProjectGen;
+    public vesta: Vesta;
+    public serverApp: ServerAppGen;
+    public clientApp: ClientAppGen;
+    public commonApp: CommonGen;
+    private docker: DockerGen;
 
-    constructor(public config:IProjectGenConfig) {
+    constructor(public config: IProjectGenConfig) {
         //
         this.vesta = Vesta.getInstance(config);
         this.docker = new DockerGen(config);
@@ -53,7 +53,7 @@ export class ProjectGen {
         let repoInfo = this.config.repository;
         let replacement = {};
         let isClientSideProject = this.config.type == ProjectGen.Type.ClientSide;
-        let execOption:IExecOptions = {cwd: dir};
+        let execOption: IExecOptions = {cwd: dir};
         if (isClientSideProject) {
             projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
         }
@@ -77,8 +77,8 @@ export class ProjectGen {
         CmdUtil.execSync(`git push -u origin master`, execOption);
     }
 
-    public static getGeneratorConfig(name:string, category:string):Promise<IProjectGenConfig> {
-        let appConfig:IProjectGenConfig = <IProjectGenConfig>{};
+    public static getGeneratorConfig(name: string, category: string): Promise<IProjectGenConfig> {
+        let appConfig: IProjectGenConfig = <IProjectGenConfig>{};
         appConfig.name = _.camelCase(name);
         appConfig.client = <IClientAppConfig>{};
         appConfig.server = <IServerAppConfig>{};
@@ -88,7 +88,7 @@ export class ProjectGen {
             common: '',
             name: appConfig.name
         };
-        let questions:Array<Question> = [<Question>{
+        let questions: Array<Question> = [<Question>{
             type: 'list',
             name: 'type',
             message: 'Project Type: ',
@@ -96,17 +96,17 @@ export class ProjectGen {
             default: ProjectGen.Type.ClientSide
         }];
         return new Promise((resolve, reject)=> {
-            Util.prompt<{type:string}>(questions).then(answer => {
+            Util.prompt<{type: string}>(questions).then(answer => {
                 appConfig.type = answer.type;
                 if (ProjectGen.Type.ServerSide == appConfig.type) {
                     resolve(ServerAppGen.getGeneratorConfig()
-                        .then((serverAppConfig:IServerAppConfig)=> {
+                        .then((serverAppConfig: IServerAppConfig)=> {
                             appConfig.server = serverAppConfig;
                             return GitGen.getGeneratorConfig(appConfig);
                         }))
                 } else if (ProjectGen.Type.ClientSide == appConfig.type) {
                     resolve(ClientAppGen.getGeneratorConfig()
-                        .then((clientAppConfig:IClientAppConfig)=> {
+                        .then((clientAppConfig: IClientAppConfig)=> {
                             appConfig.client = clientAppConfig;
                             return GitGen.getGeneratorConfig(appConfig);
                         }))

@@ -10,7 +10,7 @@ export class MaterialFormGen extends BaseNgFormGen {
 
     private static AutoCompleteDelay = 300;
 
-    private static getInputContainer(title?:string, noFloat?:boolean):XMLGen {
+    private static getInputContainer(title?: string, noFloat?: boolean): XMLGen {
         let wrapper = new XMLGen('md-input-container');
         wrapper.addClass('md-block');
         if (title) {
@@ -27,7 +27,7 @@ export class MaterialFormGen extends BaseNgFormGen {
     /**
      * Normal select control
      */
-    protected genSelectField(wrapper:XMLGen, fieldName:string, properties:IFieldProperties):XMLGen {
+    protected genSelectField(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): XMLGen {
         let select = new XMLGen('md-select');
         properties.enum.forEach(item=> {
             select.append(new XMLGen('md-option').setAttribute('ng-value', item).text(item));
@@ -41,7 +41,7 @@ export class MaterialFormGen extends BaseNgFormGen {
     /**
      * Select for relations of types RelationType.One2Many & RelationType.One2One
      */
-    protected genAutoCompleteField(field:Field):XMLGen {
+    protected genAutoCompleteField(field: Field): XMLGen {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             targetFieldName = ModelGen.getUniqueFieldNameOfRelatedModel(field);
         let wrapper = new XMLGen('md-autocomplete');
@@ -73,7 +73,7 @@ export class MaterialFormGen extends BaseNgFormGen {
      *     <div ng-messages></div>
      * </div>
      */
-    protected genMultiSelectField(field:Field, forceMath?:boolean):XMLGen {
+    protected genMultiSelectField(field: Field, forceMath?: boolean): XMLGen {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name));
         let outerWrapper = new XMLGen('div');
         outerWrapper.addClass('md-input-wrapper');
@@ -106,7 +106,7 @@ export class MaterialFormGen extends BaseNgFormGen {
     /**
      * Multi-select auto-complete component for type of FieldType.List
      */
-    protected genListField(field:Field):XMLGen {
+    protected genListField(field: Field): XMLGen {
         let itemProperties = Util.clone<IFieldProperties>(field.properties);
         itemProperties.type = field.properties.list;
         if (itemProperties.type == FieldType.File) {
@@ -135,7 +135,7 @@ export class MaterialFormGen extends BaseNgFormGen {
     /**
      * @inheritDoc
      */
-    protected genElementForField(field:Field):XMLGen {
+    protected genElementForField(field: Field): XMLGen {
         switch (field.properties.type) {
             case FieldType.Relation:
                 return field.properties.relation.type == RelationType.Many2Many ?
@@ -151,11 +151,11 @@ export class MaterialFormGen extends BaseNgFormGen {
         }
     }
 
-    protected genCheckboxField():XMLGen {
+    protected genCheckboxField(): XMLGen {
         return new XMLGen('md-checkbox', true);
     }
 
-    public wrap(config:INGFormWrapperConfig):XMLGen {
+    public wrap(config: INGFormWrapperConfig): XMLGen {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             modelClassName = _.capitalize(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'md-dialog' : 'div'),

@@ -1,7 +1,6 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
-import * as inquirer from "inquirer";
 import {Question} from "inquirer";
 import {ClassGen} from "../../../core/ClassGen";
 import {TsFileGen} from "../../../core/TSFileGen";
@@ -15,23 +14,23 @@ import {FsUtil} from "../../../../util/FsUtil";
 import {Log} from "../../../../util/Log";
 
 export interface INGDirectiveConfig {
-    name:string;
-    injects:Array<INGInjectable>;
-    externalTemplate:boolean;
-    generateSass:boolean;
+    name: string;
+    injects: Array<INGInjectable>;
+    externalTemplate: boolean;
+    generateSass: boolean;
 }
 
 export class NGDirectiveGen {
     private path = 'src/app/directive';
-    private rawName:string;
-    private file:TsFileGen;
-    private controllerClass:ClassGen;
-    private directiveMethod:MethodGen;
-    private scopeInterface:InterfaceGen;
-    private sassFile:SassGen;
-    private tplFileName:string;
+    private rawName: string;
+    private file: TsFileGen;
+    private controllerClass: ClassGen;
+    private directiveMethod: MethodGen;
+    private scopeInterface: InterfaceGen;
+    private sassFile: SassGen;
+    private tplFileName: string;
 
-    constructor(private config:INGDirectiveConfig) {
+    constructor(private config: INGDirectiveConfig) {
         this.rawName = _.camelCase(config.name);
         this.tplFileName = _.kebabCase(this.rawName);
         this.file = new TsFileGen(this.rawName);
@@ -116,8 +115,8 @@ export class NGDirectiveGen {
     }
 
     public static getGeneratorConfig(callback) {
-        var config:INGDirectiveConfig = <INGDirectiveConfig>{};
-        inquirer.prompt([<Question>{
+        var config: INGDirectiveConfig = <INGDirectiveConfig>{};
+        Util.prompt<{externalTemplate: boolean; generateSass: boolean;}>([<Question>{
             name: 'externalTemplate',
             type: 'confirm',
             message: 'Use external template file: ',
@@ -127,9 +126,9 @@ export class NGDirectiveGen {
             type: 'confirm',
             message: 'Create Sass style file: ',
             default: true
-        }], answer=> {
-            config.externalTemplate = answer['externalTemplate'];
-            config.generateSass = answer['generateSass'];
+        }]).then(answer=> {
+            config.externalTemplate = answer.externalTemplate;
+            config.generateSass = answer.generateSass;
             NGDependencyInjector.getCliInjectables()
                 .then(injectables => {
                     config.injects = injectables;

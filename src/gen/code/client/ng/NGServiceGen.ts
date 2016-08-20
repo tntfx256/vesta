@@ -1,12 +1,7 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as _ from 'lodash';
-import * as colors from 'colors';
-import * as inquirer from 'inquirer';
+import * as fs from "fs-extra";
+import * as _ from "lodash";
 import {ClassGen} from "../../../core/ClassGen";
-import {Question} from "inquirer";
 import {NGDependencyInjector, INGInjectable} from "./NGDependencyInjector";
-import {MethodGen} from "../../../core/MethodGen";
 import {Placeholder} from "../../../core/Placeholder";
 import {TsFileGen} from "../../../core/TSFileGen";
 
@@ -18,10 +13,10 @@ export interface INGServcieConfig {
 export class NGServiceGen {
 
     private path = 'src/app/service';
-    private serviceClass:ClassGen;
-    private serviceFile:TsFileGen;
+    private serviceClass: ClassGen;
+    private serviceFile: TsFileGen;
 
-    constructor(private config:INGServcieConfig) {
+    constructor(private config: INGServcieConfig) {
         if (/.+service$/i.exec(config.name)) {
             config.name = config.name.replace(/service$/i, '');
         }
@@ -41,7 +36,7 @@ export class NGServiceGen {
     }
 
     static getGeneratorConfig(callback) {
-        var config:INGServcieConfig = <INGServcieConfig>{};
+        var config: INGServcieConfig = <INGServcieConfig>{};
         NGDependencyInjector.getCliInjectables()
             .then(injectables => {
                 config.injects = injectables;

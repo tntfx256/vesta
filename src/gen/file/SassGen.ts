@@ -9,7 +9,7 @@ export class SassGen {
     static Type = {Font: 'font', Component: 'component', Directive: 'directive', Page: 'page'};
     private basePath = 'src/scss';
 
-    constructor(public name:string, public type:string = SassGen.Type.Page) {
+    constructor(public name: string, public type: string = SassGen.Type.Page) {
 
     }
 

@@ -8,8 +8,8 @@ import {Err} from "vesta-util/Err";
 import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
 
 export interface IDeployHistory {
-    date:string;
-    type:'deploy'|'backup';
+    date: string;
+    type: 'deploy'|'backup';
 }
 /**
  * projectName      ProjectGroupName-projectName (automatic)
@@ -18,49 +18,59 @@ export interface IDeployHistory {
  * args             Extra argument to be passed to deploy script
  */
 export interface IDeployConfig {
-    projectName:string;
-    deployPath:string;
-    repositoryUrl:string;
-    history:Array<IDeployHistory>;
-    args:Array<string>;
+    projectName: string;
+    deployPath: string;
+    repositoryUrl: string;
+    history: Array<IDeployHistory>;
+    args: Array<string>;
 }
 
 export class Deployer {
-    private static ConfigFile:string;
-    private cloningPath:string;
+    private static ConfigFile: string;
+    private cloningPath: string;
+    private alreadyCloned: boolean = false;
 
-    constructor(private config:IDeployConfig) {
+    constructor(private config: IDeployConfig) {
         var date = new GregorianDate();
         this.config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy'});
         this.cloningPath = config.projectName;
-        FsUtil.remove(this.cloningPath);
-        FsUtil.mkdir(config.deployPath);
+        if (fs.existsSync(this.cloningPath)) {
+            // FsUtil.remove(this.cloningPath);
+            this.alreadyCloned = true;
+        } else {
+            FsUtil.mkdir(config.deployPath);
+        }
     }
 
     public deploy() {
         var deployPath = `${this.config.deployPath}/${this.config.projectName}`;
         var args = [this.cloningPath, deployPath];
         args = args.concat(this.config.args);
-        GitGen.clone(this.config.repositoryUrl, this.cloningPath);
+        if (this.alreadyCloned) {
+            CmdUtil.execSync(`git reset --hard origin/master`, {cwd: this.cloningPath});
+            CmdUtil.execSync(`git pull origin master`, {cwd: this.cloningPath});
+        } else {
+            GitGen.clone(this.config.repositoryUrl, this.cloningPath);
+        }
         CmdUtil.execSync(`git checkout master`, {cwd: this.cloningPath});
         FsUtil.copy(`${this.cloningPath}/resources/ci/deploy.sh`, `${this.cloningPath}/deploy.sh`);
         CmdUtil.execSync(`chmod +x ${this.cloningPath}/deploy.sh`);
         CmdUtil.execSync(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
         FsUtil.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
-        FsUtil.remove(this.cloningPath);
+        // FsUtil.remove(this.cloningPath);
     }
 
-    private static getProjectName(url:string) {
+    private static getProjectName(url: string) {
         var [,group,project]=/.+\/(.+)\/(.+)\.git$/.exec(url);
         return `${group}-${project}`;
     }
 
-    public static getDeployConfig(args:Array<string>):Promise<IDeployConfig> {
+    public static getDeployConfig(args: Array<string>): Promise<IDeployConfig> {
         if (CmdUtil.execSync(`gulp -v`, {silent: true}).code) {
             Log.error('You must install gulp-cli! Run `sudo npm install -g gulp-cli`');
             return Promise.reject(new Err(Err.Code.OperationFailed, 'gulp-cli is not installed'));
         }
-        var config:IDeployConfig = <IDeployConfig>{
+        var config: IDeployConfig = <IDeployConfig>{
             history: [],
             args: [],
             deployPath: `app`
@@ -82,8 +92,8 @@ export class Deployer {
         return Promise.resolve(config);
     }
 
-    public static fetchConfig(filename:string):IDeployConfig {
-        var config:IDeployConfig = <IDeployConfig>{};
+    public static fetchConfig(filename: string): IDeployConfig {
+        var config: IDeployConfig = <IDeployConfig>{};
         try {
             config = JSON.parse(fs.readFileSync(filename, {encoding: 'utf8'}));
         } catch (e) {

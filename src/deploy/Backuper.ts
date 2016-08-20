@@ -10,13 +10,12 @@ import {DockerUtil} from "../util/DockerUtil";
 import {Err} from "vesta-util/Err";
 import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
 
-
 export class Backuper {
-    private static ConfigFile:string;
-    private backupName:string;
-    private volumePrefix:string;
+    private static ConfigFile: string;
+    private backupName: string;
+    private volumePrefix: string;
 
-    constructor(private config:IDeployConfig) {
+    constructor(private config: IDeployConfig) {
         var date = new GregorianDate();
         this.backupName = `backup_${date.format('Ymd-His')}`;
         config.history.push({date: date.format('Y/m/d H:i:s'), type: 'backup'});
@@ -58,9 +57,9 @@ export class Backuper {
         Log.info(`\n\nBackup was create to ${this.backupName}.tar`);
     }
 
-    public static getDeployConfig(args:Array<string>):Promise<IDeployConfig> {
-        var fileName:string,
-            config:IDeployConfig = <IDeployConfig>{history: []};
+    public static getDeployConfig(args: Array<string>): Promise<IDeployConfig> {
+        var fileName: string,
+            config: IDeployConfig = <IDeployConfig>{history: []};
         if (args.length) {
             fileName = args[0];
             if (!fs.existsSync(fileName)) {

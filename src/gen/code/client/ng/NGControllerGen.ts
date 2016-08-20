@@ -8,20 +8,20 @@ import {Err} from "vesta-util/Err";
 import {Util} from "../../../../util/Util";
 
 export interface INGControllerConfig {
-    name:string;
-    module:string;
-    model:string;
-    type:ControllerType;
-    injects:Array<INGInjectable>;
-    openFormInModal:boolean;
+    name: string;
+    module: string;
+    model: string;
+    type: ControllerType;
+    injects: Array<INGInjectable>;
+    openFormInModal: boolean;
 }
 
 export enum ControllerType{List = 1, Add, Edit}
 
 export class NGControllerGen {
-    private controller:BaseNGControllerGen;
+    private controller: BaseNGControllerGen;
 
-    constructor(private config:INGControllerConfig) {
+    constructor(private config: INGControllerConfig) {
         let framework = Vesta.getInstance().getConfig().client.framework;
         this.controller = ControllerGenFactory.create(framework, config);
     }
@@ -38,17 +38,17 @@ export class NGControllerGen {
         this.controller.generate();
     }
 
-    static getGeneratorConfig(name:string):Promise<INGControllerConfig> {
+    static getGeneratorConfig(name: string): Promise<INGControllerConfig> {
         if (!name) return Promise.reject(new Err(Err.Code.WrongInput));
         let models = Object.keys(ModelGen.getModelsList()),
-            config:INGControllerConfig = <INGControllerConfig>{};
+            config: INGControllerConfig = <INGControllerConfig>{};
         config.openFormInModal = true;
         config.type = ControllerType.List;
         config.module = '';
         return NGDependencyInjector.getCliInjectables([{name: '$scope', isLib: true}])
             .then(injectables => {
                 config.injects = injectables;
-                let qs:Array<Question> = [{name: 'module', type: 'input', message: 'Module Name: '}];
+                let qs: Array<Question> = [{name: 'module', type: 'input', message: 'Module Name: '}];
                 if (models.length) {
                     qs.push({
                         name: 'model',
@@ -58,13 +58,13 @@ export class NGControllerGen {
                         default: 'None'
                     });
                 }
-                return Util.prompt<{module:string; model:string;}>(qs)
+                return Util.prompt<{module: string; model: string;}>(qs)
             })
             .then(answer => {
                 config.module = answer.module;
                 if (answer.model != 'None') {
                     config.model = answer.model;
-                    return Util.prompt<{modal:boolean}>({
+                    return Util.prompt<{modal: boolean}>({
                         name: 'modal',
                         type: 'confirm',
                         message: 'Show forms in modal: ',

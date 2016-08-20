@@ -19,19 +19,19 @@ import {FieldType} from "vesta-schema/Field";
  * @property {boolean} isSpecialController If true, the controller is of type addController or editController
  */
 export abstract class BaseNGControllerGen {
-    protected controllerFile:TsFileGen;
-    protected controllerClass:ClassGen;
-    protected path:string = 'src/app/modules';
-    protected templatePath:string = 'src/app/templates';
-    protected form:NGFormGen;
-    protected hasScope:boolean = false;
-    protected isSpecialController:boolean = false;
-    protected fileTypesFields:IModelFields = null;
-    protected relationTypesFields:IModelFields = null;
-    protected model:Model;
-    protected immutableConfig:INGControllerConfig;
+    protected controllerFile: TsFileGen;
+    protected controllerClass: ClassGen;
+    protected path: string = 'src/app/modules';
+    protected templatePath: string = 'src/app/templates';
+    protected form: NGFormGen;
+    protected hasScope: boolean = false;
+    protected isSpecialController: boolean = false;
+    protected fileTypesFields: IModelFields = null;
+    protected relationTypesFields: IModelFields = null;
+    protected model: Model;
+    protected immutableConfig: INGControllerConfig;
 
-    constructor(protected config:INGControllerConfig) {
+    constructor(protected config: INGControllerConfig) {
         this.immutableConfig = JSON.parse(JSON.stringify(this.config));
         if (/.+controller$/i.exec(config.name)) {
             config.name = config.name.replace(/controller$/i, '');
@@ -96,7 +96,7 @@ export abstract class BaseNGControllerGen {
      * add the INGInjectable param to the this.config.injects
      * @param inject
      */
-    protected addInjection(inject:INGInjectable) {
+    protected addInjection(inject: INGInjectable) {
         if (NGDependencyInjector.preInitiatedServices.indexOf(inject.name) >= 0) return;
         for (let i = this.config.injects.length; i--;) {
             if (this.config.injects[i].name == inject.name) return;
@@ -198,7 +198,7 @@ export abstract class BaseNGControllerGen {
         let ctrlName = _.camelCase(this.config.name),
             formName = `${ctrlName}Form`,
             includePath = Util.joinPath('tpl', this.config.module, ctrlName),
-            config:INGFormWrapperConfig = <INGFormWrapperConfig>{};
+            config: INGFormWrapperConfig = <INGFormWrapperConfig>{};
         config.formPath = Util.joinPath(includePath, `${formName}.html`);
         FsUtil.writeFile(path.join(this.templatePath, `${ctrlName}Form.html`), this.form.generate());
         config.isModal = this.config.openFormInModal;

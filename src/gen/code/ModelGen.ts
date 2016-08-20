@@ -11,9 +11,7 @@ import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 import {Model, IModelFields, IModel} from "vesta-schema/Model";
-import {Connection, config, Request} from "mssql";
 import {Err} from "vesta-util/Err";
-import {DatabaseError} from "vesta-schema/error/DatabaseError";
 import {IStructureProperty} from "../core/AbstractStructureGen";
 import {Schema} from "vesta-schema/Schema";
 import {Field, FieldType} from "vesta-schema/Field";
@@ -21,20 +19,20 @@ import {Util} from "../../util/Util";
 let xml2json = require('xml-to-json');
 
 interface IFields {
-    [name:string]:FieldGen
+    [name: string]: FieldGen
 }
 
 export class ModelGen {
 
-    private modelFile:TsFileGen;
-    private modelClass:ClassGen;
-    private modelInterface:InterfaceGen;
-    private path:string = 'src/cmn/models';
-    private vesta:Vesta;
-    private fields:IFields = {};
-    private xml:string;
+    private modelFile: TsFileGen;
+    private modelClass: ClassGen;
+    private modelInterface: InterfaceGen;
+    private path: string = 'src/cmn/models';
+    private vesta: Vesta;
+    private fields: IFields = {};
+    private xml: string;
 
-    constructor(private args:Array<string>) {
+    constructor(private args: Array<string>) {
         this.vesta = Vesta.getInstance();
         if (fs.existsSync(args[1])) {
             this.xml = args[1];
@@ -80,7 +78,7 @@ export class ModelGen {
     }
 
     private readField() {
-        let question:Question = <Question>{
+        let question: Question = <Question>{
             name: 'fieldName',
             type: 'input',
             message: 'Field Name: '
@@ -89,7 +87,7 @@ export class ModelGen {
         let idField = new FieldGen(this.modelFile, 'id');
         idField.setAsPrimary();
         this.fields['id'] = idField;
-        Util.prompt<{fieldName:string}>(question).then(answer => {
+        Util.prompt<{fieldName: string}>(question).then(answer => {
             if (!answer.fieldName) return this.write();
             let fieldName = _.camelCase(<string>answer.fieldName);
             let field = new FieldGen(this.modelFile, fieldName);
@@ -158,7 +156,7 @@ export class ModelGen {
     }
 
     // todo import from existing database
-    private importFromSQL() {
+    /*private importFromSQL() {
         let SQLConnection = new Connection(<config>{
             server: 'localhost',
             port: 1433,
@@ -225,7 +223,7 @@ export class ModelGen {
                 }
             })
         })
-    }
+     }*/
 
     generate() {
         // this.importFromSQL();
@@ -240,14 +238,14 @@ export class ModelGen {
         for (let fieldNames = Object.keys(this.fields), i = 0, il = fieldNames.length; i < il; ++i) {
             this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
             let {fieldName, fieldType, interfaceFieldType, defaultValue} = this.fields[fieldNames[i]].getNameTypePair();
-            let property:IStructureProperty = {
+            let property: IStructureProperty = {
                 name: fieldName,
                 type: fieldType,
                 access: ClassGen.Access.Public,
                 defaultValue: defaultValue,
             };
             this.modelClass.addProperty(property);
-            let iProperty:IStructureProperty = <IStructureProperty>_.assign({}, property, {
+            let iProperty: IStructureProperty = <IStructureProperty>_.assign({}, property, {
                 isOptional: true,
                 type: interfaceFieldType
             });
@@ -257,7 +255,7 @@ export class ModelGen {
         FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
 
-    static getModelsList():any {
+    static getModelsList(): any {
         let vesta = Vesta.getInstance(),
             config = vesta.getConfig(),
             modelDirectory = path.join(process.cwd(), config.type == ProjectGen.Type.ServerSide ? 'src/cmn/models' : 'src/app/cmn/models'),
@@ -288,7 +286,7 @@ export class ModelGen {
      * @param modelName this might also contains the path to the model
      * @returns {Model}
      */
-    static getModel(modelName:string):IModel {
+    static getModel(modelName: string): IModel {
         let possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/app/cmn/models/'],
             pathToModel = `${modelName}.js`;
         let className = ModelGen.extractModelName(pathToModel);
@@ -305,11 +303,11 @@ export class ModelGen {
         return null;
     }
 
-    static getFieldsByType(modelName:string, fieldType:FieldType):IModelFields {
+    static getFieldsByType(modelName: string, fieldType: FieldType): IModelFields {
         let model = ModelGen.getModel(ModelGen.extractModelName(modelName));
-        let fieldsOfType:IModelFields = null;
+        let fieldsOfType: IModelFields = null;
         if (!model) return fieldsOfType;
-        let fields:IModelFields = (<Schema>model.schema).getFields();
+        let fields: IModelFields = (<Schema>model.schema).getFields();
         for (let names = Object.keys(fields), i = 0, il = names.length; i < il; ++i) {
             var field = fields[names[i]];
             if (field.properties.type == fieldType) {
@@ -324,11 +322,11 @@ export class ModelGen {
         return fieldsOfType;
     }
 
-    static extractModelName(modelPath:string):string {
+    static extractModelName(modelPath: string): string {
         return path.parse(modelPath).name;
     }
 
-    static getUniqueFieldNameOfRelatedModel(field:Field):string {
+    static getUniqueFieldNameOfRelatedModel(field: Field): string {
         if (!field.properties.relation) throw new Err(Err.Code.WrongInput, `${field.fieldName} is not of type Relationship`);
         let targetFields = field.properties.relation.model.schema.getFields();
         let names = Object.keys(targetFields);

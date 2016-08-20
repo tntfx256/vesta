@@ -8,33 +8,33 @@ import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 
 export interface IImportStatement {
-    name:string;
-    from:string;
-    type?:number;
+    name: string;
+    from: string;
+    type?: number;
 }
 
 export interface IMixin {
-    name?:string;
-    code:string;
-    position?:number;
+    name?: string;
+    code: string;
+    position?: number;
 }
 
 export class TsFileGen {
     static CodeLocation = {AfterImport: 1, AfterEnum: 2, AfterInterface: 3, AfterClass: 4, AfterMethod: 5};
     static ImportType = {Module: 1, Require: 2, Legacy: 3, Namespace: 4};
-    private refs:Array<string> = [];
-    private mixins:Array<IMixin> = [];
-    private methods:Array<MethodGen> = [];
-    private enums:Array<EnumGen> = [];
-    private classes:Array<ClassGen> = [];
-    private interfaces:Array<InterfaceGen> = [];
-    private importStatements:Array<string> = [];
+    private refs: Array<string> = [];
+    private mixins: Array<IMixin> = [];
+    private methods: Array<MethodGen> = [];
+    private enums: Array<EnumGen> = [];
+    private classes: Array<ClassGen> = [];
+    private interfaces: Array<InterfaceGen> = [];
+    private importStatements: Array<string> = [];
 
-    constructor(public name:string) {
+    constructor(public name: string) {
 
     }
 
-    public addReference(...refs:Array<string>):void {
+    public addReference(...refs: Array<string>): void {
         refs.forEach(ref=> {
             if (this.refs.indexOf(ref) < 0) {
                 this.refs.push(ref);
@@ -48,7 +48,7 @@ export class TsFileGen {
      * Legacy:      <code>var nameParameter = require('fromParameter')</code>
      * Namespace:   <code>import nameParameter = fromParameter</code>
      */
-    public addImport(name:string, from:string, type:number = TsFileGen.ImportType.Module) {
+    public addImport(name: string, from: string, type: number = TsFileGen.ImportType.Module) {
         var statement = `import ${name} `;
         switch (type) {
             case TsFileGen.ImportType.Require:
@@ -68,7 +68,7 @@ export class TsFileGen {
         }
     }
 
-    public addClass(name?:string, isAbstract?:boolean):ClassGen {
+    public addClass(name?: string, isAbstract?: boolean): ClassGen {
         if (!name) {
             name = this.name;
         }
@@ -80,7 +80,7 @@ export class TsFileGen {
         return clss;
     }
 
-    public getClass(name:string):ClassGen {
+    public getClass(name: string): ClassGen {
         name = _.capitalize(_.camelCase(name));
         for (var i = this.classes.length; i--;) {
             if (this.classes[i].name == name) {
@@ -90,7 +90,7 @@ export class TsFileGen {
         return null;
     }
 
-    public addInterface(inputName?:string):InterfaceGen {
+    public addInterface(inputName?: string): InterfaceGen {
         var name = inputName;
         if (!name) {
             name = this.name;
@@ -104,7 +104,7 @@ export class TsFileGen {
         return intfc;
     }
 
-    public getInterface(name:string):InterfaceGen {
+    public getInterface(name: string): InterfaceGen {
         name = _.capitalize(_.camelCase(name));
         if (name.charAt(0) != 'I') name += `I${name}`;
         for (var i = this.interfaces.length; i--;) {
@@ -115,7 +115,7 @@ export class TsFileGen {
         return null;
     }
 
-    public addEnum(name:string):EnumGen {
+    public addEnum(name: string): EnumGen {
         name = _.capitalize(_.camelCase(name));
         var enm = this.getEnum(name);
         if (enm) return enm;
@@ -124,7 +124,7 @@ export class TsFileGen {
         return enm;
     }
 
-    public getEnum(name:string):EnumGen {
+    public getEnum(name: string): EnumGen {
         name = _.capitalize(_.camelCase(name));
         for (var i = this.enums.length; i--;) {
             if (this.enums[i].name == name) {
@@ -134,7 +134,7 @@ export class TsFileGen {
         return null;
     }
 
-    public addMethod(name:string):MethodGen {
+    public addMethod(name: string): MethodGen {
         name = _.camelCase(name);
         var method = this.getMethod(name);
         if (method) return method;
@@ -143,7 +143,7 @@ export class TsFileGen {
         return method;
     }
 
-    public getMethod(name:string):MethodGen {
+    public getMethod(name: string): MethodGen {
         name = _.camelCase(name);
         for (var i = this.methods.length; i--;) {
             if (this.enums[i].name == name) {
@@ -153,7 +153,7 @@ export class TsFileGen {
         return null;
     }
 
-    public addMixin(code:string, position:number = TsFileGen.CodeLocation.AfterImport):void {
+    public addMixin(code: string, position: number = TsFileGen.CodeLocation.AfterImport): void {
         this.mixins.push({code: code, position: position});
     }
 
@@ -167,7 +167,7 @@ export class TsFileGen {
         return code ? `\n${code}` : '';
     }
 
-    public generate():string {
+    public generate(): string {
         var code = '';
         code += this.refs.join('\n');
         code += this.importStatements.join('\n');
@@ -202,7 +202,7 @@ export class TsFileGen {
         return code;
     }
 
-    public write(directory:string, ext:string = 'ts'):void {
+    public write(directory: string, ext: string = 'ts'): void {
         try {
             FsUtil.writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
         } catch (e) {

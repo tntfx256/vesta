@@ -6,9 +6,9 @@ import {FsUtil} from "../../util/FsUtil";
 import {CmdUtil, IExecOptions} from "../../util/CmdUtil";
 
 export class CommonGen {
-    private vesta:Vesta;
+    private vesta: Vesta;
 
-    constructor(private config:IProjectGenConfig) {
+    constructor(private config: IProjectGenConfig) {
         this.vesta = Vesta.getInstance();
     }
 
@@ -32,7 +32,7 @@ export class CommonGen {
         let repository = this.config.repository,
             templateRepo = this.vesta.getProjectConfig().repository,
             cmnDir = repository.common,
-            execOptions:IExecOptions = {cwd: cmnDir};
+            execOptions: IExecOptions = {cwd: cmnDir};
         GitGen.clone(GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), cmnDir);
         GitGen.cleanClonedRepo(cmnDir);
         CmdUtil.execSync(`git init`, execOptions);

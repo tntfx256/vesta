@@ -7,10 +7,10 @@ import {FsUtil} from "../../../util/FsUtil";
 import {Log} from "../../../util/Log";
 
 export interface IClientAppConfig {
-    platform:string;
-    isAdminPanel:boolean;
-    type:string;
-    framework:string;
+    platform: string;
+    isAdminPanel: boolean;
+    type: string;
+    framework: string;
 }
 
 export abstract class ClientAppGen {
@@ -19,15 +19,15 @@ export abstract class ClientAppGen {
     static Platform = {Browser: 'browser', Cordova: 'cordova'};
     static Framework = {Material: 'material', Ionic: 'ionic'};
 
-    protected isCordova:boolean;
-    protected vesta:Vesta;
+    protected isCordova: boolean;
+    protected vesta: Vesta;
 
-    constructor(protected config:IProjectGenConfig) {
+    constructor(protected config: IProjectGenConfig) {
         this.isCordova = config.client.platform == ClientAppGen.Platform.Cordova;
         this.vesta = Vesta.getInstance(config);
     }
 
-    private getRepoName():string {
+    private getRepoName(): string {
         var name = '',
             repo = this.vesta.getProjectConfig().repository;
         if (this.config.client.platform == ClientAppGen.Platform.Cordova) {
@@ -62,9 +62,9 @@ export abstract class ClientAppGen {
         }
     }
 
-    public static getGeneratorConfig():Promise<IClientAppConfig> {
-        var config:IClientAppConfig = <IClientAppConfig>{};
-        var qs:Array<Question> = [
+    public static getGeneratorConfig(): Promise<IClientAppConfig> {
+        var config: IClientAppConfig = <IClientAppConfig>{};
+        var qs: Array<Question> = [
             <Question>{
                 type: 'list',
                 name: 'platform',
@@ -73,12 +73,12 @@ export abstract class ClientAppGen {
             }];
         Log.info(`For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)`);
         return new Promise((resolve)=> {
-            Util.prompt<{platform:string}>(qs).then(answer=> {
+            Util.prompt<{platform: string}>(qs).then(answer=> {
                 config.type = ClientAppGen.Type.Angular;
                 config.platform = answer.platform;
                 if (config.platform == ClientAppGen.Platform.Browser) {
                     config.framework = ClientAppGen.Framework.Material;
-                    return Util.prompt<{isCPanel:boolean}>({
+                    return Util.prompt<{isCPanel: boolean}>({
                         type: 'confirm',
                         name: 'isCPanel',
                         message: 'Is Admin Panel',

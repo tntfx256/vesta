@@ -8,7 +8,7 @@ var isRoot = require('is-root');
 export class DockerUtil {
 
     public static cleanup() {
-        var execOption:IExecOptions = {
+        var execOption: IExecOptions = {
             silent: true
         };
         // removing volumes
@@ -34,16 +34,17 @@ export class DockerUtil {
         CmdUtil.execSync(`systemctl enable docker`);
         CmdUtil.execSync(`docker --version`);
         CmdUtil.execSync(`groupadd docker`);
-        CmdUtil.execSync(`usermod -aG docker ${OsUtil.getUserName()}`);
+        Util.prompt<{username: string}>(<Question>{message: 'Username to be added to docker group', type: 'input'})
+            .then(answer=> CmdUtil.execSync(`usermod -aG docker ${answer.username}`));
     }
 
     public static installCompose() {
         if (!isRoot()) return Log.error('You must run this command as root!');
-        Util.prompt<{version:string}>(<Question>{
+        Util.prompt<{version: string}>(<Question>{
             name: 'version',
             type: 'input',
             message: 'Enter docker-compose version that you wish to install: ',
-            default: '1.7.0'
+            default: '1.8.0'
         })
             .then(answer=> {
                 if (answer.version) {
@@ -56,11 +57,15 @@ export class DockerUtil {
 
     }
 
-    public static getComposicName(name:string):string {
+    public static getComposicName(name: string): string {
         return name.replace(/[\W_]/g, '').toLowerCase();
     }
 
-    public static isVolumeDriver(name:string):boolean {
+    public static isVolumeDriver(name: string): boolean {
         return name.indexOf('.') === 0 || name.indexOf('/') === 0;
+    }
+
+    public static getIpPorts(containerNames: string) {
+        CmdUtil.getOutputOf(`docker ps --filter 'name=${containerNames}'`);
     }
 }

@@ -9,15 +9,15 @@ import {Util} from "../../util/Util";
 
 export class FieldGen {
     // private isMultilingual:boolean = false;
-    private properties:IFieldProperties = <IFieldProperties>{};
-    private enumName:string;
+    private properties: IFieldProperties = <IFieldProperties>{};
+    private enumName: string;
 
-    constructor(private modelFile:TsFileGen, private name:string) {
+    constructor(private modelFile: TsFileGen, private name: string) {
         this.properties.enum = [];
         this.properties.fileType = [];
     }
 
-    private getFieldTypeChoices(isForList:boolean = false):Array<string> {
+    private getFieldTypeChoices(isForList: boolean = false): Array<string> {
         return isForList ?
             [
                 'String',//FieldType.String,
@@ -51,15 +51,15 @@ export class FieldGen {
             ];
     }
 
-    public readFieldProperties():Promise<any> {
-        let question:Question = <Question>{
+    public readFieldProperties(): Promise<any> {
+        let question: Question = <Question>{
             name: 'fieldType',
             type: 'list',
             message: 'Field Type: ',
             default: 'String',
             choices: this.getFieldTypeChoices()
         };
-        return Util.prompt<{fieldType:string}>(question)
+        return Util.prompt<{fieldType: string}>(question)
             .then(fieldTypeAnswer => {
                 this.properties.type = FieldType[fieldTypeAnswer.fieldType];
                 let questions = this.getQuestionsBasedOnFieldType(this.properties.type, false);
@@ -75,7 +75,7 @@ export class FieldGen {
             });
     }
 
-    private setPropertiesFromAnswers(answers:any) {
+    private setPropertiesFromAnswers(answers: any) {
         for (let properties = Object.keys(answers), i = 0, il = properties.length; i < il; ++i) {
             let property = properties[i];
             if (['relatedModel'].indexOf(property) >= 0) continue;
@@ -97,7 +97,7 @@ export class FieldGen {
         this.properties[name] = type;
     }
 
-    private getFileTypes(answer:string):Array<string> {
+    private getFileTypes(answer: string): Array<string> {
         let arr = answer.split(','),
             fileTypes = [];
         for (let i = arr.length; i--;) {
@@ -123,7 +123,7 @@ export class FieldGen {
         return fileTypes;
     }
 
-    private getRelationCodeFromNumber(type:number, model:string):string {
+    private getRelationCodeFromNumber(type: number, model: string): string {
         switch (type) {
             case RelationType.Many2Many:
                 return `.areManyOf(${model})`;
@@ -134,7 +134,7 @@ export class FieldGen {
         }
     }
 
-    private getRelationNumberFromCode(type:string):number {
+    private getRelationNumberFromCode(type: string): number {
         switch (type) {
             case 'One2One':
                 return RelationType.One2One;
@@ -148,9 +148,9 @@ export class FieldGen {
         this.properties.primary = true;
     }
 
-    private getQuestionsBasedOnFieldType(type:FieldType, isListItem:boolean):Array<Question> {
+    private getQuestionsBasedOnFieldType(type: FieldType, isListItem: boolean): Array<Question> {
         let askForDefaultValue = false,
-            qs:Array<Question> = [];
+            qs: Array<Question> = [];
         if (!isListItem) {
             qs.push(<Question>{name: 'required', type: 'confirm', message: 'Is Required: ', default: false});
         }
@@ -216,7 +216,7 @@ export class FieldGen {
         return qs;
     }
 
-    private getCodeForActualFieldType(type:FieldType):string {
+    private getCodeForActualFieldType(type: FieldType): string {
         switch (type) {
             case FieldType.String:
             case FieldType.Text:
@@ -252,7 +252,7 @@ export class FieldGen {
         return 'any';
     }
 
-    private getCodeForFieldType(type:FieldType):string {
+    private getCodeForFieldType(type: FieldType): string {
         if (this.properties.primary) return 'FieldType.Integer';
         switch (type) {
             case FieldType.String:
@@ -295,7 +295,7 @@ export class FieldGen {
         return 'FieldType.String';
     }
 
-    public generate():string {
+    public generate(): string {
         let code = `${this.modelFile.name}.schema.addField('${this.name}').type(${this.getCodeForFieldType(this.properties.type)})`;
         if (this.properties.type == FieldType.List) code += `.listOf(${this.getCodeForFieldType(this.properties.list)})`;
         if (this.properties.required) code += '.required()';
@@ -317,9 +317,9 @@ export class FieldGen {
         return code + ';';
     }
 
-    private genCodeForEnumField():string {
+    private genCodeForEnumField(): string {
         let enumArray = [],
-            firstEnum:string = this.properties.enum[0];
+            firstEnum: string = this.properties.enum[0];
         if (firstEnum.indexOf('.') > 0) {
             this.enumName = firstEnum.substr(0, firstEnum.indexOf('.'));
             enumArray = this.properties.enum;
@@ -342,7 +342,7 @@ export class FieldGen {
         return `.enum(${enumArray.join(", ")})`;
     }
 
-    public getNameTypePair():{fieldName:string, fieldType:string, interfaceFieldType:string, defaultValue:string} {
+    public getNameTypePair(): {fieldName: string, fieldType: string, interfaceFieldType: string, defaultValue: string} {
         let fieldType = this.properties.type == FieldType.Enum ? this.enumName : this.getCodeForActualFieldType(this.properties.type);
         return {
             fieldName: this.name,
@@ -378,7 +378,7 @@ export class FieldGen {
         return `.default(${value})`;
     }
 
-    private getDefaultValueForClassProperty():string {
+    private getDefaultValueForClassProperty(): string {
         switch (this.properties.type) {
             // case FieldType.String:
             // case FieldType.Text:

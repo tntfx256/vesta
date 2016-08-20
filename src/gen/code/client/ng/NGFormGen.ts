@@ -17,33 +17,33 @@ import {Schema} from "vesta-schema/Schema";
 import {Util} from "../../../../util/Util";
 
 export interface INGFormConfig {
-    name:string;
-    model:string;
-    module:string;
-    openFormInModal:boolean;
-    writeToFile?:boolean;
+    name: string;
+    model: string;
+    module: string;
+    openFormInModal: boolean;
+    writeToFile?: boolean;
 }
 
 export interface INGFormWrapperConfig {
-    type:string;
-    isModal:boolean;
-    formPath:string;
-    title:string;
-    ok:string;
-    cancel:string;
+    type: string;
+    isModal: boolean;
+    formPath: string;
+    title: string;
+    ok: string;
+    cancel: string;
 }
 
 export class NGFormGen {
 
     static Type = {Add: 'add', Edit: 'edit'};
 
-    private vesta:Vesta;
-    private model:IModel;
-    private schema:Schema;
-    private form:BaseNgFormGen;
-    private path:string = 'src/app/templates';
+    private vesta: Vesta;
+    private model: IModel;
+    private schema: Schema;
+    private form: BaseNgFormGen;
+    private path: string = 'src/app/templates';
 
-    constructor(private config:INGFormConfig) {
+    constructor(private config: INGFormConfig) {
         this.vesta = Vesta.getInstance();
         this.model = ModelGen.getModel(config.model);
         if (this.model) {
@@ -75,16 +75,16 @@ export class NGFormGen {
         return code;
     }
 
-    wrap(config:INGFormWrapperConfig):XMLGen {
+    wrap(config: INGFormWrapperConfig): XMLGen {
         return this.form.wrap(config);
     }
 
     static getGeneratorConfig(callback) {
         let models = Object.keys(ModelGen.getModelsList()),
-            config:INGFormConfig = <INGFormConfig>{};
+            config: INGFormConfig = <INGFormConfig>{};
         config.module = '';
 
-        let qs:Array<Question> = [
+        let qs: Array<Question> = [
             {name: 'module', type: 'input', message: 'Module Name: '}
         ];
         if (models.length) {
@@ -93,7 +93,7 @@ export class NGFormGen {
         } else {
             return Log.error('There is no model to generate form upon');
         }
-        Util.prompt<{module:string; model:string; modal:boolean;}>(qs)
+        Util.prompt<{module: string; model: string; modal: boolean;}>(qs)
             .then(answer => {
                 if (answer.module) {
                     config.module = answer.module;

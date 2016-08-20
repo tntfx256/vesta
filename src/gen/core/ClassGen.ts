@@ -8,13 +8,13 @@ export class ClassGen extends AbstractStructureGen {
         Private: 'private',
         Protected: 'protected'
     };
-    private mixins:Array<IMixin> = [];
+    private mixins: Array<IMixin> = [];
 
-    constructor(public name:string, public isAbstract:boolean = false) {
+    constructor(public name: string, public isAbstract: boolean = false) {
         super(name);
     }
 
-    public addMethod(name:string, access:string = ClassGen.Access.Public, isStatic:boolean = false, isAbstract:boolean = false):MethodGen {
+    public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false): MethodGen {
         var method = super.addMethod(name);
         method.setAccessType(access);
         method.setAsStatic(isStatic);
@@ -22,15 +22,15 @@ export class ClassGen extends AbstractStructureGen {
         return method;
     }
 
-    public addMixin(name:string, code:string) {
+    public addMixin(name: string, code: string) {
         this.mixins.push({name: name, code: code});
     }
 
-    public setAsAbstract(isAbstract:boolean = true) {
+    public setAsAbstract(isAbstract: boolean = true) {
         this.isAbstract = isAbstract;
     }
 
-    private getPropertiesCode():string {
+    private getPropertiesCode(): string {
         var codes = [];
         for (var i = 0, il = this.properties.length; i < il; ++i) {
             var code = (this.properties[i].access ? this.properties[i].access : 'public') + ' ';
@@ -45,7 +45,7 @@ export class ClassGen extends AbstractStructureGen {
         return codes.join('\n    ');
     }
 
-    public generate():string {
+    public generate(): string {
         var exp = this.shouldBeExported ? 'export ' : '',
             abs = this.isAbstract ? ' abstract ' : '';
         var code = `\n${exp}${abs}class ${this.name}`;
@@ -58,7 +58,7 @@ export class ClassGen extends AbstractStructureGen {
         if (this.constructorMethod) {
             code += this.constructorMethod.generate();
         }
-        var staticMethods:Array<MethodGen> = [];
+        var staticMethods: Array<MethodGen> = [];
         for (var i = 0, il = this.methods.length; i < il; ++i) {
             if (this.methods[i].isStatic()) {
                 staticMethods.push(this.methods[i]);

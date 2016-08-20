@@ -4,7 +4,7 @@ import {MaterialAppGen} from "./client/MaterialAppGen";
 import {IonicAppGen} from "./client/IonicAppGen";
 export class ClientAppGenFactory {
 
-    static create(config:IProjectGenConfig):ClientAppGen {
+    static create(config: IProjectGenConfig): ClientAppGen {
         switch (config.client.framework) {
             case ClientAppGen.Framework.Material:
                 return new MaterialAppGen(config);

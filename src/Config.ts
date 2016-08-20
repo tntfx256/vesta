@@ -1,18 +1,18 @@
 export interface IProjectConfigRepository {
-    baseUrl:string;
-    group:string;
-    common:string;
-    express:string;
-    ionic:string;
-    material:string;
-    cpanel:string;
+    baseUrl: string;
+    group: string;
+    common: string;
+    express: string;
+    ionic: string;
+    material: string;
+    cpanel: string;
 }
 
 export interface IProjectConfig {
-    repository:IProjectConfigRepository;
+    repository: IProjectConfigRepository;
 }
 
-export var Config:IProjectConfig = {
+export var Config: IProjectConfig = {
     repository: {
         baseUrl: 'https://github.com',
         group: 'VestaRayanAfzar',
