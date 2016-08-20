@@ -8,7 +8,7 @@ export class Util {
 
     static prompt<T>(questions: Question|Array<Question>): Promise<T> {
         return new Promise<T>(resolve=> {
-            inquirer.prompt(questions, answer=> resolve(<T>answer));
+            inquirer.prompt(questions, answer=> resolve(answer as any as T));
         })
     }
 
