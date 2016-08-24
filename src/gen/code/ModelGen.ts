@@ -83,16 +83,17 @@ export class ModelGen {
             type: 'input',
             message: 'Field Name: '
         };
-        Log.success('\n:: New field (press enter with no fieldName to exit)\n');
-        let idField = new FieldGen(this.modelFile, 'id');
-        idField.setAsPrimary();
-        this.fields['id'] = idField;
         Util.prompt<{fieldName: string}>(question).then(answer => {
             if (!answer.fieldName) return this.write();
             let fieldName = _.camelCase(<string>answer.fieldName);
             let field = new FieldGen(this.modelFile, fieldName);
             this.fields[fieldName] = field;
-            field.readFieldProperties().then(()=> this.readField())
+            field.readFieldProperties()
+                .then(()=> {
+                    Log.success('\n:: Press enter with empty fieldName when done\n');
+                    this.readField();
+                })
+                .catch(err=>console.log('read field', err));
         })
     }
 
@@ -157,75 +158,75 @@ export class ModelGen {
 
     // todo import from existing database
     /*private importFromSQL() {
-        let SQLConnection = new Connection(<config>{
-            server: 'localhost',
-            port: 1433,
-            user: 'sa',
-            password: '',
-            database: 'TestDB',
-            pool: {
-                min: 5,
-                max: 100,
-                idleTimeoutMillis: 1000,
-            }
-        });
-        SQLConnection.connect((err)=> {
-            if (err) {
-                return Promise.reject(new DatabaseError(Err.Code.DBConnection, err.message));
-            }
-            (new Request(SQLConnection)).query('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', (err, result)=> {
-                let schema = {};
-                for (let i = 0; i < result.length; i++) {
-                    schema[result[i]['TABLE_NAME']] = schema[result[i]['TABLE_NAME']] || {};
-                    schema[result[i]['TABLE_NAME']][result[i]['COLUMN_NAME']] = result[i];
-                }
+     let SQLConnection = new Connection(<config>{
+     server: 'localhost',
+     port: 1433,
+     user: 'sa',
+     password: '',
+     database: 'TestDB',
+     pool: {
+     min: 5,
+     max: 100,
+     idleTimeoutMillis: 1000,
+     }
+     });
+     SQLConnection.connect((err)=> {
+     if (err) {
+     return Promise.reject(new DatabaseError(Err.Code.DBConnection, err.message));
+     }
+     (new Request(SQLConnection)).query('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', (err, result)=> {
+     let schema = {};
+     for (let i = 0; i < result.length; i++) {
+     schema[result[i]['TABLE_NAME']] = schema[result[i]['TABLE_NAME']] || {};
+     schema[result[i]['TABLE_NAME']][result[i]['COLUMN_NAME']] = result[i];
+     }
 
-                for (let modelName in schema) {
-                    if (schema.hasOwnProperty(modelName)) {
-                        let model = new ModelGen([modelName]);
-                        let id = new FieldGen(this.modelFile, 'id');
-                        id.addProperty('type', 'integer');
-                        id.setAsPrimary();
-                        model.fields['id'] = id;
-                        for (let fieldName in schema[modelName]) {
-                            if (schema[modelName].hasOwnProperty(fieldName)) {
-                                let record = schema[modelName][fieldName];
-                                let field = new FieldGen(this.modelFile, fieldName);
-                                if (record['COLUMN_DEFAULT']) {
-                                    field.addProperty('default', record['COLUMN_DEFAULT']);
-                                }
-                                if (record['IS_NULLABLE'] == 'NO') {
-                                    field.addProperty('required', true);
-                                }
-                                switch (record['DATA_TYPE']) {
-                                    case 'decimal':
-                                        field.addProperty('type', 'number');
-                                        break;
-                                    case 'bigint':
-                                    case 'int':
-                                        field.addProperty('type', 'integer');
-                                        break;
-                                    case 'bit':
-                                        field.addProperty('type', 'boolean');
-                                        break;
-                                    case 'varbinary':
-                                        field.addProperty('type', 'object');
-                                        break;
-                                    default:
-                                        field.addProperty('type', 'string');
-                                        break;
-                                }
-                                model.fields[fieldName] = field;
-                            }
-                        }
-                        model.write();
-                    }
-                }
-            })
-        })
+     for (let modelName in schema) {
+     if (schema.hasOwnProperty(modelName)) {
+     let model = new ModelGen([modelName]);
+     let id = new FieldGen(this.modelFile, 'id');
+     id.addProperty('type', 'integer');
+     id.setAsPrimary();
+     model.fields['id'] = id;
+     for (let fieldName in schema[modelName]) {
+     if (schema[modelName].hasOwnProperty(fieldName)) {
+     let record = schema[modelName][fieldName];
+     let field = new FieldGen(this.modelFile, fieldName);
+     if (record['COLUMN_DEFAULT']) {
+     field.addProperty('default', record['COLUMN_DEFAULT']);
+     }
+     if (record['IS_NULLABLE'] == 'NO') {
+     field.addProperty('required', true);
+     }
+     switch (record['DATA_TYPE']) {
+     case 'decimal':
+     field.addProperty('type', 'number');
+     break;
+     case 'bigint':
+     case 'int':
+     field.addProperty('type', 'integer');
+     break;
+     case 'bit':
+     field.addProperty('type', 'boolean');
+     break;
+     case 'varbinary':
+     field.addProperty('type', 'object');
+     break;
+     default:
+     field.addProperty('type', 'string');
+     break;
+     }
+     model.fields[fieldName] = field;
+     }
+     }
+     model.write();
+     }
+     }
+     })
+     })
      }*/
 
-    generate() {
+    public generate() {
         // this.importFromSQL();
         if (this.xml) {
             this.readFields();
@@ -235,7 +236,15 @@ export class ModelGen {
     }
 
     private write() {
-        for (let fieldNames = Object.keys(this.fields), i = 0, il = fieldNames.length; i < il; ++i) {
+        let fieldNames = Object.keys(this.fields);
+        // adding the id field
+        if (fieldNames.indexOf('id') < 0) {
+            let idField = new FieldGen(this.modelFile, 'id');
+            idField.setAsPrimary();
+            this.fields['id'] = idField;
+            fieldNames.splice(0, 0, 'id');
+        }
+        for (let i = 0, il = fieldNames.length; i < il; ++i) {
             this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
             let {fieldName, fieldType, interfaceFieldType, defaultValue} = this.fields[fieldNames[i]].getNameTypePair();
             let property: IStructureProperty = {

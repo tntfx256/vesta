@@ -1,0 +1,51 @@
+{
+  "version": "v4",
+  "repo": "borisyankov/DefinitelyTyped",
+  "ref": "master",
+  "path": "typings",
+  "bundle": "typings/tsd.d.ts",
+  "installed": {
+    "express/express.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "serve-static/serve-static.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "mime/mime.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "node/node.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "express-serve-static-core/express-serve-static-core.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "shelljs/shelljs.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "yamljs/yamljs.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "es6-promise/es6-promise.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "through/through.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "inquirer/inquirer.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "rx/rx-lite.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "fs-extra/fs-extra.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "lodash/lodash.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    },
+    "colors/colors.d.ts": {
+      "commit": "324169800cb792855a96272f5d58f646e7b1d56d"
+    }
+  }
+}

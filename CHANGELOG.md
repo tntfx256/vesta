@@ -1,3 +1,7 @@
+# 0.8.1
+* adding docker utilities (clustering support)
+
+
 # 0.7.0
 * adding Relation (One2One, One2Many, Many2Many) field type for model generator 
 * adding List field type for model generator 
