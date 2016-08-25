@@ -6,6 +6,7 @@ import {ClassGen} from "../../../../core/ClassGen";
 import {MaterialListGen} from "./../list/MaterialListGen";
 import {TsFileGen} from "../../../../core/TSFileGen";
 import {FieldType} from "vesta-schema/Field";
+import {StringUtil} from "../../../../../util/StringUtil";
 
 interface IFileFieldsCode {
     // updating address file src of fetched record (e.g. Setting.asset/model/record.image)
@@ -34,13 +35,13 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.setModelRequiredInjections();
         let modelName = ModelGen.extractModelName(this.config.model);
         let ctrlName = _.camelCase(this.config.name),
-            capitalize = _.capitalize(ctrlName),
+            capitalize = StringUtil.fcUpper(ctrlName),
             modelInstanceName = _.camelCase(modelName),
             modelPlural = Util.plural(_.camelCase(modelName)),
             url = (this.config.module ? (this.config.module + '/') : '') + ctrlName + '/',
             edge = Util.joinPath(this.config.module, ctrlName),
             modelListName = `${modelPlural}List`,
-            modelSelectedListName = `selected${_.capitalize(modelPlural)}List`;
+            modelSelectedListName = `selected${StringUtil.fcUpper(modelPlural)}List`;
         this.controllerFile.addImport(`{IQueryRequest, IQueryResult, IDeleteResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport(`{ExtArray}`, 'vesta-util/ExtArray');
         this.controllerClass.addProperty({
@@ -156,7 +157,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             modelInstanceName = _.camelCase(modelName),
             formName = `${modelInstanceName}Form`,
             edge = Util.joinPath(this.config.module, ctrlName);
-        this.controllerFile.name = _.capitalize(ctrlName) + 'AddController';
+        this.controllerFile.name = StringUtil.fcUpper(ctrlName) + 'AddController';
         this.controllerClass.name = this.controllerFile.name;
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
         this.controllerFile.addImport(`{IUpsertResult, IQueryResult}`, 'vesta-schema/ICRUDResult');
@@ -196,7 +197,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             modelInstanceName = _.camelCase(modelName),
             formName = `${modelInstanceName}Form`,
             edge = Util.joinPath(this.config.module, ctrlName);
-        this.controllerFile.name = _.capitalize(ctrlName) + 'EditController';
+        this.controllerFile.name = StringUtil.fcUpper(ctrlName) + 'EditController';
         this.controllerClass.name = this.controllerFile.name;
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
         this.controllerFile.addImport(`{IQueryRequest, IQueryResult, IUpsertResult}`, 'vesta-schema/ICRUDResult');
@@ -281,7 +282,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             let targetModelInstanceName = _.camelCase(targetModelName);
             let targetFieldName = ModelGen.getUniqueFieldNameOfRelatedModel(this.relationTypesFields[field]);
             this.controllerFile.addImport(`{I${targetModelName}}`, Util.genRelativePath(this.path, `src/app/cmn/models/${targetModelName}`));
-            let upcField = _.capitalize(field);
+            let upcField = StringUtil.fcUpper(field);
             // this method will search items from server
             let search = this.controllerClass.addMethod(`search${upcField}`);
             search.addParameter({name: 'searchText', type: 'string'});

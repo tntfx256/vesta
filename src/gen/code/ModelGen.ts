@@ -16,6 +16,7 @@ import {IStructureProperty} from "../core/AbstractStructureGen";
 import {Schema} from "vesta-schema/Schema";
 import {Field, FieldType} from "vesta-schema/Field";
 import {Util} from "../../util/Util";
+import {StringUtil} from "../../util/StringUtil";
 let xml2json = require('xml-to-json');
 
 interface IFields {
@@ -42,7 +43,7 @@ export class ModelGen {
     }
 
     private initModel(modelName) {
-        modelName = _.capitalize(_.camelCase(modelName));
+        modelName = StringUtil.fcUpper(_.camelCase(modelName));
         this.modelFile = new TsFileGen(modelName);
         this.modelInterface = this.modelFile.addInterface();
         this.modelClass = this.modelFile.addClass();

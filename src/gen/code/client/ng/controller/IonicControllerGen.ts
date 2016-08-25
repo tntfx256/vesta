@@ -4,6 +4,7 @@ import {BaseNGControllerGen} from "./BaseNGControllerGen";
 import {XMLGen} from "../../../../core/XMLGen";
 import {SassGen} from "../../../../file/SassGen";
 import {FsUtil} from "../../../../../util/FsUtil";
+import {StringUtil} from "../../../../../util/StringUtil";
 
 export class IonicControllerGen extends BaseNGControllerGen {
 
@@ -11,7 +12,7 @@ export class IonicControllerGen extends BaseNGControllerGen {
         var template = new XMLGen('ion-content'),
             pageName = _.camelCase(this.config.name);
         template.setAttribute('id', `${pageName}-page`);
-        pageName = _.capitalize(_.camelCase(this.config.name));
+        pageName = StringUtil.fcUpper(_.camelCase(this.config.name));
         template.html(`<h1>${pageName} Page</h1>
 <div ng-include="'tpl/${this.config.module}/${_.camelCase(this.config.name)}/${_.camelCase(this.config.name)}List.html'"></div>`);
         var sass = new SassGen(this.config.name, SassGen.Type.Page);

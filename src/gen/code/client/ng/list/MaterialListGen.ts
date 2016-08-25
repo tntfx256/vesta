@@ -9,6 +9,7 @@ import {FsUtil} from "../../../../../util/FsUtil";
 import {IModelFields, IModel} from "vesta-schema/Model";
 import {Schema} from "vesta-schema/Schema";
 import {FieldType} from "vesta-schema/Field";
+import {StringUtil} from "../../../../../util/StringUtil";
 
 export class MaterialListGen {
     private list: XMLGen;
@@ -115,7 +116,7 @@ export class MaterialListGen {
                     break;
                 case FieldType.Enum :
                     headerCode += `${splitter}<th md-column md-order-by="${fieldName}">${fieldName}</th>`;
-                    rowCode += `${splitter}<td md-cell>{{vm.${_.capitalize(fieldName)}[${modelInstanceName}.${fieldName}]}}</td>`;
+                    rowCode += `${splitter}<td md-cell>{{vm.${StringUtil.fcUpper(fieldName)}[${modelInstanceName}.${fieldName}]}}</td>`;
                     break;
                 case FieldType.File :
                 case FieldType.Password :

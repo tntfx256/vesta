@@ -5,6 +5,7 @@ import {INGFormWrapperConfig} from "../NGFormGen";
 import {Field, FieldType, RelationType, IFieldProperties} from "vesta-schema/Field";
 import {ModelGen} from "../../../ModelGen";
 import {Util} from "../../../../../util/Util";
+import {StringUtil} from "../../../../../util/StringUtil";
 
 export class MaterialFormGen extends BaseNgFormGen {
 
@@ -55,7 +56,7 @@ export class MaterialFormGen extends BaseNgFormGen {
             .setAttribute('md-selected-item', `vm.${modelInstanceName}.${field.fieldName}`)
             .setAttribute('md-item-text', `item.${targetFieldName}`)
             // .setAttribute('ng-disabled', `!vm.${field.fieldName}.length`)
-            .setAttribute('md-items', `item in vm.search${_.capitalize(field.fieldName)}(vm.${field.fieldName}SearchText)`);
+            .setAttribute('md-items', `item in vm.search${StringUtil.fcUpper(field.fieldName)}(vm.${field.fieldName}SearchText)`);
         //
         let content = new XMLGen('md-item-template');
         content.html(`<span>{{item.${targetFieldName}}}</span>`);
@@ -87,7 +88,7 @@ export class MaterialFormGen extends BaseNgFormGen {
         autoComplete.setAttribute('md-input-name', field.fieldName)
             .setAttribute('md-input-id', field.fieldName)
             .setAttribute('md-search-text', `vm.${field.fieldName}SearchText`)
-            .setAttribute('md-items', `item in vm.search${_.capitalize(field.fieldName)}(vm.${field.fieldName}SearchText)`)
+            .setAttribute('md-items', `item in vm.search${StringUtil.fcUpper(field.fieldName)}(vm.${field.fieldName}SearchText)`)
             .setAttribute('md-item-text', `item.${targetFieldName}`)
             .setAttribute('md-delay', MaterialFormGen.AutoCompleteDelay)
             .setAttribute('placeholder', field.fieldName);
@@ -157,7 +158,7 @@ export class MaterialFormGen extends BaseNgFormGen {
 
     public wrap(config: INGFormWrapperConfig): XMLGen {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
-            modelClassName = _.capitalize(modelInstanceName),
+            modelClassName = StringUtil.fcUpper(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'md-dialog' : 'div'),
             form = new XMLGen('form');
         wrapper.setAttribute('aria-label', config.title).addClass('form-wrapper');

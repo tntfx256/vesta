@@ -13,6 +13,7 @@ import {FsUtil} from "../../../util/FsUtil";
 import {Log} from "../../../util/Log";
 import {IModelFields} from "vesta-schema/Model";
 import {FieldType} from "vesta-schema/Field";
+import {StringUtil} from "../../../util/StringUtil";
 
 export interface IExpressControllerConfig {
     route: string;
@@ -44,7 +45,7 @@ export class ExpressControllerGen {
         this.apiVersion = version;
         this.path = path.join(this.path, version, 'controller', this.config.route);
         this.rawName = _.camelCase(this.config.name);
-        let controllerName = _.capitalize(this.rawName) + 'Controller';
+        let controllerName = StringUtil.fcUpper(this.rawName) + 'Controller';
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
@@ -76,7 +77,7 @@ export class ExpressControllerGen {
     private addCRUDOperations() {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName),
-            modelClassName = _.capitalize(modelInstanceName);
+            modelClassName = StringUtil.fcUpper(modelInstanceName);
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         this.controllerFile.addImport(`{Err}`, 'vesta-util/Err');
         // this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
@@ -231,7 +232,7 @@ export class ExpressControllerGen {
         } else {
             code = `let delList:Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
-                let oldName = `old${_.capitalize(fileNames[i])}`;
+                let oldName = `old${StringUtil.fcUpper(fileNames[i])}`;
                 code += `
                 if (upl.${fileNames[i]}) {
                     let ${oldName} = ${modelInstanceName}.${fileNames[i]};

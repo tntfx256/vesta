@@ -4,7 +4,7 @@ export class StringUtil {
         return string.replace(/\r?\n|\r$/, '');
     }
 
-    public static fix(string: string, length: number, align: string='left') {
+    public static fix(string: string, length: number, align: string = 'left') {
         let offset = length - string.length;
         if (!offset) return string;
         if (offset > 0) {
@@ -21,5 +21,13 @@ export class StringUtil {
         }
         // offset < 0
         return
+    }
+
+    /**
+     * Uppercase only the first character in str
+     */
+    public static fcUpper(str: string) {
+        if (!str.length) return str;
+        return str[0].toUpperCase() + str.substr(1);
     }
 }

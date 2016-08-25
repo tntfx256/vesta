@@ -6,6 +6,7 @@ import {Log} from "../../util/Log";
 import {IFieldProperties, FieldType, RelationType} from "vesta-schema/Field";
 import {FileMemeType} from "vesta-util/FileMemeType";
 import {Util} from "../../util/Util";
+import {StringUtil} from "../../util/StringUtil";
 
 export class FieldGen {
     // private isMultilingual:boolean = false;
@@ -325,13 +326,13 @@ export class FieldGen {
             enumArray = this.properties.enum;
             Log.warning(`Do not forget to import the (${this.enumName})`);
         } else {
-            this.enumName = _.capitalize(this.modelFile.name) + _.capitalize(this.name);
+            this.enumName = StringUtil.fcUpper(this.modelFile.name) + StringUtil.fcUpper(this.name);
             let enumField = this.modelFile.addEnum(this.enumName);
             enumField.shouldExport(true);
             firstEnum = `${this.enumName}.${firstEnum}`;
             for (let i = 0, il = this.properties.enum.length; i < il; ++i) {
                 enumField.addProperty(this.properties.enum[i]);
-                let v = _.capitalize(this.properties.enum[i]);
+                let v = StringUtil.fcUpper(this.properties.enum[i]);
                 enumArray.push(`${this.enumName}.${v}`);
                 if (i == 0) {
                     firstEnum = enumArray[0];

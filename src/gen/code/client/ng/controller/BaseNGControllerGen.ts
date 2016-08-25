@@ -14,6 +14,7 @@ import {FsUtil} from "../../../../../util/FsUtil";
 import {ModelGen} from "../../../ModelGen";
 import {Model, IModelFields} from "vesta-schema/Model";
 import {FieldType} from "vesta-schema/Field";
+import {StringUtil} from "../../../../../util/StringUtil";
 
 /**
  * @property {boolean} isSpecialController If true, the controller is of type addController or editController
@@ -39,7 +40,7 @@ export abstract class BaseNGControllerGen {
         let ctrlName = _.camelCase(config.name);
         let ctrlClassName = `${ctrlName}Controller`;
         this.path = path.join(this.path, config.module);
-        this.controllerFile = new TsFileGen(_.capitalize(ctrlClassName));
+        this.controllerFile = new TsFileGen(StringUtil.fcUpper(ctrlClassName));
         this.controllerClass = this.controllerFile.addClass();
         this.controllerClass.setParentClass('BaseController');
         this.controllerClass.setConstructor().setContent(`super();`);
@@ -165,7 +166,7 @@ export abstract class BaseNGControllerGen {
     });`;
         // adding router for add and edit state
         if (this.config.model && !this.config.openFormInModal) {
-            url = _.capitalize(url);
+            url = StringUtil.fcUpper(url);
             code += `
     $stateProvider.state('${state}-add', {
         url: '/add${url}',
@@ -237,7 +238,7 @@ export abstract class BaseNGControllerGen {
             pageName = _.camelCase(this.config.name);
         let list = this.config.model ? `\n    <div ng-include="'${this.getTemplatePath()}/${_.camelCase(this.config.name)}List.html'"></div>` : '';
         template.setAttribute('id', `${pageName}-page`).addClass('page');
-        pageName = _.capitalize(_.camelCase(this.config.name));
+        pageName = StringUtil.fcUpper(_.camelCase(this.config.name));
         template.html(`<h1>${pageName} Page</h1>${list}`);
         let sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
@@ -245,7 +246,7 @@ export abstract class BaseNGControllerGen {
     }
 
     protected createScope() {
-        let name = _.capitalize(_.camelCase(this.config.name));
+        let name = StringUtil.fcUpper(_.camelCase(this.config.name));
         let scopeInterface = this.controllerFile.addInterface(`I${name}Scope`);
         scopeInterface.setParentClass('IScope');
         this.controllerFile.addImport('{IScope}', 'angular');

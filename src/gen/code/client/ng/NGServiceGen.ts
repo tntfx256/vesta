@@ -4,6 +4,7 @@ import {ClassGen} from "../../../core/ClassGen";
 import {NGDependencyInjector, INGInjectable} from "./NGDependencyInjector";
 import {Placeholder} from "../../../core/Placeholder";
 import {TsFileGen} from "../../../core/TSFileGen";
+import {StringUtil} from "../../../../util/StringUtil";
 
 export interface INGServcieConfig {
     name: string;
@@ -21,7 +22,7 @@ export class NGServiceGen {
             config.name = config.name.replace(/service$/i, '');
         }
         var rawName = _.camelCase(config.name) + 'Service';
-        this.serviceFile = new TsFileGen(_.capitalize(rawName));
+        this.serviceFile = new TsFileGen(StringUtil.fcUpper(rawName));
         this.serviceClass = this.serviceFile.addClass();
         this.serviceClass.setConstructor();
         try {

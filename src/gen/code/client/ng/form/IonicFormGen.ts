@@ -3,6 +3,7 @@ import {BaseNgFormGen} from "./BaseNgFormGen";
 import {XMLGen} from "../../../../core/XMLGen";
 import {INGFormWrapperConfig} from "../NGFormGen";
 import {Field, IFieldProperties} from "vesta-schema/Field";
+import {StringUtil} from "../../../../../util/StringUtil";
 
 export class IonicFormGen extends BaseNgFormGen {
 
@@ -35,7 +36,7 @@ export class IonicFormGen extends BaseNgFormGen {
 
     wrap(config: INGFormWrapperConfig): XMLGen {
         var modelInstanceName = _.camelCase(this.schema.name),
-            modelClassName = _.capitalize(modelInstanceName),
+            modelClassName = StringUtil.fcUpper(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'ion-modal-view' : 'div'),
             form = new XMLGen('form');
         form.setAttribute('name', `vm.${modelInstanceName}Form`)

@@ -1,4 +1,5 @@
 import * as _ from "lodash";
+import {StringUtil} from "../../util/StringUtil";
 
 export interface IEnumProperty {
     name: string;
@@ -13,7 +14,7 @@ export class EnumGen {
     private properties: Array<IEnumProperty> = [];
 
     constructor(name: string) {
-        this.name = _.capitalize(_.camelCase(name));
+        this.name = StringUtil.fcUpper(_.camelCase(name));
     }
 
     public shouldExport(shouldBeExported: boolean = true) {
@@ -21,7 +22,7 @@ export class EnumGen {
     }
 
     public addProperty(name: string, index?: number) {
-        name = _.capitalize(_.camelCase(name));
+        name = StringUtil.fcUpper(_.camelCase(name));
         if (!index || index < 0) index = 0;
         for (var i = this.properties.length; i--;) {
             if (this.properties[i].name == name) {

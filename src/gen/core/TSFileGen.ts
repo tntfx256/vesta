@@ -6,6 +6,7 @@ import {EnumGen} from "./EnumGen";
 import {MethodGen} from "./MethodGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
+import {StringUtil} from "../../util/StringUtil";
 
 export interface IImportStatement {
     name: string;
@@ -31,7 +32,7 @@ export class TsFileGen {
     private importStatements: Array<string> = [];
 
     constructor(public name: string) {
-
+        console.log(name);
     }
 
     public addReference(...refs: Array<string>): void {
@@ -72,7 +73,7 @@ export class TsFileGen {
         if (!name) {
             name = this.name;
         }
-        name = _.capitalize(_.camelCase(name));
+        name = StringUtil.fcUpper(_.camelCase(name));
         var clss = this.getClass(name);
         if (clss) return clss;
         clss = new ClassGen(name, isAbstract);
@@ -81,7 +82,7 @@ export class TsFileGen {
     }
 
     public getClass(name: string): ClassGen {
-        name = _.capitalize(_.camelCase(name));
+        name = StringUtil.fcUpper(_.camelCase(name));
         for (var i = this.classes.length; i--;) {
             if (this.classes[i].name == name) {
                 return this.classes[i];
@@ -95,7 +96,7 @@ export class TsFileGen {
         if (!name) {
             name = this.name;
         }
-        name = _.capitalize(_.camelCase(name));
+        name = StringUtil.fcUpper(_.camelCase(name));
         if (name.charAt(0) != 'I' || !inputName) name = `I${name}`;
         var intfc = this.getInterface(name);
         if (intfc) return intfc;
@@ -105,7 +106,7 @@ export class TsFileGen {
     }
 
     public getInterface(name: string): InterfaceGen {
-        name = _.capitalize(_.camelCase(name));
+        name = StringUtil.fcUpper(_.camelCase(name));
         if (name.charAt(0) != 'I') name += `I${name}`;
         for (var i = this.interfaces.length; i--;) {
             if (this.interfaces[i].name == name) {
@@ -116,7 +117,7 @@ export class TsFileGen {
     }
 
     public addEnum(name: string): EnumGen {
-        name = _.capitalize(_.camelCase(name));
+        name = StringUtil.fcUpper(_.camelCase(name));
         var enm = this.getEnum(name);
         if (enm) return enm;
         enm = new EnumGen(name);
@@ -125,7 +126,7 @@ export class TsFileGen {
     }
 
     public getEnum(name: string): EnumGen {
-        name = _.capitalize(_.camelCase(name));
+        name = StringUtil.fcUpper(_.camelCase(name));
         for (var i = this.enums.length; i--;) {
             if (this.enums[i].name == name) {
                 return this.enums[i];

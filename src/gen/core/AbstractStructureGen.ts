@@ -1,5 +1,6 @@
 import * as _ from "lodash";
 import {MethodGen} from "./MethodGen";
+import {StringUtil} from "../../util/StringUtil";
 
 export interface IMethods {
     [name: string]: MethodGen;
@@ -24,7 +25,7 @@ export abstract class AbstractStructureGen {
     protected constructorMethod: MethodGen;
 
     constructor(name: string) {
-        this.name = _.capitalize(_.camelCase(name));
+        this.name = StringUtil.fcUpper(_.camelCase(name));
     }
 
     public setConstructor(): MethodGen {

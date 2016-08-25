@@ -12,6 +12,7 @@ import {InterfaceGen} from "../../../core/InterfaceGen";
 import {SassGen} from "../../../file/SassGen";
 import {FsUtil} from "../../../../util/FsUtil";
 import {Log} from "../../../../util/Log";
+import {StringUtil} from "../../../../util/StringUtil";
 
 export interface INGDirectiveConfig {
     name: string;
@@ -47,13 +48,13 @@ export class NGDirectiveGen {
     }
 
     private createInterface() {
-        var name = _.capitalize(this.file.name);
+        var name = StringUtil.fcUpper(this.file.name);
         this.scopeInterface = this.file.addInterface(`I${name}Scope`);
         this.scopeInterface.setParentClass('IScope');
     }
 
     private createClass() {
-        this.controllerClass = this.file.addClass(_.capitalize(this.file.name) + 'Controller');
+        this.controllerClass = this.file.addClass(StringUtil.fcUpper(this.file.name) + 'Controller');
         this.controllerClass.addProperty({
             name: '$inject',
             access: ClassGen.Access.Public,
