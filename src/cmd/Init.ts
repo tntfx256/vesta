@@ -24,7 +24,7 @@ export class Init {
     }
 
     static parse(args: Array<string>) {
-        if (!args.length || ['-h', '--help', 'help'].indexOf(args[0]) >= 0) {
+        if (['-h', '--help', 'help'].indexOf(args[0]) >= 0) {
             return Init.help();
         }
         if (args.indexOf('--docker-compose') >= 0) return DockerUtil.installCompose();
