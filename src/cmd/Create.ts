@@ -1,3 +1,4 @@
+import * as _ from "lodash";
 import {ProjectGen, IProjectGenConfig} from "../gen/ProjectGen";
 
 export class Create {

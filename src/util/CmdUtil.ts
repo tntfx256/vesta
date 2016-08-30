@@ -4,7 +4,8 @@ import {Log} from "./Log";
 import {StringUtil} from "./StringUtil";
 
 export interface IExecSyncResult extends ExecOutputReturnValue {
-
+    // updated version changed the output to stdout; std did not
+    stdout: string;
 }
 
 export interface IExecOptions extends ExecOptions {
@@ -25,12 +26,12 @@ export class CmdUtil {
         if (!options.silent) {
             Log.info(`${options.cwd || '.'}/> ${command} `);
         }
-        return <ExecOutputReturnValue>shell.exec(command, options);
+        return <IExecSyncResult>shell.exec(command, options);
     }
 
     static getOutputOf(command, options?: IExecOptions): string {
         options = options || {silent: true};
-        return StringUtil.trimLineBreaks(CmdUtil.execSync(command, options).output);
+        return StringUtil.trimLineBreaks(CmdUtil.execSync(command, options).stdout);
     }
 
     static getResult(command: string, options?: IExecOptions): Promise<string> {

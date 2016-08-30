@@ -1,6 +1,7 @@
 export class StringUtil {
 
     public static trimLineBreaks(string: string): string {
+        if (!string) return string;
         return string.replace(/\r?\n|\r$/, '');
     }
 
