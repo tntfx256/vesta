@@ -193,6 +193,12 @@ export abstract class BaseNGControllerGen {
         let routerFile = 'src/app/config/route.ts';
         let routeCode = fs.readFileSync(routerFile, {encoding: 'utf8'});
         FsUtil.writeFile(routerFile, routeCode.replace(Placeholder.NGRouter, code));
+        // adding item to application menu
+        let menuFile = 'src/app/config/app-menu.ts';
+        if (fs.existsSync(menuFile)) {
+            let menuCode = fs.readFileSync(menuFile, {encoding: 'utf8'});
+            FsUtil.writeFile(menuFile, `${menuCode}\nAppMenu.push({title: '${state}', state: '${state}'});`);
+        }
     }
 
     protected generateForm() {

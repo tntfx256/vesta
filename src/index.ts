@@ -16,7 +16,7 @@ let command = args.shift();
 
 if (['-v', '--version', 'version'].indexOf(command) >= 0) {
     let packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
-    process.stdout.write(`Vesta Platform v${packageInfo.version}`);
+    process.stdout.write(`Vesta Platform v${packageInfo.version}\n`);
     process.exit(0);
 }
 

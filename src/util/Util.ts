@@ -92,4 +92,20 @@ export class Util {
     static clone<T>(object: T) {
         return <T>JSON.parse(JSON.stringify(object));
     }
+
+    static getArgs(args: Array<string>) {
+
+    }
+
+    static getArgValue(args: Array<string>, argName: string, defaultValue: any = null): string {
+        let index = args.indexOf(argName);
+        if (index >= 0) {
+            defaultValue = args[index + 1];
+        }
+        return defaultValue;
+    }
+
+    static hasArg(args: Array<string>, argName: string): boolean {
+        return args.indexOf(argName) >= 0;
+    }
 }

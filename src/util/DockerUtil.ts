@@ -45,9 +45,6 @@ export class DockerUtil {
         CmdUtil.execSync(`service docker start`);
         CmdUtil.execSync(`systemctl enable docker`);
         CmdUtil.execSync(`docker --version`);
-        CmdUtil.execSync(`groupadd docker`);
-        Util.prompt<{username: string}>(<Question>{message: 'Username to be added to docker group', type: 'input'})
-            .then(answer=> CmdUtil.execSync(`usermod -aG docker ${answer.username}`));
     }
 
     public static installCompose() {

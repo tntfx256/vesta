@@ -32,7 +32,6 @@ export class TsFileGen {
     private importStatements: Array<string> = [];
 
     constructor(public name: string) {
-        console.log(name);
     }
 
     public addReference(...refs: Array<string>): void {

@@ -6,10 +6,12 @@ import {Log} from "../util/Log";
 import {CmdUtil} from "../util/CmdUtil";
 import {Err} from "vesta-util/Err";
 import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
+import {Util} from "../util/Util";
 
 export interface IDeployHistory {
     date: string;
     type: 'deploy'|'backup';
+    branch?: string;
 }
 /**
  * projectName      ProjectGroupName-projectName (automatic)
@@ -21,6 +23,7 @@ export interface IDeployConfig {
     projectName: string;
     deployPath: string;
     repositoryUrl: string;
+    branch: string;
     history: Array<IDeployHistory>;
     args: Array<string>;
 }
@@ -32,7 +35,7 @@ export class Deployer {
 
     constructor(private config: IDeployConfig) {
         var date = new GregorianDate();
-        this.config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy'});
+        this.config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy', branch: config.branch});
         this.cloningPath = config.projectName;
         if (fs.existsSync(this.cloningPath)) {
             // FsUtil.remove(this.cloningPath);
@@ -52,7 +55,7 @@ export class Deployer {
         } else {
             GitGen.clone(this.config.repositoryUrl, this.cloningPath);
         }
-        CmdUtil.execSync(`git checkout master`, {cwd: this.cloningPath});
+        CmdUtil.execSync(`git checkout ${this.config.branch}`, {cwd: this.cloningPath});
         FsUtil.copy(`${this.cloningPath}/resources/ci/deploy.sh`, `${this.cloningPath}/deploy.sh`);
         CmdUtil.execSync(`chmod +x ${this.cloningPath}/deploy.sh`);
         CmdUtil.execSync(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
@@ -75,20 +78,25 @@ export class Deployer {
             args: [],
             deployPath: `app`
         };
-        if (!args[0]) {
+        config.branch = Util.getArgValue(args, '--branch', 'master');
+        let path = args[args.length - 1];
+        if (!path) {
             Log.error('Invalid file name or HTTP url of remote repository');
             return Promise.reject(new Err(Err.Code.WrongInput));
         }
         Log.warning('\nWARNING: Make sure that your `master` branch is updated and contains the final changes!\n');
-        if (fs.existsSync(args[0])) {
-            _.assign(config, Deployer.fetchConfig(args[0]));
+        if (fs.existsSync(path)) {
+            _.assign(config, Deployer.fetchConfig(path));
             Deployer.ConfigFile = `${config.projectName}.json`;
             return Promise.resolve(config);
         }
-        config.repositoryUrl = args[0];
+        config.repositoryUrl = path;
         config.projectName = Deployer.getProjectName(config.repositoryUrl);
         Deployer.ConfigFile = `${config.projectName}.json`;
-        config.args = args.slice(1);
+        config.args = args.slice(Util.hasArg(args, '--branch') ? 3 : 1);
+        if (!config.branch) {
+            config.branch = 'master';
+        }
         return Promise.resolve(config);
     }
 

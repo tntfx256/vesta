@@ -19,12 +19,14 @@ export class Deploy {
 
     static help() {
         process.stdout.write(`
-Usage: vesta deploy PATH
+Usage: vesta deploy [options...] PATH
 
 Deploy a project from remote repository
 
-    PATH    The url to the git repository or 
-            The name of file that the previous deploy generates it
+    PATH        The url to the git repository or The name of file 
+                  that the previous deploy generates it
+Options:
+    --branch    Name of the git branch that deploy operation should use. [default master]
 `);
     }
 }
