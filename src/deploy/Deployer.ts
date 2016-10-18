@@ -51,12 +51,16 @@ export class Deployer {
         args = args.concat(this.config.args);
         if (this.alreadyCloned) {
             CmdUtil.execSync(`git reset --hard origin/master`, {cwd: this.cloningPath});
+            CmdUtil.execSync(`git clean -f -d`, {cwd: this.cloningPath});
             CmdUtil.execSync(`git pull origin master`, {cwd: this.cloningPath});
         } else {
             GitGen.clone(this.config.repositoryUrl, this.cloningPath);
         }
         CmdUtil.execSync(`git checkout ${this.config.branch}`, {cwd: this.cloningPath});
-        FsUtil.copy(`${this.cloningPath}/resources/ci/deploy.sh`, `${this.cloningPath}/deploy.sh`);
+        if (this.config.branch != 'master') {
+            CmdUtil.execSync(`git pull`, {cwd: this.cloningPath});
+        }
+        FsUtil.rename(`${this.cloningPath}/resources/ci/deploy.sh`, `${this.cloningPath}/deploy.sh`);
         CmdUtil.execSync(`chmod +x ${this.cloningPath}/deploy.sh`);
         CmdUtil.execSync(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
         FsUtil.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
@@ -84,7 +88,7 @@ export class Deployer {
             Log.error('Invalid file name or HTTP url of remote repository');
             return Promise.reject(new Err(Err.Code.WrongInput));
         }
-        Log.warning('\nWARNING: Make sure that your `master` branch is updated and contains the final changes!\n');
+        // Log.warning(`\nWARNING: Make sure that your '${config.branch}' branch is updated and contains the final changes!\n`);
         if (fs.existsSync(path)) {
             _.assign(config, Deployer.fetchConfig(path));
             Deployer.ConfigFile = `${config.projectName}.json`;
@@ -94,9 +98,6 @@ export class Deployer {
         config.projectName = Deployer.getProjectName(config.repositoryUrl);
         Deployer.ConfigFile = `${config.projectName}.json`;
         config.args = args.slice(Util.hasArg(args, '--branch') ? 3 : 1);
-        if (!config.branch) {
-            config.branch = 'master';
-        }
         return Promise.resolve(config);
     }
 
