@@ -127,9 +127,9 @@ Creating new project after asking a series of questions through interactive shel
                     - model         Creating a model
                     - sass          Creating a sass file of specific type (component, page, font)
                     - controller    Creating a client (angular) or server (vesta api controller) side controller
-                    - directive     Creating a sass file of specific type
-                    - filter        Creating a sass file of specific type
-                    - service       Creating a sass file of specific type
+                    - directive     Creating an angular directive
+                    - filter        Creating an angular filter
+                    - service       Creating an angular service
                     
     NAME        The name of the snippet
     
