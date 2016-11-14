@@ -33,9 +33,6 @@ export class MaterialFormGen extends BaseNgFormGen {
         properties.enum.forEach(item=> {
             select.append(new XMLGen('md-option').setAttribute('ng-value', item).text(item));
         });
-        // ng-messages
-        let ngMessages = this.getNgMessage(fieldName, properties);
-        if (ngMessages.getChildren().length) select.append(ngMessages);
         return select;
     }
 
@@ -74,14 +71,14 @@ export class MaterialFormGen extends BaseNgFormGen {
      *     <div ng-messages></div>
      * </div>
      */
-    protected genMultiSelectField(field: Field, forceMath?: boolean): XMLGen {
+    protected genMultiSelectField(field: Field, forceMatch?: boolean): XMLGen {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name));
         let outerWrapper = new XMLGen('div');
         outerWrapper.addClass('md-input-wrapper');
         let wrapper = new XMLGen('md-chips');
         let targetFieldName = ModelGen.getUniqueFieldNameOfRelatedModel(field);
         wrapper.setAttribute('ng-model', `vm.${modelInstanceName}.${field.fieldName}`)
-            .setAttribute('md-require-match', forceMath ? 'true' : 'false');
+            .setAttribute('md-require-match', forceMatch ? 'true' : 'false');
         wrapper.appendTo(outerWrapper);
         // auto complete
         let autoComplete = new XMLGen('md-autocomplete');
@@ -147,8 +144,8 @@ export class MaterialFormGen extends BaseNgFormGen {
             default:
                 let isCheckbox = field.properties.type == FieldType.Boolean;
                 let wrapper = MaterialFormGen.getInputContainer(field.fieldName, isCheckbox);
-                this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
-                return wrapper;
+                let result = this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
+                return result ? wrapper : null;
         }
     }
 

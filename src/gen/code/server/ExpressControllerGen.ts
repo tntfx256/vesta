@@ -83,14 +83,22 @@ export class ExpressControllerGen {
         // this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
         this.controllerFile.addImport(`{ValidationError}`, 'vesta-schema/error/ValidationError');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
+        if (modelClassName != 'Permission') {
+            this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
+        }
         this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport(`{Vql}`, 'vesta-schema/Vql');
         let acl = this.routingPath.replace(/\/+/g, '.');
         acl = acl[0] == '.' ? acl.slice(1) : acl;
-        let middleWares = ` this.checkAcl('${acl}', '__ACTION__'),`;
+        let middleWares = ` this.checkAcl('${acl}', __ACTION__),`;
+        // count operation
+        let methodName = `get${modelClassName}Count`;
+        let methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Read');
+        this.addResponseMethod(methodName).setContent(this.getCountCode());
+        this.routeMethod.appendContent(`router.get('${this.routingPath}/count',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
-        let methodName = 'get' + modelClassName,
-            methodBasedMiddleWares = middleWares.replace('__ACTION__', 'read');
+        methodName = 'get' + modelClassName;
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Read');
         this.addResponseMethod(methodName).setContent(this.getQueryCode(true));
         this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
@@ -99,23 +107,23 @@ export class ExpressControllerGen {
         this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'add' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'create');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Add');
         this.addResponseMethod(methodName).setContent(this.getInsertCode());
         this.routeMethod.appendContent(`router.post('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'update' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'update');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Edit');
         this.addResponseMethod(methodName).setContent(this.getUpdateCode());
         this.routeMethod.appendContent(`router.put('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         //
         methodName = 'remove' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'delete');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Delete');
         this.addResponseMethod(methodName).setContent(this.getDeleteCode());
-        this.routeMethod.appendContent(`router.delete('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+        this.routeMethod.appendContent(`router.delete('${this.routingPath}/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         // file upload
         if (this.filesFields) {
             methodName = 'upload';
-            methodBasedMiddleWares = middleWares.replace('__ACTION__', 'update');
+            methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Edit');
             this.addResponseMethod(methodName).setContent(this.getUploadCode());
             this.routeMethod.appendContent(`router.post('${this.routingPath}/file/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
         }
@@ -167,10 +175,25 @@ export class ExpressControllerGen {
     private getQueryCodeForMultiInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         return `let query = new Vql(${modelName}.schema.name);
-        query.filter(req.query.query).limitTo(Math.min(+req.query.limit || 50, 50)).fromPage(+req.query.page || 1);
+        query.filter(req.query.query)
+            .limitTo(Math.min(+req.query.limit || 50, 50))
+            .fromPage(+req.query.page || 1);
+        if (req.query.orderBy) {
+            let orderBy = req.query.orderBy[0];
+            query.sortBy(orderBy.field, orderBy.ascending == 'true');
+        }
         ${modelName}.findByQuery(query)
-            .then(result=>res.json(result))
-            .catch(reason=>this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
+            .then(result=> res.json(result))
+            .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
+    }
+
+    private getCountCode(): string {
+        let modelName = ModelGen.extractModelName(this.config.model);
+        return `let query = new Vql(${modelName}.schema.name);
+        query.filter(req.query.query);
+        ${modelName}.count(query)
+            .then(result=> res.json(result))
+            .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
     }
 
     private getQueryCode(isSingle: boolean): string {
@@ -204,7 +227,7 @@ export class ExpressControllerGen {
         }
         ${modelName}.findById<I${modelName}>(${modelInstanceName}.id)
             .then(result=> {
-                if (result.items.length == 1) return ${modelInstanceName}.update<I${modelName}>().then(result=>res.json(result));
+                if (result.items.length == 1) return ${modelInstanceName}.update<I${modelName}>().then(result=> res.json(result));
                 this.handleError(res, Err.Code.DBUpdate);
             })
             .catch(reason=> this.handleError(res, Err.Code.DBUpdate, reason.error.message));`;
@@ -213,7 +236,7 @@ export class ExpressControllerGen {
     private getDeleteCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
-        return `let ${modelInstanceName} = new ${modelName}({id: req.body.id});
+        return `let ${modelInstanceName} = new ${modelName}({id: +req.params.id});
         ${modelInstanceName}.delete()
             .then(result=> res.json(result))
             .catch(reason=> this.handleError(res, Err.Code.DBDelete, reason.error.message));`;

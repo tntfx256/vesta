@@ -68,9 +68,9 @@ export class NGFormGen {
         }
     }
 
-    generate() {
+    generate(forSearch?: boolean) {
         if (!this.model) return;
-        let code = this.form.generate();
+        let code = this.form.generate(forSearch);
         if (this.config.writeToFile) FsUtil.writeFile(path.join(this.path, 'form.html'), code);
         return code;
     }

@@ -3,10 +3,10 @@ import {Util} from "../../../../../util/Util";
 import {ModelGen} from "../../../ModelGen";
 import {BaseNGControllerGen} from "./BaseNGControllerGen";
 import {ClassGen} from "../../../../core/ClassGen";
-import {MaterialListGen} from "./../list/MaterialListGen";
 import {TsFileGen} from "../../../../core/TSFileGen";
-import {FieldType} from "vesta-schema/Field";
+import {FieldType, Field, RelationType} from "vesta-schema/Field";
 import {StringUtil} from "../../../../../util/StringUtil";
+import {MaterialListGen} from "../list/MaterialListGen";
 
 interface IFileFieldsCode {
     // updating address file src of fetched record (e.g. Setting.asset/model/record.image)
@@ -31,37 +31,98 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         });
     }
 
+    private getDataTableColumnsCode(): string {
+        let model = ModelGen.getModel(this.config.model);
+        let modelName = model.schema.name;
+        let modelInstanceName = _.camelCase(modelName);
+        let fields = model.schema.getFields();
+        let code = '';
+        for (let fieldNames = Object.keys(fields), i = 0, il = fieldNames.length; i < il; ++i) {
+            let fieldName = fieldNames[i];
+            if (fieldName == 'id') continue;
+            let field: Field = fields[fieldName];
+            if ([FieldType.File, FieldType.List, FieldType.Object, FieldType.Text, FieldType.Password].indexOf(field.properties.type) >= 0) continue;
+            // many to many relations
+            if (field.properties.type == FieldType.Relation && field.properties.relation.type == RelationType.Many2Many) continue;
+            let type = 'String';
+            let options = '';
+            switch (field.properties.type) {
+                case FieldType.Tel:
+                    type = 'Tel';
+                    break;
+                case FieldType.String:
+                    type = 'String';
+                    break;
+                case FieldType.EMail:
+                    type = 'EMail';
+                    break;
+                case FieldType.URL:
+                    type = 'URL';
+                    break;
+                case FieldType.Number:
+                    type = 'Number';
+                    break;
+                case FieldType.Integer:
+                    type = 'Integer';
+                    break;
+                case FieldType.Float:
+                    type = 'Float';
+                    break;
+                case FieldType.Timestamp:
+                    type = 'Timestamp';
+                    break;
+                case FieldType.Boolean:
+                    type = 'Boolean';
+                    break;
+                case FieldType.Enum:
+                    let enumName = `${modelName}${_.capitalize(field.fieldName)}`;
+                    type = 'Enum';
+                    options = `,
+                render: (${modelInstanceName}: ${modelName})=> this.translate(${enumName}[${modelInstanceName}.${fieldName}]),
+                options: ${enumName}`;
+                    break;
+                case FieldType.Relation:
+                    type = 'Relation';
+                    break;
+            }
+            code += `,
+            ${fieldName}: {
+                text: this.translate('${fieldName}'),
+                type: FieldType.${type}${options}
+            }`;
+        }
+        return code.substr(1);
+    }
+
     public setAsListController() {
         this.setModelRequiredInjections();
         let modelName = ModelGen.extractModelName(this.config.model);
-        let ctrlName = _.camelCase(this.config.name),
-            capitalize = StringUtil.fcUpper(ctrlName),
-            modelInstanceName = _.camelCase(modelName),
-            modelPlural = Util.plural(_.camelCase(modelName)),
-            url = (this.config.module ? (this.config.module + '/') : '') + ctrlName + '/',
-            edge = Util.joinPath(this.config.module, ctrlName),
-            modelListName = `${modelPlural}List`,
-            modelSelectedListName = `selected${StringUtil.fcUpper(modelPlural)}List`;
-        this.controllerFile.addImport(`{IQueryRequest, IQueryResult, IDeleteResult}`, 'vesta-schema/ICRUDResult');
-        this.controllerFile.addImport(`{ExtArray}`, 'vesta-util/ExtArray');
+        let ctrlName = _.camelCase(this.config.name);
+        let modelInstanceName = _.camelCase(modelName);
+        let modelInstancePlural = Util.plural(_.camelCase(modelName));
+        let modelPlural = StringUtil.fcUpper(modelInstancePlural);
+        let url = (this.config.module ? (this.config.module + '/') : '') + ctrlName + '/';
+        let edge = Util.joinPath(this.config.module, ctrlName);
+        let modelListName = `${modelInstancePlural}List`;
+        this.controllerFile.addImport(`{IQueryRequest, IQueryResult}`, 'vesta-schema/ICRUDResult');
+        this.controllerFile.addImport(`{FieldType}`, 'vesta-schema/Field');
+        this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, 'src/app/cmn/models/Permission'));
+        this.controllerFile.addImport(`{IDataTableOptions, IDataTableColumns}`, Util.genRelativePath(this.path, 'src/app/directive/datatable'));
         this.controllerClass.addProperty({
             name: modelListName,
-            type: `ExtArray<I${modelName}>`,
+            type: `Array<I${modelName}>`,
             access: ClassGen.Access.Private,
-            defaultValue: `new ExtArray<I${modelName}>()`
+            defaultValue: '[]'
         });
         this.controllerClass.addProperty({
-            name: modelSelectedListName,
-            type: `Array<number>`,
-            access: ClassGen.Access.Private,
-            defaultValue: `[]`
+            name: 'dtOptions',
+            type: `IDataTableOptions`,
+            access: ClassGen.Access.Private
         });
-        this.controllerClass.addProperty({name: 'dtOption', type: `any`, access: ClassGen.Access.Private});
         this.controllerClass.addProperty({
-            name: 'currentPage',
-            type: `number`,
-            access: ClassGen.Access.Private,
-            defaultValue: '1'
+            name: 'dtColumns',
+            type: `IDataTableColumns<I${modelName}>`,
+            access: ClassGen.Access.Private
         });
         this.controllerClass.addProperty({
             name: 'busy',
@@ -69,32 +130,42 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             access: ClassGen.Access.Private,
             defaultValue: 'false'
         });
-        this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle('${modelName}');
+        this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle(this.translate('${modelName}'));
         this.acl = this.authService.getActionsOn('${modelInstanceName}');
-        this.dtOption = this.getDataTableOptions('List of ${modelPlural}', this.loadMore.bind(this));
-        this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}')
-            .then(result=> {
-                this.${modelListName}.set(result.items);
-                this.dtOption.total = result.total;
-            })
-            .catch(err=> this.notificationService.toast(err.message));`);
+        this.initDataTable();
+        this.fetch${modelPlural}({page: 1, limit: this.dtOptions.limit});`);
         this.controllerFile.addImport('IDialogOptions', 'angular.material.IDialogOptions', TsFileGen.ImportType.Namespace);
-        // loadMore
-        let loadMoreMethod = this.controllerClass.addMethod('loadMore');
-        loadMoreMethod.addParameter({name: 'page', type: 'number'});
-        loadMoreMethod.setContent(`if (this.busy || page <= this.currentPage) return;
+        // initDataTable
+        let initMethod = this.controllerClass.addMethod(`initDataTable`);
+        initMethod.setContent(`this.dtOptions = this.getDataTableOptions();
+        this.dtOptions.operations = {
+            read: this.fetch${modelPlural}.bind(this),
+            add: this.acl[Permission.Action.Add] ? this.add${modelName}.bind(this) : null,
+            edit: this.acl[Permission.Action.Edit] ? this.edit${modelName}.bind(this) : null,
+            del: this.acl[Permission.Action.Delete] ? this.del${modelName}.bind(this) : null
+        };
+        this.dtColumns = {${this.getDataTableColumnsCode()}
+        };`);
+        // read
+        let loadMoreMethod = this.controllerClass.addMethod(`fetch${modelPlural}`);
+        loadMoreMethod.addParameter({name: 'option', type: `IQueryRequest<I${modelName}>`});
+        loadMoreMethod.setContent(`if (this.busy) return;
         this.busy = true;
-        this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}', {
-            limit: this.dtOption.limit,
-            page: ++this.currentPage
-        }).then(result=> {
-            for (let i = 0; i < result.items.length; i++) {
-                this.${modelListName}.push(result.items[i]);
-            }
-            this.dtOption.total = result.total;
-            this.busy = false;
-        }).catch(err=> this.notificationService.toast(err.message));`);
-        // add anf edit method should only exists in case of modals
+        this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}', option)
+            .then(result=> {
+                this.${modelListName} = result.items;
+                this.busy = false;
+            })
+            .catch(err=> {
+                this.notificationService.toast(this.translate(err.message));
+                this.busy = false;
+            });
+        if (option.page == 1) {
+            this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}/count', option)
+                .then(result=> this.dtOptions.total = result.total)
+                .catch(err=> this.notificationService.toast(this.translate(err.message)));
+        }`);
+        // add & edit method should only exists in case of modals
         if (this.config.openFormInModal) {
             // add method
             let addMethod = this.controllerClass.addMethod(`add${modelName}`);
@@ -106,46 +177,45 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             parent: angular.element(document.body),
             targetEvent: event
         }).then((${modelInstanceName}) => {
-            this.${modelPlural}List.push(${modelInstanceName});
-            this.notificationService.toast('New ${modelInstanceName} has been added successfully');
-        }).catch(err=> err && this.notificationService.toast(err.message))`);
+            this.${modelListName}.push(${modelInstanceName});
+            this.notificationService.toast(this.translate('info_add_record', this.translate('${modelInstanceName}')));
+        }).catch(err=> err && this.notificationService.toast(this.translate(err.message)))`);
             // edit method
             let editMethod = this.controllerClass.addMethod(`edit${modelName}`);
             editMethod.addParameter({name: 'event', type: 'MouseEvent'});
-            editMethod.addParameter({name: 'id', type: 'number'});
-            editMethod.setContent(`event.stopPropagation();
+            editMethod.addParameter({name: 'index', type: 'number'});
+            editMethod.setContent(`let ${modelInstanceName}Id = this.${modelListName}[index].id;
         this.$mdDialog.show(<IDialogOptions>{
             controller: '${ctrlName}EditController',
             controllerAs: 'vm',
             templateUrl: 'tpl/${url}${ctrlName}EditForm.html',
             parent: angular.element(document.body),
             targetEvent: event,
-            locals: {
-                id: id
-            }
+            locals: {id: ${modelInstanceName}Id}
         }).then((${modelInstanceName}: I${modelName}) => {
-            this.${modelListName}[this.${modelListName}.indexOfByProperty('id', ${modelInstanceName}.id)] = ${modelInstanceName};
+            this.${modelListName}[this.findByProperty(this.${modelListName}, 'id', ${modelInstanceName}.id)] = ${modelInstanceName};
             this.notificationService.toast('${modelInstanceName} has been updated successfully');
-        }).catch(err=> err && this.notificationService.toast(err.message))`);
+        }).catch(err=> this.notificationService.toast(this.translate(err.message)))`);
         }
         // delete method
         let delMethod = this.controllerClass.addMethod(`del${modelName}`);
         delMethod.addParameter({name: 'event', type: 'MouseEvent'});
-        delMethod.setContent(`let confirm = this.$mdDialog.confirm()
+        delMethod.addParameter({name: 'index', type: 'number'});
+        delMethod.setContent(`let ${modelInstanceName}Id = this.${modelListName}[index].id;
+        let confirm = this.$mdDialog.confirm()
             .parent(angular.element(document.body))
-            .title('Delete confirmation')
-            .textContent('Are you sure about deleting the select ${modelInstanceName}')
+            .title('title_delete_confirm')
+            .textContent(this.translate('msg_delete_confirm', this.translate('${modelInstanceName}')))
             .targetEvent(event)
-            .ok('Yes').cancel('No');
+            .ok(this.translate('yes')).cancel(this.translate('no'));
         this.$mdDialog.show(confirm)
-            .then(() => this.apiService.delete<Array<number>, IDeleteResult>('${edge}', this.${modelSelectedListName}))
-            .then(result=> {
-                this.${modelListName}.removeByProperty('id', this.${modelSelectedListName});
-                this.${modelSelectedListName} = [];
-                this.notificationService.toast(result.items.length + ' ${modelInstanceName} has been deleted successfully');
+            .then(()=> this.apiService.delete(\`${edge}/\${${modelInstanceName}Id}\`))
+            .then(()=> {
+                this.${modelListName}.splice(this.findByProperty(this.${modelListName}, 'id', ${modelInstanceName}Id), 1);
+                this.notificationService.toast(this.translate('info_delete_record', this.translate('${modelInstanceName}')));
             })
-            .catch(err=> this.notificationService.toast(err.message));`);
-        // template
+            .catch(err=> this.notificationService.toast(this.translate(err.message)));`);
+        // // template
         let template = new MaterialListGen(this.config);
         template.generate();
     }
@@ -162,8 +232,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         this.controllerClass.addProperty({name: formName, type: 'IFormController', access: ClassGen.Access.Private});
         this.controllerFile.addImport(`{IUpsertResult, IQueryResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport('{IFormController}', 'angular');
-        if (this.config.openFormInModal) {
-            this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle('${modelName} :: Add');
+        if (!this.config.openFormInModal) {
+            this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle(this.translate('title_record_add', this.translate('${modelName}')));
         `);
         }
         this.controllerClass.getConstructor().appendContent(`this.${modelInstanceName} = new ${modelName}();`);
@@ -183,7 +253,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             .then(result=> ${thenCode})
             .then(()=> this.$mdDialog.hide(this.${modelInstanceName}))
             .catch(err=> {
-                this.notificationService.toast(err.message);
+                this.notificationService.toast(this.translate(err.message));
                 if (err.code == Err.Code.Validation) {
                     this.formService.evaluate((<ValidationError>err).violations, this.${formName});
                 }
@@ -207,8 +277,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         let thenCode = this.fileTypesFields ? `{
                 this.${modelInstanceName} = new ${modelName}(result.items[0]);${fileCodes.address}
             }` : `this.${modelInstanceName} = new ${modelName}(result.items[0])`;
-        if (this.config.openFormInModal) {
-            this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle('${modelName} :: Edit');
+        if (!this.config.openFormInModal) {
+            this.controllerClass.getConstructor().appendContent(`this.metaTagsService.setTitle(this.translate('title_record_edit', this.translate('${modelName}')));
         `);
         }
         this.controllerClass.getConstructor().appendContent(`this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>(\`${edge}/\${this.locals.id}\`)
@@ -222,7 +292,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         thenCode = fileCodes.upload ? `{
                 this.${modelInstanceName}.id = result.items[0].id;${fileCodes.upload}
             }` : `this.${modelInstanceName}.id = result.items[0].id`;
-        updateMethod.setContent(`if (!this.${formName}.$dirty) return this.notificationService.toast('Nothing changed');
+        updateMethod.setContent(`if (!this.${formName}.$dirty) return;
         let validate = this.formService.evaluate(this.${modelInstanceName}.validate(), this.${formName});
         if (!validate) return this.notificationService.toast('Invalid form data');
         let ${modelInstanceName} = this.${modelInstanceName}.getValues<I${modelName}>();${fileCodes.extraction}
@@ -246,7 +316,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             edge = Util.joinPath(this.config.module, ctrlName);
         let model = ModelGen.getModel(modelName);
         code.extraction = `
-        let files:IFileKeyValue = {};`;
+        let files: IFileKeyValue = {};`;
         for (let fileNames = Object.keys(this.fileTypesFields), i = 0, il = fileNames.length; i < il; ++i) {
             var fileName = fileNames[i];
             if (!model) continue;
@@ -265,8 +335,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             for (let i = 0, il = fileNames.length; i < il; ++i) {
                 let isList = model.schema.getField(fileNames[i]).properties.type == FieldType.List;
                 code.address += isList ? `
-                for (let i = this.${modelInstanceName}.${fileNames[i]}.length; i--;) this.${modelInstanceName}.${fileNames[i]}[i] = \`\${Setting.asset}/${modelInstanceName}/\${this.${modelInstanceName}.${fileNames[i]}[i]}\`;` : `
-                this.${modelInstanceName}.${fileNames[i]} = \`\${Setting.asset}/${modelInstanceName}/\${this.${modelInstanceName}.${fileNames[i]}}\`;`;
+                for (let i = this.${modelInstanceName}.${fileNames[i]}.length; i--;) this.${modelInstanceName}.${fileNames[i]}[i] = \`\${this.Setting.asset}/${modelInstanceName}/\${this.${modelInstanceName}.${fileNames[i]}[i]}\`;` : `
+                this.${modelInstanceName}.${fileNames[i]} = \`\${this.Setting.asset}/${modelInstanceName}/\${this.${modelInstanceName}.${fileNames[i]}}\`;`;
             }
         }
         return code;

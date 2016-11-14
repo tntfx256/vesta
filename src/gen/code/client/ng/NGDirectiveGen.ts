@@ -84,14 +84,13 @@ export class NGDirectiveGen {
         this.directiveMethod.setReturnType('IDirective');
         this.directiveMethod.setContent(`return {
         restrict: 'E',
-        replace: true,
-        %TEMPLATE%
+        replace: true,%TEMPLATE_URL%
         controller: ${this.controllerClass.name},
         controllerAs: 'ctrl',
         bindToController: true,
         scope: {},
         link: function(scope:${this.scopeInterface.name}, $element: IAugmentedJQuery, attrs: IAttributes){
-        }
+        }%TEMPLATE%
     }`);
     }
 
@@ -103,12 +102,18 @@ export class NGDirectiveGen {
             Log.error(e.message);
         }
         var templateCode = `<div class="${this.tplFileName}"></div>`;
+        let content = this.directiveMethod.getContent();
         if (this.config.externalTemplate) {
-            this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `templateUrl: 'tpl/directive/${this.tplFileName}.html',`));
+            content = content.replace('%TEMPLATE_URL%', `
+        templateUrl: 'tpl/directive/${this.tplFileName}.html',`);
+            content = content.replace('%TEMPLATE%', '');
             FsUtil.writeFile(path.join(tplPath, this.tplFileName + '.html'), templateCode);
         } else {
-            this.directiveMethod.setContent(this.directiveMethod.getContent().replace('%TEMPLATE%', `template: '${templateCode}',`));
+            content = content.replace('%TEMPLATE_URL%', '');
+            content = content.replace('%TEMPLATE%', `,
+        template: '${templateCode}'`);
         }
+        this.directiveMethod.setContent(content);
         NGDependencyInjector.updateImportFile(this.file, 'directive', this.path, Placeholder.NGDirective, '../directive');
         if (this.config.generateSass) {
             this.sassFile.generate();

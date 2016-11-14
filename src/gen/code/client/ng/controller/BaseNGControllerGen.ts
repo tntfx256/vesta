@@ -240,11 +240,10 @@ export abstract class BaseNGControllerGen {
     public abstract setAsEditController();
 
     protected createPageTemplate() {
-        let template = new XMLGen('div'),
-            pageName = _.camelCase(this.config.name);
+        let template = new XMLGen('div');
         let list = this.config.model ? `\n    <div ng-include="'${this.getTemplatePath()}/${_.camelCase(this.config.name)}List.html'"></div>` : '';
-        template.setAttribute('id', `${pageName}-page`).addClass('page');
-        pageName = StringUtil.fcUpper(_.camelCase(this.config.name));
+        template.setAttribute('id', `${this.config.name}-page`).addClass('page');
+        let pageName = StringUtil.fcUpper(_.camelCase(this.config.name));
         template.html(`<h1>${pageName} Page</h1>${list}`);
         let sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();

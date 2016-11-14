@@ -30,6 +30,7 @@ export class TsFileGen {
     private classes: Array<ClassGen> = [];
     private interfaces: Array<InterfaceGen> = [];
     private importStatements: Array<string> = [];
+    private importCache: Array<{name: string; path: string}> = [];
 
     constructor(public name: string) {
     }
@@ -49,6 +50,14 @@ export class TsFileGen {
      * Namespace:   <code>import nameParameter = fromParameter</code>
      */
     public addImport(name: string, from: string, type: number = TsFileGen.ImportType.Module) {
+        // let names = name.split(/\s*,\s*/);
+        // let realNames = [];
+        // for (let i = names.length; i--;) {
+        //     realNames.push(names[i].replace(/\{}/g, ''));
+        // }
+        // for (var i = this.importCache.length; i--;) {
+        //     if (this.importCache[i].name == name && this.importCache[i].path == from) return;
+        // }
         var statement = `import ${name} `;
         switch (type) {
             case TsFileGen.ImportType.Require:

@@ -14,6 +14,7 @@ import {ModelGen} from "../../../ModelGen";
 export abstract class BaseNgFormGen {
     protected schema: Schema;
     protected fields: IModelFields;
+    protected subset: Array<string> = [];
 
     constructor(protected model: IModel) {
         if (model) {
@@ -59,9 +60,10 @@ export abstract class BaseNgFormGen {
         return input;
     }
 
-    protected genDateTimeField(): XMLGen {
+    protected genDateTimeField(forSearch?: boolean): XMLGen {
         let input = new XMLGen('input', true);
         input.setAttribute('dir', 'ltr').setAttribute('date-input').setAttribute('show-picker', 'true');
+        if (forSearch) input.setAttribute('is-range', 'true');
         return input;
     }
 
@@ -142,7 +144,7 @@ export abstract class BaseNgFormGen {
     /**
      * This method appends the form control and other required elements to the wrapper element
      */
-    protected getElementsByFieldType(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): void {
+    protected getElementsByFieldType(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): boolean {
         let modelInstanceName = _.camelCase(ModelGen.extractModelName(this.schema.name)),
             input = new XMLGen('input', true);
         switch (properties.type) {
@@ -169,7 +171,6 @@ export abstract class BaseNgFormGen {
                 input = this.genFileField(properties.fileType, properties.list == FieldType.File);
                 break;
             case FieldType.Timestamp:
-                input = this.genDateTimeField();
                 break;
             case FieldType.Boolean:
                 input = this.genCheckboxField();
@@ -181,8 +182,8 @@ export abstract class BaseNgFormGen {
         }
         input.setAttribute('name', fieldName)
             .setAttribute('id', fieldName)
-            .setAttribute('ng-model', `vm.${modelInstanceName}.${fieldName}`)
-            .setAttribute('ng-model-options', `{debounce:500}`);
+            .setAttribute('ng-model', `vm.${modelInstanceName}.${fieldName}`);
+        // .setAttribute('ng-model-options', `{debounce:500}`)
         wrapper.append(input);
         if (properties.required) input.setAttribute('required');
         if (properties.min) input.setAttribute('min', properties.min);
@@ -192,25 +193,33 @@ export abstract class BaseNgFormGen {
         if (properties.fileType && properties.fileType.length) input.setAttribute('accept', properties.fileType.join(','));
         let ngMessages = this.getNgMessage(fieldName, properties);
         if (ngMessages.getChildren().length) wrapper.append(ngMessages);
+        return true;
     }
 
-    public generate(): string {
-        let fields = Object.keys(this.fields),
+    public addSubsetField(fieldName: string) {
+        if (this.subset.indexOf(fieldName) == -1) {
+            this.subset.push(fieldName);
+        }
+    }
+
+    public generate(forSearch?: boolean): string {
+        let fields = this.subset.length ? this.subset : Object.keys(this.fields),
             codes: Array<string> = [];
         fields.forEach(fieldName=> {
             if (fieldName != 'id') {
-                let elm = this.genElementForField(this.fields[fieldName]);
+                let elm = this.genElementForField(this.fields[fieldName], forSearch);
                 elm && codes.push(elm.generate());
             }
         });
-        return codes.join('\n\n');
+
+        return codes.join(forSearch ? '\n' : '\n\n');
     }
 
     /**
      * generates the wrapper for each field and then fills the wrapper
      *  with proper form element using this.getElementsByFieldType
      */
-    protected abstract genElementForField(field: Field): XMLGen;
+    protected abstract genElementForField(field: Field, forSearch?: boolean): XMLGen;
 
     public abstract wrap(config: INGFormWrapperConfig): XMLGen;
 }
