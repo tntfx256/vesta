@@ -1616,13 +1616,13 @@ vesta-locale-en-us@^0.2.5:
   dependencies:
     vesta-i18n "^0.2.15"
 
-vesta-schema@^0.5.3:
-  version "0.5.5"
-  resolved "https://registry.yarnpkg.com/vesta-schema/-/vesta-schema-0.5.5.tgz#346ee1219505f638ac60e8ad8fadd712a3f8c878"
+vesta-schema@^0.5.5:
+  version "0.5.6"
+  resolved "https://registry.yarnpkg.com/vesta-schema/-/vesta-schema-0.5.6.tgz#57fb8764e92f0a5ae87d1d5bccc6a80c03b81b74"
   dependencies:
     vesta-util "^0.2.7"
 
-vesta-util@^0.2.7:
+vesta-util@^0.2.7, vesta-util@^0.2.8:
   version "0.2.8"
   resolved "https://registry.yarnpkg.com/vesta-util/-/vesta-util-0.2.8.tgz#af089837440967e70da62f279eb334f0d2fbe6ff"
 
