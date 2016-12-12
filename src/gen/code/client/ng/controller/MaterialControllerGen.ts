@@ -204,7 +204,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         delMethod.setContent(`let ${modelInstanceName}Id = this.${modelListName}[index].id;
         let confirm = this.$mdDialog.confirm()
             .parent(angular.element(document.body))
-            .title('title_delete_confirm')
+            .title(this.translate('title_delete_confirm'))
             .textContent(this.translate('msg_delete_confirm', this.translate('${modelInstanceName}')))
             .targetEvent(event)
             .ok(this.translate('yes')).cancel(this.translate('no'));

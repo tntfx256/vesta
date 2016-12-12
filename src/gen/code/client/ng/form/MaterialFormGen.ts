@@ -19,7 +19,7 @@ export class MaterialFormGen extends BaseNgFormGen {
             if (noFloat) {
                 label.addClass('md-no-float');
             }
-            label.text(title).setAttribute('for', title);
+            label.text(`{{'${title}' | tr}}`).setAttribute('for', title);
             wrapper.append(label);
         }
         return wrapper;

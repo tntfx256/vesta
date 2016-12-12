@@ -84,7 +84,7 @@ export class ExpressControllerGen {
         this.controllerFile.addImport(`{ValidationError}`, 'vesta-schema/error/ValidationError');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         if (modelClassName != 'Permission') {
-            this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
+            this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/Permission`));
         }
         this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport(`{Vql}`, 'vesta-schema/Vql');
