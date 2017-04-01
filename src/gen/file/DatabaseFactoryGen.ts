@@ -12,7 +12,7 @@ export class DatabaseFactoryGen implements IFileGenerator {
         this.factoryFile = new TsFileGen('DatabaseFactory');
         this.factoryClass = this.factoryFile.addClass();
         this.factoryFile.addImport('{setting}', '../config/setting');
-        var getInstanceMethod = this.factoryClass.addMethod('getInstance', ClassGen.Access.Public, true);
+        let getInstanceMethod = this.factoryClass.addMethod('getInstance', ClassGen.Access.Public, true);
         getInstanceMethod.addParameter({name: 'config'});
         getInstanceMethod.addParameter({name: 'callback', type: 'Function'});
     }
@@ -50,14 +50,14 @@ export class DatabaseFactoryGen implements IFileGenerator {
     }
 
     private addDbSingleton(dbName) {
-        var getInstanceMethod = this.factoryClass.getMethod('getInstance');
+        let getInstanceMethod = this.factoryClass.getMethod('getInstance');
         getInstanceMethod.appendContent(`if (config.protocol == '${dbName}') {
             return DatabaseFactory.${dbName}Singleton(config, callback);
         }`);
-        var singletonMethod = this.factoryClass.addMethod(dbName + 'Singleton', ClassGen.Access.Private, true);
+        let singletonMethod = this.factoryClass.addMethod(dbName + 'Singleton', ClassGen.Access.Private, true);
         singletonMethod.addParameter({name: 'config'});
         singletonMethod.addParameter({name: 'callback', type: 'Function'});
-        var code = `if (DatabaseFactory.${dbName}Instance) {
+        let code = `if (DatabaseFactory.${dbName}Instance) {
             return setTimeout(() => {
                 callback(null, DatabaseFactory.${dbName}Instance);
             }, 1);
@@ -68,7 +68,7 @@ export class DatabaseFactoryGen implements IFileGenerator {
 
     private mongodbConnection() {
         return `
-        var url = config.protocol + '://' + config.host + ':' + config.port + '/' + config.database;
+        let url = config.protocol + '://' + config.host + ':' + config.port + '/' + config.database;
         MongoClient.connect(url, function (err, db) {
             DatabaseFactory.mongodbInstance = db;
             callback(err, db);
@@ -78,7 +78,7 @@ export class DatabaseFactoryGen implements IFileGenerator {
 
     private redisConnection() {
         return `
-        var client = createClient(config.port, config.host);
+        let client = createClient(config.port, config.host);
         client.on('error', function (error) {
             console.log('Redis Error', error);
         });
@@ -93,14 +93,14 @@ export class DatabaseFactoryGen implements IFileGenerator {
     }
 
     private mysqlConnection() {
-        var mysqlSetup = this.factoryClass.addMethod('setup', ClassGen.Access.Public, true);
+        let mysqlSetup = this.factoryClass.addMethod('setup', ClassGen.Access.Public, true);
         mysqlSetup.addParameter({name: 'sync', type: 'boolean'});
         mysqlSetup.addParameter({name: 'callback', type: 'Function'});
-        mysqlSetup.setContent(`var instances: Array<orm.Model> = [],
+        mysqlSetup.setContent(`let instances: Array<orm.Model> = [],
             modelNames = Object.keys(models),
             connection = DatabaseFactory.mysqlInstance;
-        for (var i = 0; i < modelNames.length; i++) {
-            var dbSchema = models[modelNames[i]].schema.dbSchema;
+        for (let i = 0; i < modelNames.length; i++) {
+            let dbSchema = models[modelNames[i]].schema.dbSchema;
             instances[modelNames[i]] = connection.define(models[modelNames[i]].schema.name, dbSchema, <orm.ModelOptions>{cache: false});
         }
 

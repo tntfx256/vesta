@@ -9,13 +9,13 @@ import {StringUtil} from "../../../../../util/StringUtil";
 export class IonicControllerGen extends BaseNGControllerGen {
 
     protected createEmptyTemplate() {
-        var template = new XMLGen('ion-content'),
+        let template = new XMLGen('ion-content'),
             pageName = _.camelCase(this.config.name);
         template.setAttribute('id', `${pageName}-page`);
         pageName = StringUtil.fcUpper(_.camelCase(this.config.name));
         template.html(`<h1>${pageName} Page</h1>
 <div ng-include="'tpl/${this.config.module}/${_.camelCase(this.config.name)}/${_.camelCase(this.config.name)}List.html'"></div>`);
-        var sass = new SassGen(this.config.name, SassGen.Type.Page);
+        let sass = new SassGen(this.config.name, SassGen.Type.Page);
         sass.generate();
         FsUtil.writeFile(path.join(this.templatePath, _.camelCase(this.config.name) + '.html'), template.generate());
     }

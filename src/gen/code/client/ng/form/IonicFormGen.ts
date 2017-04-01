@@ -10,18 +10,18 @@ export class IonicFormGen extends BaseNgFormGen {
 
     protected genSelectField(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): XMLGen {
         wrapper.addClass('item-select');
-        var select = new XMLGen('select');
-        properties.enum.forEach(item=> {
+        let select = new XMLGen('select');
+        properties.enum.forEach(item => {
             select.append(new XMLGen('option').setAttribute('value', item).text(item));
         });
         return select;
     }
 
     private static getInputContainer(title?: string): XMLGen {
-        var wrapper = new XMLGen('label');
+        let wrapper = new XMLGen('label');
         wrapper.addClass('item item-input item-floating-label');
         if (title) {
-            var label = new XMLGen('span');
+            let label = new XMLGen('span');
             label.text(title).addClass('input-label');
             wrapper.append(label);
         }
@@ -29,13 +29,13 @@ export class IonicFormGen extends BaseNgFormGen {
     }
 
     protected genElementForField(field: Field): XMLGen {
-        var wrapper = IonicFormGen.getInputContainer(field.fieldName);
+        let wrapper = IonicFormGen.getInputContainer(field.fieldName);
         this.getElementsByFieldType(wrapper, field.fieldName, field.properties);
         return wrapper;
     }
 
     wrap(config: INGFormWrapperConfig): XMLGen {
-        var modelInstanceName = _.camelCase(this.schema.name),
+        let modelInstanceName = _.camelCase(this.schema.name),
             modelClassName = StringUtil.fcUpper(modelInstanceName),
             wrapper = new XMLGen(config.isModal ? 'ion-modal-view' : 'div'),
             form = new XMLGen('form');
@@ -44,7 +44,7 @@ export class IonicFormGen extends BaseNgFormGen {
             .setAttribute('novalidate')
             .appendTo(wrapper);
         if (config.isModal) {
-            var toolbar = new XMLGen('ion-header-bar'),
+            let toolbar = new XMLGen('ion-header-bar'),
                 actionBar = new XMLGen('div'),
                 contentWrapper = new XMLGen('ion-content');
             toolbar.html(`
@@ -58,7 +58,7 @@ export class IonicFormGen extends BaseNgFormGen {
             form.append(toolbar, contentWrapper, actionBar);
         } else {
             wrapper.addClass('list');
-            var contentWrapper = new XMLGen('div');
+            let contentWrapper = new XMLGen('div');
             contentWrapper.setAttribute('ng-include', `'${config.formPath}'`)
                 .appendTo(form);
             // btns

@@ -4,7 +4,7 @@ export class Backup {
 
     static backupProject(args: Array<string>) {
         Backuper.getDeployConfig(args)
-            .then(config=> {
+            .then(config => {
                 let backuper = new Backuper(config);
                 backuper.backup();
             })

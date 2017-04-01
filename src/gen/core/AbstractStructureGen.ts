@@ -38,19 +38,19 @@ export abstract class AbstractStructureGen {
     }
 
     public addMethod(name: string): MethodGen {
-        for (var i = this.methods.length; i--;) {
+        for (let i = this.methods.length; i--;) {
             if (this.methods[i].name == name) {
                 return this.methods[i];
             }
         }
-        var method = new MethodGen(name);
+        let method = new MethodGen(name);
         this.methods.push(method);
         return method;
     }
 
     public getMethod(name: string): MethodGen {
         name = _.camelCase(name);
-        for (var i = this.methods.length; i--;) {
+        for (let i = this.methods.length; i--;) {
             if (this.methods[i].name == name) {
                 return this.methods[i];
             }
@@ -67,7 +67,7 @@ export abstract class AbstractStructureGen {
     }
 
     public addImplements(...interfaces: Array<string>) {
-        interfaces.forEach(intfc=> {
+        interfaces.forEach(intfc => {
             if (this.implementations.indexOf(intfc) < 0) {
                 this.implementations.push(intfc);
             }
@@ -75,7 +75,7 @@ export abstract class AbstractStructureGen {
     }
 
     public addProperty(property: IStructureProperty) {
-        for (var i = this.properties.length; i--;) {
+        for (let i = this.properties.length; i--;) {
             if (this.properties[i].name == property.name) {
                 return;
             }

@@ -13,7 +13,7 @@ export class TsFileParser {
     }
 
     private parse() {
-        var token = '';
+        let token = '';
         this.tokenize();
         while (token = this.getNextToken()) {
             console.log(token);
@@ -21,8 +21,8 @@ export class TsFileParser {
     }
 
     private tokenize() {
-        var tokens = this.content.replace(/\n/g, '');//.replace(//);
-        for (var i = 0, il = tokens.length; i < il; ++i) {
+        let tokens = this.content.replace(/\n/g, '');//.replace(//);
+        for (let i = 0, il = tokens.length; i < il; ++i) {
             if (tokens[i]) {
                 this.tokens.push(tokens[i]);
             }

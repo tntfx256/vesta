@@ -10,8 +10,8 @@ export class XMLGen {
     }
 
     addClass(className: string): XMLGen {
-        var classes = className.split('\W');
-        classes.forEach(className=> {
+        let classes = className.split('\W');
+        classes.forEach(className => {
             if (this.classNames.indexOf(className) < 0) {
                 this.classNames.push(className);
             }
@@ -20,9 +20,9 @@ export class XMLGen {
     }
 
     removeClass(className: string): XMLGen {
-        var index = -1,
+        let index = -1,
             classes = className.split('\W');
-        classes.forEach(className=> {
+        classes.forEach(className => {
             if ((index = this.classNames.indexOf(className)) >= 0) {
                 this.classNames.splice(index, 1);
             }
@@ -46,7 +46,7 @@ export class XMLGen {
     }
 
     removeAttribute(name): XMLGen {
-        var index = this.noValueAttributes.indexOf(name);
+        let index = this.noValueAttributes.indexOf(name);
         if (index >= 0) {
             this.noValueAttributes.splice(index, 1);
         } else {
@@ -71,8 +71,8 @@ export class XMLGen {
     }
 
     insertAfter(siblingTagName: string, newElement: XMLGen): XMLGen {
-        var lastIndex = -1;
-        for (var i = this.children.length; i--;) {
+        let lastIndex = -1;
+        for (let i = this.children.length; i--;) {
             if (this.children[i].tagName == siblingTagName) {
                 lastIndex = i;
             }
@@ -86,8 +86,8 @@ export class XMLGen {
     }
 
     insertBefore(siblingTagName: string, newElement: XMLGen) {
-        var firstIndex = -1;
-        for (var i = this.children.length; i--;) {
+        let firstIndex = -1;
+        for (let i = this.children.length; i--;) {
             if (this.children[i].tagName == siblingTagName) {
                 firstIndex = i;
                 break;
@@ -121,7 +121,7 @@ export class XMLGen {
     }
 
     getChildById(id: string): XMLGen {
-        for (var i = this.children.length; i--;) {
+        for (let i = this.children.length; i--;) {
             if (this.children[i].getAttribute('id') == id) {
                 return this.children[i];
             }
@@ -130,8 +130,8 @@ export class XMLGen {
     }
 
     getChildrenByTagName(tagName: string): Array<XMLGen> {
-        var result: Array<XMLGen> = [];
-        for (var i = this.children.length; i--;) {
+        let result: Array<XMLGen> = [];
+        for (let i = this.children.length; i--;) {
             if (this.children[i].tagName == tagName) {
                 result.push(this.children[i]);
             }
@@ -140,8 +140,8 @@ export class XMLGen {
     }
 
     getChildrenByAttribute(attribute: string, value?: string): Array<XMLGen> {
-        var result: Array<XMLGen> = [];
-        for (var i = this.children.length; i--;) {
+        let result: Array<XMLGen> = [];
+        for (let i = this.children.length; i--;) {
             if (this.children[i].attributes[attribute]) {
                 if (value === undefined || this.children[i].attributes[attribute] == value) {
                     result.push(this.children[i]);
@@ -152,11 +152,11 @@ export class XMLGen {
     }
 
     generate(indent: string = ''): string {
-        var code = `${indent}<${this.tagName}`;
+        let code = `${indent}<${this.tagName}`;
         if (this.classNames.length) {
             code += ` class="${this.classNames.join(' ')}"`;
         }
-        for (var attr in this.attributes) {
+        for (let attr in this.attributes) {
             if (this.attributes.hasOwnProperty(attr)) {
                 code += ` ${attr}="${this.attributes[attr]}"`;
             }
@@ -174,7 +174,7 @@ export class XMLGen {
                 code += `\n${indent}    ${this.htmlContent}\n${indent}</${this.tagName}>`;
             } else if (this.children.length) {
                 code += '\n';
-                this.children.forEach(child=> {
+                this.children.forEach(child => {
                     code += child.generate(`${indent}    `);
                     code += '\n';
                 });

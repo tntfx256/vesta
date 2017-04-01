@@ -47,7 +47,7 @@ export class Gen {
                             }
 
                         })
-                        .catch(err=> console.error(err.message))
+                        .catch(err => console.error(err.message))
                 } else {
                     ExpressControllerGen.getGeneratorConfig(name, config => {
                         if (config.model instanceof Array) {
@@ -73,14 +73,14 @@ export class Gen {
                 model.generate();
                 break;
             case 'directive':
-                NGDirectiveGen.getGeneratorConfig(config=> {
+                NGDirectiveGen.getGeneratorConfig(config => {
                     config.name = name;
                     let ngDirective = new NGDirectiveGen(config);
                     ngDirective.generate();
                 });
                 break;
             case 'filter':
-                NGFilterGen.getGeneratorConfig(config=> {
+                NGFilterGen.getGeneratorConfig(config => {
                     config.name = name;
                     let ngFilter = new NGFilterGen(config);
                     ngFilter.generate();

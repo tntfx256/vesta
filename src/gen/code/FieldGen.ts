@@ -71,7 +71,7 @@ export class FieldGen {
                 // if field is of type list, a new series of questions should be answered based on the items type
                 if (this.properties.list) {
                     let listQuestions = this.getQuestionsBasedOnFieldType(this.properties.list, true);
-                    return Util.prompt(listQuestions).then(answers=> this.setPropertiesFromAnswers(answers));
+                    return Util.prompt(listQuestions).then(answers => this.setPropertiesFromAnswers(answers));
                 }
             });
     }
@@ -81,7 +81,7 @@ export class FieldGen {
             let property = properties[i];
             if (['relatedModel'].indexOf(property) >= 0) continue;
             if (property == 'enum') {
-                this.properties.enum = (answers.enum).split(',').map(item=>_.trim(item));
+                this.properties.enum = (answers.enum).split(',').map(item => _.trim(item));
             } else if (property == 'fileType') {
                 this.properties.fileType = this.getFileTypes(answers.fileType);
             } else if (property == 'relationType') {
@@ -249,7 +249,7 @@ export class FieldGen {
             //case FieldType.Enum:
             //    return 'any';
         }
-        if (this.properties.primary) return 'number|string';
+        if (this.properties.primary) return 'number';
         return 'any';
     }
 

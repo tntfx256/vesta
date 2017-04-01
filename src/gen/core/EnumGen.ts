@@ -24,7 +24,7 @@ export class EnumGen {
     public addProperty(name: string, index?: number) {
         name = StringUtil.fcUpper(_.camelCase(name));
         if (!index || index < 0) index = 0;
-        for (var i = this.properties.length; i--;) {
+        for (let i = this.properties.length; i--;) {
             if (this.properties[i].name == name) {
                 if (index) {
                     this.properties[i].index = index;
@@ -33,13 +33,13 @@ export class EnumGen {
             }
         }
         this.properties.push({name: name, index: index});
-        this.properties = this.properties.sort((a: IEnumProperty, b: IEnumProperty)=> {
+        this.properties = this.properties.sort((a: IEnumProperty, b: IEnumProperty) => {
             return a.index - b.index;
         });
     }
 
     public setStartIndex(index: number) {
-        for (var i = this.properties.length; i--;) {
+        for (let i = this.properties.length; i--;) {
             if (this.properties[i].index == index) {
                 return;
             }
@@ -50,11 +50,11 @@ export class EnumGen {
     }
 
     public generate(): string {
-        var code = this.shouldBeExported ? 'export ' : '',
+        let code = this.shouldBeExported ? 'export ' : '',
             props: Array<string> = [];
 
         code += `enum ${this.name} {`;
-        for (var i = 0, il = this.properties.length; i < il; ++i) {
+        for (let i = 0, il = this.properties.length; i < il; ++i) {
             if (this.properties[i].index) {
                 props.push(`${this.properties[i].name} = ${this.properties[i].index}`);
             } else if (i == 0 && this.startIndex > 0) {

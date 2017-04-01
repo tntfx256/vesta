@@ -48,7 +48,7 @@ export class NGDirectiveGen {
     }
 
     private createInterface() {
-        var name = StringUtil.fcUpper(this.file.name);
+        let name = StringUtil.fcUpper(this.file.name);
         this.scopeInterface = this.file.addInterface(`I${name}Scope`);
         this.scopeInterface.setParentClass('IScope');
     }
@@ -61,11 +61,11 @@ export class NGDirectiveGen {
             isStatic: true,
             defaultValue: "['$scope', '$element']"
         });
-        var cm = this.controllerClass.setConstructor();
+        let cm = this.controllerClass.setConstructor();
         cm.addParameter({name: '$scope', type: this.scopeInterface.name, access: ClassGen.Access.Private});
         cm.addParameter({name: '$element', type: 'IAugmentedJQuery', access: ClassGen.Access.Private});
-        for (var i = 0, il = this.config.injects.length; i < il; ++i) {
-            var inj = this.config.injects[i];
+        for (let i = 0, il = this.config.injects.length; i < il; ++i) {
+            let inj = this.config.injects[i];
             this.file.addImport(`{${inj.name}}`, Util.genRelativePath(this.path, inj.path));
             cm.addParameter({name: inj.name, type: inj.type, access: ClassGen.Access.Private});
         }
@@ -95,13 +95,13 @@ export class NGDirectiveGen {
     }
 
     public generate() {
-        var tplPath = 'src/app/templates/directive';
+        let tplPath = 'src/app/templates/directive';
         try {
             fs.mkdirpSync(tplPath);
         } catch (e) {
             Log.error(e.message);
         }
-        var templateCode = `<div class="${this.tplFileName}"></div>`;
+        let templateCode = `<div class="${this.tplFileName}"></div>`;
         let content = this.directiveMethod.getContent();
         if (this.config.externalTemplate) {
             content = content.replace('%TEMPLATE_URL%', `
@@ -121,7 +121,7 @@ export class NGDirectiveGen {
     }
 
     public static getGeneratorConfig(callback) {
-        var config: INGDirectiveConfig = <INGDirectiveConfig>{};
+        let config: INGDirectiveConfig = <INGDirectiveConfig>{};
         Util.prompt<{externalTemplate: boolean; generateSass: boolean;}>([<Question>{
             name: 'externalTemplate',
             type: 'confirm',
@@ -132,7 +132,7 @@ export class NGDirectiveGen {
             type: 'confirm',
             message: 'Create Sass style file: ',
             default: true
-        }]).then(answer=> {
+        }]).then(answer => {
             config.externalTemplate = answer.externalTemplate;
             config.generateSass = answer.generateSass;
             NGDependencyInjector.getCliInjectables()

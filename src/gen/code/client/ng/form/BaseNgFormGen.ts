@@ -75,7 +75,7 @@ export abstract class BaseNgFormGen {
 
     protected genSelectField(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): XMLGen {
         let select = new XMLGen('select');
-        properties.enum.forEach(item=> {
+        properties.enum.forEach(item => {
             select.append(new XMLGen('option').setAttribute('value', item).text(item));
         });
         return select;
@@ -205,7 +205,7 @@ export abstract class BaseNgFormGen {
     public generate(forSearch?: boolean): string {
         let fields = this.subset.length ? this.subset : Object.keys(this.fields),
             codes: Array<string> = [];
-        fields.forEach(fieldName=> {
+        fields.forEach(fieldName => {
             if (fieldName != 'id') {
                 let elm = this.genElementForField(this.fields[fieldName], forSearch);
                 elm && codes.push(elm.generate());

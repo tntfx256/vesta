@@ -34,7 +34,7 @@ export class Deployer {
     private alreadyCloned: boolean = false;
 
     constructor(private config: IDeployConfig) {
-        var date = new GregorianDate();
+        let date = new GregorianDate();
         this.config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy', branch: config.branch});
         this.cloningPath = config.projectName;
         if (fs.existsSync(this.cloningPath)) {
@@ -46,8 +46,8 @@ export class Deployer {
     }
 
     public deploy() {
-        var deployPath = `${this.config.deployPath}/${this.config.projectName}`;
-        var args = [this.cloningPath, deployPath];
+        let deployPath = `${this.config.deployPath}/${this.config.projectName}`;
+        let args = [this.cloningPath, deployPath];
         args = args.concat(this.config.args);
         if (this.alreadyCloned) {
             CmdUtil.execSync(`git reset --hard origin/master`, {cwd: this.cloningPath});
@@ -68,7 +68,7 @@ export class Deployer {
     }
 
     private static getProjectName(url: string) {
-        var [,group,project]=/.+\/(.+)\/(.+)\.git$/.exec(url);
+        let [, group, project]=/.+\/(.+)\/(.+)\.git$/.exec(url);
         return `${group}-${project}`;
     }
 
@@ -77,7 +77,7 @@ export class Deployer {
             Log.error('You must install gulp-cli! Run `sudo npm install -g gulp-cli`');
             return Promise.reject(new Err(Err.Code.OperationFailed, 'gulp-cli is not installed'));
         }
-        var config: IDeployConfig = <IDeployConfig>{
+        let config: IDeployConfig = <IDeployConfig>{
             history: [],
             args: [],
             deployPath: `app`
@@ -102,7 +102,7 @@ export class Deployer {
     }
 
     public static fetchConfig(filename: string): IDeployConfig {
-        var config: IDeployConfig = <IDeployConfig>{};
+        let config: IDeployConfig = <IDeployConfig>{};
         try {
             config = JSON.parse(fs.readFileSync(filename, {encoding: 'utf8'}));
         } catch (e) {

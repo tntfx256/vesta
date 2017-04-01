@@ -53,13 +53,13 @@ export class CordovaGen {
     }
 
     public static getPlugins(...serviceNames: Array<string>): Array<string> {
-        var plugins = [];
-        for (var i = 0, il = serviceNames.length; i < il; ++i) {
-            var pluginName = CordovaGen.serviceMap[serviceNames[i]];
+        let plugins = [];
+        for (let i = 0, il = serviceNames.length; i < il; ++i) {
+            let pluginName = CordovaGen.serviceMap[serviceNames[i]];
             if (!pluginName) continue;
-            var pluginsStr: string = CordovaGen.pluginMap[pluginName];
-            var pluginNames = pluginsStr.split(',');
-            for (var j = 0, jl = pluginNames.length; j < jl; ++j) {
+            let pluginsStr: string = CordovaGen.pluginMap[pluginName];
+            let pluginNames = pluginsStr.split(',');
+            for (let j = 0, jl = pluginNames.length; j < jl; ++j) {
                 if (plugins.indexOf(pluginNames[j]) < 0) {
                     plugins.push(pluginNames[j]);
                 }

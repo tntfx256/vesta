@@ -30,7 +30,7 @@ export class MaterialFormGen extends BaseNgFormGen {
      */
     protected genSelectField(wrapper: XMLGen, fieldName: string, properties: IFieldProperties): XMLGen {
         let select = new XMLGen('md-select');
-        properties.enum.forEach(item=> {
+        properties.enum.forEach(item => {
             select.append(new XMLGen('md-option').setAttribute('ng-value', item).text(item));
         });
         return select;

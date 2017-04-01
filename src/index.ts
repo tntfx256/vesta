@@ -8,6 +8,8 @@ import {Update} from "./cmd/Update";
 import {Deploy} from "./cmd/Deploy";
 import {Backup} from "./cmd/Backup";
 import {Docker} from "./cmd/Docker";
+import {Client} from "./cmd/Client";
+import {Log} from "./util/Log";
 
 let args = process.argv;
 args.shift();
@@ -32,8 +34,9 @@ Options:
     -v, --version   Displays the version of vesta platform
 
 Commands:
-    init            Preparing a server (ubuntu 14.4 and up) 
+    init            Initiating a vesta project from existing code and Managing server 
     create          Creating new project
+    client          Managing client technology
     gen             Generate code for mentioned type
     deploy          Deploy a project from remote repository
     backup          Backup all storage data into a single tar file
@@ -46,14 +49,12 @@ Run 'vesta COMMAND --help' for more information on COMMAND
 }
 
 switch (command) {
+    // no need to vesta.json
     case 'init':
         Init.parse(args);
         break;
     case 'create':
         Create.parse(args);
-        break;
-    case 'gen':
-        Gen.parse(args);
         break;
     case 'deploy':
         Deploy.parse(args);
@@ -67,6 +68,13 @@ switch (command) {
     case 'update':
         Update.parse(args);
         break;
+    // vesta.json must exist
+    case 'client':
+        Client.parse(args);
+        break;
+    case 'gen':
+        Gen.parse(args);
+        break;
     default:
-        process.stderr.write(`vesta: '${command}' is not a vesta command\nSee 'Vesta --help'\n`);
+        Log.error(`vesta: '${command}' is not a vesta command\nSee 'Vesta --help'\n`);
 }

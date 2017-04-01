@@ -22,7 +22,7 @@ export class ServerAppGen {
     }
 
     private getBranchName(): string {
-        // var branch = 'master';
+        // let branch = 'master';
         // if (this.config.server.database != DatabaseGen.None) {
         //     branch += `-${this.config.server.database}`;
         // }
@@ -44,7 +44,7 @@ export class ServerAppGen {
 
     static getGeneratorConfig(): Promise<IServerAppConfig> {
         let config: IServerAppConfig = <IServerAppConfig>{type: 'express'};
-        return new Promise<IServerAppConfig>(resolve=> {
+        return new Promise<IServerAppConfig>(resolve => {
             let question = <Question>{
                 type: 'list',
                 name: 'database',
@@ -52,7 +52,7 @@ export class ServerAppGen {
                 choices: [DatabaseGen.MySQL, DatabaseGen.Mongodb],
                 default: DatabaseGen.MySQL
             };
-            Util.prompt<{database: string}>(question).then(answer=> {
+            Util.prompt<{database: string}>(question).then(answer => {
                 config.database = answer.database;
                 resolve(config);
             });

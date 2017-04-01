@@ -7,15 +7,15 @@ import {Log} from "./Log";
 export class Util {
 
     static prompt<T>(questions: Question|Array<Question>): Promise<T> {
-        return new Promise<T>(resolve=> {
-            inquirer.prompt(questions)['then'](answer=> {
+        return new Promise<T>(resolve => {
+            inquirer.prompt(questions)['then'](answer => {
                 resolve(answer as any as T);
             });
         })
     }
 
     static plural(name: string): string {
-        var lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
+        let lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
         if (['a', 'i', 'u', 's'].indexOf(lastChar) >= 0) {
             return name + 'es';
         }
@@ -26,12 +26,12 @@ export class Util {
     }
 
     static toJSON(object: any, prune: boolean = false) {
-        var json = {};
-        for (var key in object) {
-            var value = object[key];
+        let json = {};
+        for (let key in object) {
+            let value = object[key];
             if (object.hasOwnProperty(key) && 'function' != typeof value) {
                 if (prune) {
-                    var type = typeof object[key];
+                    let type = typeof object[key];
                     if (type == 'object') {
                         if (object['splice']) {// array
                             if (value.length) json[key] = value;
@@ -52,7 +52,7 @@ export class Util {
     }
 
     static genRelativePath(from: string, to: string): string {
-        var relPath = path.relative(from, to).replace(/\\/g, '/').replace(/\.ts$/, '');
+        let relPath = path.relative(from, to).replace(/\\/g, '/').replace(/\.ts$/, '');
         if (relPath.charAt(0) != '.') {
             relPath = './' + relPath;
         }
@@ -65,13 +65,13 @@ export class Util {
 
     static findInFileAndReplace(filePath: string, patternReplacePair: any, preventIfExists: boolean = false) {
         if (fse.existsSync(filePath)) {
-            var code = fse.readFileSync(filePath, {encoding: 'utf8'});
-            for (var pattern in patternReplacePair) {
+            let code = fse.readFileSync(filePath, {encoding: 'utf8'});
+            for (let pattern in patternReplacePair) {
                 if (patternReplacePair.hasOwnProperty(pattern)) {
                     if (preventIfExists && code.indexOf(patternReplacePair[pattern]) >= 0) {
                         continue;
                     }
-                    var regex = new RegExp(pattern, 'g');
+                    let regex = new RegExp(pattern, 'g');
                     code = code.replace(regex, patternReplacePair[pattern]);
                 }
             }
@@ -83,7 +83,7 @@ export class Util {
 
     static fileHasContent(filePath: string, pattern: string): boolean {
         if (fse.existsSync(filePath)) {
-            var code = fse.readFileSync(filePath, {encoding: 'utf8'});
+            let code = fse.readFileSync(filePath, {encoding: 'utf8'});
             return code.indexOf(pattern) >= 0;
         }
         return false;

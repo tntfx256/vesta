@@ -3,7 +3,7 @@ import {Log} from "./Log";
 
 export class FsUtil {
     public static mkdir(...dirs: Array<string>): void {
-        dirs.forEach(dir=> {
+        dirs.forEach(dir => {
             // Log.info(`./> mkdir -p ${dir}`);
             try {
                 fse.mkdirpSync(dir);
@@ -49,7 +49,7 @@ export class FsUtil {
     }
 
     public static remove(...path: Array<string>) {
-        path.forEach(p=> {
+        path.forEach(p => {
             Log.info(`./> rm -rf ${p}`);
             try {
                 fse.removeSync(p);

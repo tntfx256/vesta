@@ -15,7 +15,7 @@ export class ClassGen extends AbstractStructureGen {
     }
 
     public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false): MethodGen {
-        var method = super.addMethod(name);
+        let method = super.addMethod(name);
         method.setAccessType(access);
         method.setAsStatic(isStatic);
         method.setAsAbstract(isAbstract);
@@ -31,9 +31,9 @@ export class ClassGen extends AbstractStructureGen {
     }
 
     private getPropertiesCode(): string {
-        var codes = [];
-        for (var i = 0, il = this.properties.length; i < il; ++i) {
-            var code = (this.properties[i].access ? this.properties[i].access : 'public') + ' ';
+        let codes = [];
+        for (let i = 0, il = this.properties.length; i < il; ++i) {
+            let code = (this.properties[i].access ? this.properties[i].access : 'public') + ' ';
             if (this.properties[i].isStatic) code += 'static ';
             code += this.properties[i].name;
             if (this.properties[i].isOptional) code += '?';
@@ -46,9 +46,9 @@ export class ClassGen extends AbstractStructureGen {
     }
 
     public generate(): string {
-        var exp = this.shouldBeExported ? 'export ' : '',
+        let exp = this.shouldBeExported ? 'export ' : '',
             abs = this.isAbstract ? ' abstract ' : '';
-        var code = `\n${exp}${abs}class ${this.name}`;
+        let code = `\n${exp}${abs}class ${this.name}`;
         if (this.parentClass) code += ' extends ' + this.parentClass;
         if (this.implementations.length) {
             code += ' implements ' + this.implementations.join(', ');
@@ -58,8 +58,8 @@ export class ClassGen extends AbstractStructureGen {
         if (this.constructorMethod) {
             code += this.constructorMethod.generate();
         }
-        var staticMethods: Array<MethodGen> = [];
-        for (var i = 0, il = this.methods.length; i < il; ++i) {
+        let staticMethods: Array<MethodGen> = [];
+        for (let i = 0, il = this.methods.length; i < il; ++i) {
             if (this.methods[i].isStatic()) {
                 staticMethods.push(this.methods[i]);
             } else {
@@ -67,7 +67,7 @@ export class ClassGen extends AbstractStructureGen {
             }
         }
         // placing the static methods at the end of class body
-        for (var i = 0, il = staticMethods.length; i < il; ++i) {
+        for (let i = 0, il = staticMethods.length; i < il; ++i) {
             code += `\n${staticMethods[i].generate()}`;
         }
         this.mixins.forEach(mixin => {

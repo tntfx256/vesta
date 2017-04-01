@@ -25,15 +25,15 @@ export class NGDependencyInjector {
     public static preInitiatedServices = ['apiService', 'formService', 'notificationService', 'logService', 'authService', 'Setting'];
 
     public static getServices(): Array<INGInjectable> {
-        var fetchPlugins = Vesta.getInstance().getConfig().client.platform == ClientAppGen.Platform.Cordova,
+        let fetchPlugins = Vesta.getInstance().getConfig().client.platform == ClientAppGen.Platform.Cordova,
             serviceDirectory = 'src/app/service',
             services: Array<INGInjectable> = [];
         try {
-            var serviceFiles = fs.readdirSync(serviceDirectory);
-            for (var i = 0; i < serviceFiles.length; i++) {
-                var serviceFile = serviceFiles[i];
+            let serviceFiles = fs.readdirSync(serviceDirectory);
+            for (let i = 0; i < serviceFiles.length; i++) {
+                let serviceFile = serviceFiles[i];
                 if (!/\.ts$/.exec(serviceFile)) continue;
-                var className = serviceFile.substr(0, serviceFile.length - 3);
+                let className = serviceFile.substr(0, serviceFile.length - 3);
                 services.push({
                     name: className,
                     path: path.join(serviceDirectory, serviceFile),
@@ -89,7 +89,7 @@ export class NGDependencyInjector {
     }
 
     public static updateImportFile(file: TsFileGen, type: string, destination: string, placeHolder: string, importPath: string) {
-        var className = file.name,
+        let className = file.name,
             instanceName = _.camelCase(className),
             importFilePath = 'src/app/config/import.ts';
         if (/.+Filter$/.exec(instanceName)) {
@@ -98,7 +98,7 @@ export class NGDependencyInjector {
         // creating the ts file and write it's content
         FsUtil.writeFile(path.join(destination, className + '.ts'), file.generate());
 
-        var importFileCode = fs.readFileSync(importFilePath, {encoding: 'utf8'}),
+        let importFileCode = fs.readFileSync(importFilePath, {encoding: 'utf8'}),
             // import statement code
             importCode = `import {${className}} from "${importPath}/${className}";`,
             // adding module as property to exporter variable code
@@ -116,27 +116,27 @@ export class NGDependencyInjector {
     }
 
     public static getCliInjectables(extraInjectables: Array<INGInjectable> = []): Promise<Array<INGInjectable>> {
-        var injectables: Array<INGInjectable> = [<INGInjectable>{
+        let injectables: Array<INGInjectable> = [<INGInjectable>{
                 name: '$rootScope',
                 type: 'IExtRootScopeService',
                 path: 'src/app/ClientApp'
             }].concat(extraInjectables, NGDependencyInjector.getServices()),
             injectableNames = [];
-        for (var i = 0, il = injectables.length; i < il; ++i) {
+        for (let i = 0, il = injectables.length; i < il; ++i) {
             if (NGDependencyInjector.preInitiatedServices.indexOf(injectables[i].name) == -1) {
                 injectableNames.push(injectables[i].name);
             }
         }
-        return new Promise(resolve=> {
+        return new Promise(resolve => {
             Util.prompt<{injects: Array<string>}>(<Question>{
                 name: 'injects',
                 type: 'checkbox',
                 message: 'Injectables: ',
                 choices: injectableNames
-            }).then(answer=> {
-                var selected: Array<INGInjectable> = [];
-                for (var i = answer['injects'].length; i--;) {
-                    for (var j = injectables.length; j--;) {
+            }).then(answer => {
+                let selected: Array<INGInjectable> = [];
+                for (let i = answer['injects'].length; i--;) {
+                    for (let j = injectables.length; j--;) {
                         if (answer['injects'][i] == injectables[j].name) {
                             selected.push(injectables[j]);
                         }

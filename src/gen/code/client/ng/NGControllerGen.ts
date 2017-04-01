@@ -73,7 +73,7 @@ export class NGControllerGen {
                 }
                 return {modal: true};
             })
-            .then(answer=> {
+            .then(answer => {
                 config.openFormInModal = answer.modal;
                 return config;
             })

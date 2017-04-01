@@ -10,7 +10,7 @@ export class Log {
     }
 
     public static error(message: string) {
-        Log.color('red', message);
+        process.stderr.write(colors.red(message));
     }
 
     public static warning(message: string) {
@@ -22,6 +22,6 @@ export class Log {
     }
 
     public static color(color: string, message: string) {
-        console.log(colors[color](message));
+        process.stdout.write(colors[color](message));
     }
 }

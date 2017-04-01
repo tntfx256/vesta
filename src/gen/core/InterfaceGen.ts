@@ -8,17 +8,17 @@ export class InterfaceGen extends AbstractStructureGen {
     }
 
     public addMethod(name: string): MethodGen {
-        var method = super.addMethod(name);
+        let method = super.addMethod(name);
         method.isInterfaceMethod(true);
         return method;
     }
 
     private getPropertiesCode(): string {
-        var codes = [];
-        for (var i = 0, il = this.properties.length; i < il; ++i) {
-            var code = this.properties[i].name;
+        let codes = [];
+        for (let i = 0, il = this.properties.length; i < il; ++i) {
+            let code = this.properties[i].name;
             if (this.properties[i].isOptional) code += '?';
-            if (this.properties[i].type) code += `:${this.properties[i].type}`;
+            if (this.properties[i].type) code += `: ${this.properties[i].type}`;
             code += ';';
             codes.push(code);
         }
@@ -26,7 +26,7 @@ export class InterfaceGen extends AbstractStructureGen {
     }
 
     public generate(): string {
-        var code = this.shouldBeExported ? 'export ' : '';
+        let code = this.shouldBeExported ? 'export ' : '';
         code += `interface ${this.name}`;
         if (this.parentClass) code += ' extends ' + this.parentClass;
         if (this.implementations.length) {
@@ -34,7 +34,7 @@ export class InterfaceGen extends AbstractStructureGen {
         }
         code += ' {\n';
         if (this.properties.length) code += `    ${this.getPropertiesCode()}\n`;
-        for (var i = 0, il = this.methods.length; i < il; ++i) {
+        for (let i = 0, il = this.methods.length; i < il; ++i) {
             code += this.methods[i].generate();
             code += '\n';
         }

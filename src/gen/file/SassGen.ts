@@ -14,7 +14,7 @@ export class SassGen {
     }
 
     private genFontSass() {
-        var code = `@font-face {
+        let code = `@font-face {
   font-family: '${this.name}';
   src: url('#{$font-path}/${this.name}.eot?#iefix') format('embedded-opentype'),
   url('#{$font-path}/${this.name}.woff') format('woff'),
@@ -25,7 +25,7 @@ export class SassGen {
 }
 `;
         this.name = _.camelCase(this.name);
-        var dir = path.join(this.basePath, 'fonts'),
+        let dir = path.join(this.basePath, 'fonts'),
             pattern = {};
         try {
             fs.mkdirpSync(dir);
@@ -37,10 +37,10 @@ export class SassGen {
     }
 
     private genPageSass() {
-        var code = `#${this.name}-page {
+        let code = `#${this.name}-page {
 }
 `;
-        var dir = path.join(this.basePath, 'pages'),
+        let dir = path.join(this.basePath, 'pages'),
             pattern = {};
         try {
             fs.mkdirpSync(dir);
@@ -52,10 +52,10 @@ export class SassGen {
     }
 
     private genComponentSass() {
-        var code = `.${this.name} {
+        let code = `.${this.name} {
 }
 `;
-        var dir = path.join(this.basePath, 'components'),
+        let dir = path.join(this.basePath, 'components'),
             pattern = {};
         try {
             fs.mkdirpSync(dir);
@@ -67,10 +67,10 @@ export class SassGen {
     }
 
     private genDirectiveSass() {
-        var code = `.${this.name} {
+        let code = `.${this.name} {
 }
 `;
-        var dir = path.join(this.basePath, 'directives'),
+        let dir = path.join(this.basePath, 'directives'),
             pattern = {};
         try {
             fs.mkdirpSync(dir);

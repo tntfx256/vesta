@@ -84,17 +84,17 @@ export class ModelGen {
             type: 'input',
             message: 'Field Name: '
         };
-        Util.prompt<{fieldName: string}>(question).then(answer => {
+        Util.prompt<{ fieldName: string }>(question).then(answer => {
             if (!answer.fieldName) return this.write();
             let fieldName = _.camelCase(<string>answer.fieldName);
             let field = new FieldGen(this.modelFile, fieldName);
             this.fields[fieldName] = field;
             field.readFieldProperties()
-                .then(()=> {
+                .then(() => {
                     Log.success('\n:: Press enter with empty fieldName when done\n');
                     this.readField();
                 })
-                .catch(err=>console.log('read field', err));
+                .catch(err => Log.error(err.message));
         })
     }
 
@@ -115,16 +115,16 @@ export class ModelGen {
             Log.error('\n:: Invalid file path \n');
             process.exit(1);
         }
-        Promise.all(steps).then(()=> {
+        Promise.all(steps).then(() => {
             console.log('writing models');
-        }).catch(err=> {
+        }).catch(err => {
             console.log("error:" + JSON.stringify(err));
         })
     }
 
     private parseXml(xml) {
-        return new Promise((resolve, reject)=> {
-            xml2json({input: xml}, (err, result)=> {
+        return new Promise((resolve, reject) => {
+            xml2json({input: xml}, (err, result) => {
                 let parts = xml.split(/[\/\\]/);
                 let modelName = parts[parts.length - 1].replace('.xml', '').replace('.XML', '');
                 let model = new ModelGen([modelName]);
@@ -319,7 +319,7 @@ export class ModelGen {
         if (!model) return fieldsOfType;
         let fields: IModelFields = (<Schema>model.schema).getFields();
         for (let names = Object.keys(fields), i = 0, il = names.length; i < il; ++i) {
-            var field = fields[names[i]];
+            let field = fields[names[i]];
             if (field.properties.type == fieldType) {
                 if (!fieldsOfType) {
                     fieldsOfType = {};

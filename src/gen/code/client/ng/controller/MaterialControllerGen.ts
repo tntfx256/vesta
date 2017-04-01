@@ -11,7 +11,7 @@ import {MaterialListGen} from "../list/MaterialListGen";
 interface IFileFieldsCode {
     // updating address file src of fetched record (e.g. Setting.asset/model/record.image)
     address: string;
-    // extracting files from model value (e.g. var image = model.image; delete model.image)
+    // extracting files from model value (e.g. let image = model.image; delete model.image)
     extraction: string;
     // uploading extracted file (e.g. this.upload({image: image}))
     upload: string;
@@ -78,7 +78,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
                     let enumName = `${modelName}${_.capitalize(field.fieldName)}`;
                     type = 'Enum';
                     options = `,
-                render: (${modelInstanceName}: ${modelName})=> this.translate(${enumName}[${modelInstanceName}.${fieldName}]),
+                render: (${modelInstanceName}: ${modelName}) => this.translate(${enumName}[${modelInstanceName}.${fieldName}]),
                 options: ${enumName}`;
                     break;
                 case FieldType.Relation:
@@ -152,18 +152,18 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         loadMoreMethod.setContent(`if (this.busy) return;
         this.busy = true;
         this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}', option)
-            .then(result=> {
+            .then(result => {
                 this.${modelListName} = result.items;
                 this.busy = false;
             })
-            .catch(err=> {
+            .catch(err => {
                 this.notificationService.toast(this.translate(err.message));
                 this.busy = false;
             });
         if (option.page == 1) {
             this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>('${edge}/count', option)
-                .then(result=> this.dtOptions.total = result.total)
-                .catch(err=> this.notificationService.toast(this.translate(err.message)));
+                .then(result => this.dtOptions.total = result.total)
+                .catch(err => this.notificationService.toast(this.translate(err.message)));
         }`);
         // add & edit method should only exists in case of modals
         if (this.config.openFormInModal) {
@@ -179,7 +179,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         }).then((${modelInstanceName}) => {
             this.${modelListName}.push(${modelInstanceName});
             this.notificationService.toast(this.translate('info_add_record', this.translate('${modelInstanceName}')));
-        }).catch(err=> err && this.notificationService.toast(this.translate(err.message)))`);
+        }).catch(err => err && this.notificationService.toast(this.translate(err.message)))`);
             // edit method
             let editMethod = this.controllerClass.addMethod(`edit${modelName}`);
             editMethod.addParameter({name: 'event', type: 'MouseEvent'});
@@ -195,7 +195,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         }).then((${modelInstanceName}: I${modelName}) => {
             this.${modelListName}[this.findByProperty(this.${modelListName}, 'id', ${modelInstanceName}.id)] = ${modelInstanceName};
             this.notificationService.toast('${modelInstanceName} has been updated successfully');
-        }).catch(err=> this.notificationService.toast(this.translate(err.message)))`);
+        }).catch(err => err && this.notificationService.toast(this.translate(err.message)))`);
         }
         // delete method
         let delMethod = this.controllerClass.addMethod(`del${modelName}`);
@@ -209,12 +209,12 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             .targetEvent(event)
             .ok(this.translate('yes')).cancel(this.translate('no'));
         this.$mdDialog.show(confirm)
-            .then(()=> this.apiService.delete(\`${edge}/\${${modelInstanceName}Id}\`))
-            .then(()=> {
+            .then(() => this.apiService.delete(\`${edge}/\${${modelInstanceName}Id}\`))
+            .then(() => {
                 this.${modelListName}.splice(this.findByProperty(this.${modelListName}, 'id', ${modelInstanceName}Id), 1);
                 this.notificationService.toast(this.translate('info_delete_record', this.translate('${modelInstanceName}')));
             })
-            .catch(err=> this.notificationService.toast(this.translate(err.message)));`);
+            .catch(err => this.notificationService.toast(this.translate(err.message)));`);
         // // template
         let template = new MaterialListGen(this.config);
         template.generate();
@@ -250,9 +250,9 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         if (!validate) return this.notificationService.toast('Invalid form data');
         let ${modelInstanceName} = this.${modelInstanceName}.getValues<I${modelName}>();${fileCodes.extraction}
         this.apiService.post<I${modelName}, IUpsertResult<I${modelName}>>('${edge}', ${modelInstanceName})
-            .then(result=> ${thenCode})
-            .then(()=> this.$mdDialog.hide(this.${modelInstanceName}))
-            .catch(err=> {
+            .then(result => ${thenCode})
+            .then(() => this.$mdDialog.hide(this.${modelInstanceName}))
+            .catch(err => {
                 this.notificationService.toast(this.translate(err.message));
                 if (err.code == Err.Code.Validation) {
                     this.formService.evaluate((<ValidationError>err).violations, this.${formName});
@@ -282,8 +282,8 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         `);
         }
         this.controllerClass.getConstructor().appendContent(`this.apiService.get<IQueryRequest<I${modelName}>, IQueryResult<I${modelName}>>(\`${edge}/\${this.locals.id}\`)
-            .then(result=> ${thenCode})
-            .catch(reason=> $mdDialog.cancel(reason));`);
+            .then(result => ${thenCode})
+            .catch(reason => $mdDialog.cancel(reason));`);
         let closeMethod = this.controllerClass.addMethod('closeFormModal');
         closeMethod.setContent('this.$mdDialog.cancel();');
         this.setModelRequiredInjections();
@@ -297,9 +297,9 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         if (!validate) return this.notificationService.toast('Invalid form data');
         let ${modelInstanceName} = this.${modelInstanceName}.getValues<I${modelName}>();${fileCodes.extraction}
         this.apiService.put<I${modelName}, IUpsertResult<I${modelName}>>('${edge}', ${modelInstanceName})
-            .then(result=> ${thenCode})
-            .then(()=> this.$mdDialog.hide(this.${modelInstanceName}))
-            .catch(err=> {
+            .then(result => ${thenCode})
+            .then(() => this.$mdDialog.hide(this.${modelInstanceName}))
+            .catch(err => {
                 this.notificationService.toast(err.message);
                 if (err.code == Err.Code.Validation) {
                     this.formService.evaluate((<ValidationError>err).violations, this.${modelInstanceName}Form);
@@ -318,7 +318,7 @@ export class MaterialControllerGen extends BaseNGControllerGen {
         code.extraction = `
         let files: IFileKeyValue = {};`;
         for (let fileNames = Object.keys(this.fileTypesFields), i = 0, il = fileNames.length; i < il; ++i) {
-            var fileName = fileNames[i];
+            let fileName = fileNames[i];
             if (!model) continue;
             let isList = model.schema.getField(fileName).properties.type == FieldType.List;
             let typeCasting = isList ? `<Array<File>>` : `<File>`;
@@ -357,9 +357,9 @@ export class MaterialControllerGen extends BaseNGControllerGen {
             let search = this.controllerClass.addMethod(`search${upcField}`);
             search.addParameter({name: 'searchText', type: 'string'});
             search.setReturnType(`IPromise<I${targetModelName}|void>`);
-            search.setContent(`return this.apiService.get<I${targetModelName}, IQueryResult<I${targetModelName}>>('${targetModelInstanceName}', {${targetFieldName}: searchText})
-            .then(result=> result.items)
-            .catch(err=> this.notificationService.toast(\`Failed fetching ${field} because of \${err.message}\`))`);
+            search.setContent(`return this.apiService.get<searchText<I${targetModelName}>, IQueryResult<I${targetModelName}>>('${targetModelInstanceName}', {query: {${targetFieldName}: searchText}})
+            .then(result => result.items)
+            .catch(err => this.notificationService.toast(\`Failed fetching ${field} because of \${err.message}\`))`);
         }
     }
 }

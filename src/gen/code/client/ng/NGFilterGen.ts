@@ -20,7 +20,7 @@ export class NGFilterGen {
         if (/.+filter$/i.exec(config.name)) {
             config.name = config.name.replace(/filter$/i, '');
         }
-        var rawName = _.camelCase(config.name);
+        let rawName = _.camelCase(config.name);
         this.file = new TsFileGen(rawName + 'Filter');
         this.method = this.file.addMethod(this.file.name);
         this.method.shouldExport(true);
@@ -32,7 +32,7 @@ export class NGFilterGen {
     }
 
     generate() {
-        var tplPath = 'src/templates/filter';
+        let tplPath = 'src/templates/filter';
         try {
             fs.mkdirSync(tplPath);
         } catch (e) {
@@ -40,7 +40,7 @@ export class NGFilterGen {
         NGDependencyInjector.updateImportFile(this.file, 'filter', this.path, Placeholder.NGFilter, '../filter');
     }
 
-    static getGeneratorConfig(cb: (config: IFilterGenConfig)=>void) {
+    static getGeneratorConfig(cb: (config: IFilterGenConfig) => void) {
         cb(<IFilterGenConfig>{});
     }
 }

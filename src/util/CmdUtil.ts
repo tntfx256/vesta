@@ -6,6 +6,7 @@ import {StringUtil} from "./StringUtil";
 export interface IExecSyncResult extends ExecOutputReturnValue {
     // updated version changed the output to stdout; std did not
     stdout: string;
+    stderr: string;
 }
 
 export interface IExecOptions extends ExecOptions {
@@ -36,8 +37,8 @@ export class CmdUtil {
 
     static getResult(command: string, options?: IExecOptions): Promise<string> {
         options = options || {silent: true};
-        return new Promise<string>((resolve, reject)=> {
-            shell.exec(command, options, (code: number, output: string)=> {
+        return new Promise<string>((resolve, reject) => {
+            shell.exec(command, options, (code: number, output: string) => {
                 resolve(output);
             })
         })

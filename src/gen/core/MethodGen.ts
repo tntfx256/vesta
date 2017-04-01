@@ -59,7 +59,7 @@ export class MethodGen {
     }
 
     public addParameter(parameter: IMethodParameter) {
-        for (var i = this.parameters.length; i--;) {
+        for (let i = this.parameters.length; i--;) {
             if (this.parameters[i].name == parameter.name) {
                 return Log.error(`A parameter with the same name (${parameter.name}) already exists`);
             }
@@ -88,15 +88,15 @@ export class MethodGen {
     }
 
     private getParameterCode(): string {
-        var codes = [];
-        for (var i = 0, il = this.parameters.length; i < il; ++i) {
-            var parameter = this.parameters[i],
+        let codes = [];
+        for (let i = 0, il = this.parameters.length; i < il; ++i) {
+            let parameter = this.parameters[i],
                 code = '',
                 access = '',
                 type = parameter.type ? `: ${parameter.type}` : '',
                 opt = parameter.isOptional ? '?' : '';
             if (this.isConstructor) {
-                var access = parameter.access ? (parameter.access + ' ') : '';
+                let access = parameter.access ? (parameter.access + ' ') : '';
                 code = `${access}${parameter.name}${opt}${type}`;
             } else {
                 code = `${parameter.name}${opt}${type}`;
@@ -110,7 +110,7 @@ export class MethodGen {
     }
 
     public generate(): string {
-        var parametersCode = this.getParameterCode();
+        let parametersCode = this.getParameterCode();
         if (this.isInterface) {
             return this.interfaceMethodGen(parametersCode);
         } else if (this.isSimpleMethod) {
@@ -135,7 +135,7 @@ export class MethodGen {
         if (this.isInterface) {
             return `    ${this.name}(${parametersCode})${this.returnType};`;
         }
-        var st = this.isStaticMethod ? ' static' : '';
+        let st = this.isStaticMethod ? ' static' : '';
         if (this.isAbstract) {
             return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};`;
         }
@@ -152,12 +152,13 @@ export class MethodGen {
     }\n`
         }
         // not a constructor
-        var st = this.isStaticMethod ? ' static' : '';
+        let st = this.isStaticMethod ? ' static' : '';
         if (this.isAbstract) {
             return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};\n`;
         }
-        return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType} {
-        ${this.content}
+        let content = this.content ? `
+        ${this.content}` : '';
+        return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType} {${content}
     }\n`;
     }
 
@@ -168,7 +169,7 @@ export class MethodGen {
     }
 
     private simpleMethodGen(parametersCode: string): string {
-        var exp = this.shouldBeExported ? 'export ' : '';
+        let exp = this.shouldBeExported ? 'export ' : '';
         return `${exp}function ${this.name}(${parametersCode})${this.returnType} {
     ${this.content}
 }\n`;

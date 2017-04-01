@@ -1,6 +1,6 @@
 import {Util} from "../../util/Util";
 import {IProjectGenConfig, ProjectGen} from "../ProjectGen";
-var speakeasy = require('speakeasy');
+let speakeasy = require('speakeasy');
 
 export class DockerGen {
 
@@ -8,7 +8,7 @@ export class DockerGen {
     }
 
     public compose() {
-        var replace: any = {};
+        let replace: any = {};
         if (this.config.type == ProjectGen.Type.ClientSide) {
 
         } else {

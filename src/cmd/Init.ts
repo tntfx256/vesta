@@ -11,7 +11,7 @@ export class Init {
             type: 'list',
             choices: ['Install Docker', 'Install DockerCompose']
         })
-            .then(answer=> {
+            .then(answer => {
                 switch (answer.initType) {
                     case 'Install Docker':
                         DockerUtil.installEngine();

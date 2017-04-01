@@ -21,7 +21,7 @@ export class NGServiceGen {
         if (/.+service$/i.exec(config.name)) {
             config.name = config.name.replace(/service$/i, '');
         }
-        var rawName = _.camelCase(config.name) + 'Service';
+        let rawName = _.camelCase(config.name) + 'Service';
         this.serviceFile = new TsFileGen(StringUtil.fcUpper(rawName));
         this.serviceClass = this.serviceFile.addClass();
         this.serviceClass.setConstructor();
@@ -37,7 +37,7 @@ export class NGServiceGen {
     }
 
     static getGeneratorConfig(callback) {
-        var config: INGServcieConfig = <INGServcieConfig>{};
+        let config: INGServcieConfig = <INGServcieConfig>{};
         NGDependencyInjector.getCliInjectables()
             .then(injectables => {
                 config.injects = injectables;

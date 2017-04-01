@@ -53,7 +53,7 @@ export class ExpressControllerGen {
         if (this.filesFields) {
             this.controllerFile.addImport('* as path', 'path');
         }
-        this.controllerFile.addImport('{Response, Router}', 'express');
+        this.controllerFile.addImport('{Response, Router, NextFunction}', 'express');
         this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
@@ -69,7 +69,7 @@ export class ExpressControllerGen {
         let method = this.controllerClass.addMethod(name);
         method.addParameter({name: 'req', type: 'IExtRequest'});
         method.addParameter({name: 'res', type: 'Response'});
-        // method.addParameter({name: 'next', type: 'Function'});
+        method.addParameter({name: 'next', type: 'NextFunction'});
         method.setContent(`return next({message: '${name} has not been implemented'})`);
         return method;
     }
@@ -80,13 +80,14 @@ export class ExpressControllerGen {
             modelClassName = StringUtil.fcUpper(modelInstanceName);
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         this.controllerFile.addImport(`{Err}`, 'vesta-util/Err');
+        this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
         // this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
         this.controllerFile.addImport(`{ValidationError}`, 'vesta-schema/error/ValidationError');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         if (modelClassName != 'Permission') {
             this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/Permission`));
         }
-        this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
+        // this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
         this.controllerFile.addImport(`{Vql}`, 'vesta-schema/Vql');
         let acl = this.routingPath.replace(/\/+/g, '.');
         acl = acl[0] == '.' ? acl.slice(1) : acl;
@@ -168,32 +169,53 @@ export class ExpressControllerGen {
             code = `${modelName}.findById<I${modelName}>(req.params.id)`
         }
         return `${code}
-            .then(result=> res.json(result))
-            .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
+            .then(result => {
+                if (result.items.length > 1) throw new DatabaseError(Err.Code.DBRecordCount);
+                res.json(result);
+            })
+            .catch(error => this.next(error));`;
     }
 
     private getQueryCodeForMultiInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
+        let modelInstanceName = _.camelCase(modelName);
         return `let query = new Vql(${modelName}.schema.name);
-        query.filter(req.query.query)
-            .limitTo(Math.min(+req.query.limit || 50, 50))
+        let filter = req.query.query;
+        if (filter) {
+            let ${modelInstanceName} = new ${modelName}(filter);
+            let validationError = ${modelInstanceName}.validate(...Object.keys(filter));
+            if (validationError) {
+                return next(new ValidationError(validationError));
+            }
+            query.filter(filter);
+        }
+        query.limitTo(Math.min(+req.query.limit || this.MAX_FETCH_COUNT, this.MAX_FETCH_COUNT))
             .fromPage(+req.query.page || 1);
         if (req.query.orderBy) {
             let orderBy = req.query.orderBy[0];
             query.sortBy(orderBy.field, orderBy.ascending == 'true');
         }
         ${modelName}.findByQuery(query)
-            .then(result=> res.json(result))
-            .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
+            .then(result => res.json(result))
+            .catch(error => next(error));`;
     }
 
     private getCountCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
+        let modelInstanceName = _.camelCase(modelName);
         return `let query = new Vql(${modelName}.schema.name);
-        query.filter(req.query.query);
+        let filter = req.query.query;
+        if (filter) {
+            let ${modelInstanceName} = new ${modelName}(filter);
+            let validationError = ${modelInstanceName}.validate(...Object.keys(filter));
+            if (validationError) {
+                return next(new ValidationError(validationError));
+            }
+            query.filter(filter);
+        }
         ${modelName}.count(query)
-            .then(result=> res.json(result))
-            .catch(reason=> this.handleError(res, Err.Code.DBQuery, reason.error.message));`;
+            .then(result => res.json(result))
+            .catch(error => next(error));`;
     }
 
     private getQueryCode(isSingle: boolean): string {
@@ -206,13 +228,11 @@ export class ExpressControllerGen {
         return `let ${modelInstanceName} = new ${modelName}(req.body),
             validationError = ${modelInstanceName}.validate();
         if (validationError) {
-            let result:IUpsertResult<I${modelName}> = <IUpsertResult<I${modelName}>>{};
-            result.error = new ValidationError(validationError);
-            return res.json(result);
+            return next(new ValidationError(validationError));
         }
         ${modelInstanceName}.insert<I${modelName}>()
-            .then(result=> res.json(result))
-            .catch(reason=> this.handleError(res, Err.Code.DBInsert, reason.error.message));`;
+            .then(result => res.json(result))
+            .catch(error => next(error));`;
     }
 
     private getUpdateCode(): string {
@@ -221,25 +241,23 @@ export class ExpressControllerGen {
         return `let ${modelInstanceName} = new ${modelName}(req.body),
             validationError = ${modelInstanceName}.validate();
         if (validationError) {
-            let result:IUpsertResult<I${modelName}> = <IUpsertResult<I${modelName}>>{};
-            result.error = new ValidationError(validationError);
-            return res.json(result);
+            return next(new ValidationError(validationError));
         }
         ${modelName}.findById<I${modelName}>(${modelInstanceName}.id)
-            .then(result=> {
-                if (result.items.length == 1) return ${modelInstanceName}.update<I${modelName}>().then(result=> res.json(result));
-                this.handleError(res, Err.Code.DBUpdate);
+            .then(result => {
+                if (result.items.length == 1) return ${modelInstanceName}.update<I${modelName}>().then(result => res.json(result));
+                throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
             })
-            .catch(reason=> this.handleError(res, Err.Code.DBUpdate, reason.error.message));`;
+            .catch(error => next(error));`;
     }
 
     private getDeleteCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
-        return `let ${modelInstanceName} = new ${modelName}({id: +req.params.id});
+        return `let ${modelInstanceName} = new ${modelName}({id: req.params.id});
         ${modelInstanceName}.delete()
-            .then(result=> res.json(result))
-            .catch(reason=> this.handleError(res, Err.Code.DBDelete, reason.error.message));`;
+            .then(result => res.json(result))
+            .catch(error => next(error));`;
     }
 
     private getUploadCode(): string {
@@ -249,9 +267,9 @@ export class ExpressControllerGen {
         let code = '';
         let fileNames = Object.keys(this.filesFields);
         if (fileNames.length == 1) {
-            code = `let oldFileName = ${modelInstanceName}.image;
-                ${modelInstanceName}.image = upl.${fileNames[0]};
-                return this.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
+            code = `let oldFileName = ${modelInstanceName}.${fileNames[0]};
+                ${modelInstanceName}.${fileNames[0]} = upl.${fileNames[0]};
+                return FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
         } else {
             code = `let delList:Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
@@ -259,29 +277,28 @@ export class ExpressControllerGen {
                 code += `
                 if (upl.${fileNames[i]}) {
                     let ${oldName} = ${modelInstanceName}.${fileNames[i]};
-                    delList.push(this.checkAndDeleteFile(\`\${destDirectory}/\${${oldName}}\`)
-                        .then(()=> ${modelInstanceName}.${fileNames[i]} = upl.${fileNames[i]}));
+                    delList.push(FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${${oldName}}\`)
+                        .then(() => ${modelInstanceName}.${fileNames[i]} = upl.${fileNames[i]}));
                 }`
             }
             code += `
                 return Promise.all(delList);`;
         }
-        return `let ${modelInstanceName}:${modelName};
+        return `let ${modelInstanceName}: ${modelName};
         let destDirectory = path.join(this.setting.dir.upload, '${modelInstanceName}');
         ${modelName}.findById<I${modelName}>(+req.params.id)
-            .then(result=> {
-                if (result.error) throw result.error;
-                if (result.items.length != 1) throw new Err(Err.Code.DBQuery, '${modelName} not found');
+            .then(result => {
+                if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
                 ${modelInstanceName} = new ${modelName}(result.items[0]);
                 let uploader = new FileUploader<I${modelName}>(destDirectory);
                 return uploader.upload(req);
             })
-            .then(upl=> {
+            .then(upl => {
                 ${code}
             })
-            .then(()=> ${modelInstanceName}.update())
-            .then(result=> res.json(result))
-            .catch(reason=> this.handleError(res, reason.error.code, reason.error.message));`;
+            .then(() => ${modelInstanceName}.update())
+            .then(result => res.json(result))
+            .catch(reason => next(new Err(reason.error.code, reason.error.message)));`;
     }
 
     public static getGeneratorConfig(name: string, callback) {

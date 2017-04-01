@@ -16,35 +16,35 @@ export class Backuper {
     private volumePrefix: string;
 
     constructor(private config: IDeployConfig) {
-        var date = new GregorianDate();
+        let date = new GregorianDate();
         this.backupName = `backup_${date.format('Ymd-His')}`;
         config.history.push({date: date.format('Y/m/d H:i:s'), type: 'backup'});
     }
 
     public backup() {
         this.volumePrefix = DockerUtil.getContainerName(this.config.projectName);
-        var composeFilePath = `${this.config.deployPath}/${this.config.projectName}/docker-compose.yml`;
+        let composeFilePath = `${this.config.deployPath}/${this.config.projectName}/docker-compose.yml`;
         if (!fs.existsSync(composeFilePath)) {
             return Log.error(`docker-compose.yml file does not exist at ${composeFilePath}`);
         }
-        var composeConfig = YAML.parse(fs.readFileSync(composeFilePath, {encoding: 'utf8'}));
-        var volumes = Object.keys(composeConfig['volumes']),
+        let composeConfig = YAML.parse(fs.readFileSync(composeFilePath, {encoding: 'utf8'}));
+        let volumes = Object.keys(composeConfig['volumes']),
             services = Object.keys(composeConfig['services']),
             volumeDirectoryMap = {};
-        for (var i = 0, il = services.length; i < il; ++i) {
-            var service = composeConfig['services'][services[i]];
-            var serviceVolumes = service['volumes'];
-            for (var k = 0, kl = serviceVolumes.length; k < kl; ++k) {
-                var volumeMap = serviceVolumes[k].split(':');
+        for (let i = 0, il = services.length; i < il; ++i) {
+            let service = composeConfig['services'][services[i]];
+            let serviceVolumes = service['volumes'];
+            for (let k = 0, kl = serviceVolumes.length; k < kl; ++k) {
+                let volumeMap = serviceVolumes[k].split(':');
                 volumeDirectoryMap[volumeMap[0]] = volumeMap[1];
             }
         }
-        var volumeOption = [],
+        let volumeOption = [],
             dirsToBackup = [];
-        for (var volume in volumeDirectoryMap) {
+        for (let volume in volumeDirectoryMap) {
             if (volumeDirectoryMap.hasOwnProperty(volume)) {
                 if (!DockerUtil.isVolumeDriver(volume)) {
-                    var volumeName = `${this.volumePrefix}_${volume}`;
+                    let volumeName = `${this.volumePrefix}_${volume}`;
                     volumeOption.push(`-v ${volumeName}:${volumeDirectoryMap[volume]}`);
                 }
                 dirsToBackup.push(volumeDirectoryMap[volume]);
@@ -58,7 +58,7 @@ export class Backuper {
     }
 
     public static getDeployConfig(args: Array<string>): Promise<IDeployConfig> {
-        var fileName: string,
+        let fileName: string,
             config: IDeployConfig = <IDeployConfig>{history: []};
         if (args.length) {
             fileName = args[0];

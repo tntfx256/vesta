@@ -12,7 +12,7 @@ export interface IProjectConfig {
     repository: IProjectConfigRepository;
 }
 
-export var Config: IProjectConfig = {
+export const Config: IProjectConfig = {
     repository: {
         baseUrl: 'https://github.com',
         group: 'VestaRayanAfzar',

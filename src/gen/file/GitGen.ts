@@ -16,7 +16,7 @@ export class GitGen {
     public static commonProjectExists: boolean = true;
 
     public static clone(repository: string, destination: string = '', branch: string = ''): IExecSyncResult {
-        var branchCmd = branch ? ` -b ${branch} ` : ' ';
+        let branchCmd = branch ? ` -b ${branch} ` : ' ';
         return CmdUtil.execSync(`git clone${branchCmd}${repository} ${destination}`);
     }
 
@@ -38,9 +38,9 @@ export class GitGen {
             type: 'confirm',
             name: 'initRepository',
             message: 'Init git repository: '
-        }).then(answer=> {
+        }).then(answer => {
             if (!answer['initRepository']) return Promise.resolve(appConfig);
-            var qs: Array<Question> = [<Question>{
+            let qs: Array<Question> = [<Question>{
                 type: 'input',
                 name: 'baseUrl',
                 message: 'Repository base url:',
@@ -53,7 +53,7 @@ export class GitGen {
                     message: 'Group name of the remote git repository: '
                 });
             }
-            var defaultProjectName = `${appConfig.name}ApiServer`;
+            let defaultProjectName = `${appConfig.name}ApiServer`;
             if (appConfig.type == ProjectGen.Type.ClientSide) {
                 defaultProjectName = appConfig.name + (appConfig.client.platform == ClientAppGen.Platform.Browser ? 'WebSite' : 'App');
             }
@@ -74,7 +74,7 @@ export class GitGen {
                 name: 'commonExists',
                 message: 'Common project already exists: '
             });
-            return Util.prompt<any>(qs).then(answer=> {
+            return Util.prompt<any>(qs).then(answer => {
                 if (!appConfig.repository.group && !answer['group']) return appConfig;
                 appConfig.name = answer['projectName'];
                 GitGen.commonProjectExists = answer['commonExists'];

@@ -4,7 +4,7 @@ export class Deploy {
 
     static deployProject(args: Array<string>) {
         Deployer.getDeployConfig(args)
-            .then(config=> {
+            .then(config => {
                 let deployer = new Deployer(config);
                 deployer.deploy();
             })

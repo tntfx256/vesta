@@ -6,7 +6,7 @@ import {Question} from "inquirer";
 import {Log} from "./Log";
 import {OsUtil} from "./OsUtil";
 import {IDeployConfig} from "../deploy/Deployer";
-var isRoot = require('is-root');
+let isRoot = require('is-root');
 
 interface IContainerInfo {
     id: string;
@@ -18,7 +18,7 @@ interface IContainerInfo {
 export class DockerUtil {
 
     public static cleanup() {
-        var execOption: IExecOptions = {
+        let execOption: IExecOptions = {
             silent: true
         };
         // removing volumes
@@ -55,7 +55,7 @@ export class DockerUtil {
             message: 'Enter docker-compose version that you wish to install: ',
             default: '1.8.0'
         })
-            .then(answer=> {
+            .then(answer => {
                 if (answer.version) {
                     CmdUtil.execSync(`curl -L https://github.com/docker/compose/releases/download/${answer.version}/docker-compose-${CmdUtil.getOutputOf('uname -s')}-${CmdUtil.getOutputOf('uname -m')} > /tmp/docker-compose`);
                     CmdUtil.execSync(`cp /tmp/docker-compose /usr/local/bin/docker-compose`);
@@ -91,11 +91,11 @@ export class DockerUtil {
     }
 
     public static getContainersInfo(filter?: string): Promise<Array<IContainerInfo>> {
-        var command = `docker ps`;
+        let command = `docker ps`;
         if (filter) {
             command += ` --filter ${filter}`;
         }
-        return CmdUtil.getResult(command).then(output=> {
+        return CmdUtil.getResult(command).then(output => {
             let data: Array<IContainerInfo> = [];
             let lines = output.split(/\r?\n/);
             for (let i = 1, il = lines.length; i < il; ++i) {
@@ -103,7 +103,7 @@ export class DockerUtil {
                 let parts = lines[i].split(/\s\s+/);
                 data.push({id: parts[0], name: parts[6], status: parts[4], ports: parts[5].split(',')});
             }
-            data = data.sort((a, b)=> a.name > b.name ? 1 : -1);
+            data = data.sort((a, b) => a.name > b.name ? 1 : -1);
             return data;
         });
     }
@@ -119,7 +119,7 @@ export class DockerUtil {
             }
         }
         let wd = DockerUtil.getContainerName(path.parse(process.cwd()).base);
-        DockerUtil.getContainersInfo(`name=${wd}`).then(info=> {
+        DockerUtil.getContainersInfo(`name=${wd}`).then(info => {
             let rows = [];
             for (let i = 0, il = info.length; i < il; ++i) {
                 let container = info[i];
@@ -154,11 +154,11 @@ export class DockerUtil {
         }
         if (!scaleTo) return DockerUtil.ps(file);
         CmdUtil.execSync(`docker-compose scale api=${scaleTo}`);
-        var containerName = DockerUtil.getContainerName(path.parse(process.cwd()).base);
-        DockerUtil.getContainersInfo(`name=${containerName}`).then(info=> {
+        let containerName = DockerUtil.getContainerName(path.parse(process.cwd()).base);
+        DockerUtil.getContainersInfo(`name=${containerName}`).then(info => {
             let apiContainerName = `${containerName}_api`;
             let apiContainersInfo = [];
-            for (var i = info.length; i--;) {
+            for (let i = info.length; i--;) {
                 if (info[i].name.indexOf(apiContainerName) == 0) {
                     apiContainersInfo.push(info[i]);
                 }
@@ -166,19 +166,19 @@ export class DockerUtil {
             console.log(`${apiContainerName} has been scaled to ${apiContainersInfo.length}`);
             let inspectPromises = [];
             let ports = [];
-            apiContainersInfo.forEach(info=> {
+            apiContainersInfo.forEach(info => {
                 try {
                     for (let i = info.ports.length; i--;) {
                         if (info.ports[i].indexOf('3000/tcp') > 0) {
                             ports.push(/.+:(\d+)-/.exec(info.ports[i])[1]);
-                            inspectPromises.push(CmdUtil.getResult(`docker inspect ${info.id}`).then(result=> /IPAddress.+"(.+)"/.exec(result)[1]));
+                            inspectPromises.push(CmdUtil.getResult(`docker inspect ${info.id}`).then(result => /IPAddress.+"(.+)"/.exec(result)[1]));
                         }
                     }
                 } catch (err) {
                     console.error(err);
                 }
             });
-            Promise.all(inspectPromises).then(result=> {
+            Promise.all(inspectPromises).then(result => {
                 let upstream = ``;
                 for (let i = result.length; i--;) {
                     upstream += `  server ${result[i]}:${ports[i]};\n`; // fail_timeout=5s max_fails=3

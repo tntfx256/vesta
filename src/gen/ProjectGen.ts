@@ -11,10 +11,12 @@ import {DockerGen} from "./code/DockerGen";
 import {I18nGenConfig} from "./code/I18nGen";
 import {FsUtil} from "../util/FsUtil";
 import {CmdUtil, IExecOptions} from "../util/CmdUtil";
+import {Log} from "../util/Log";
 
 export interface IProjectGenConfig {
     name: string;
     type: string;
+    pkgManager: 'npm'|'yarn';
     server: IServerAppConfig;
     client: IClientAppConfig;
     repository: IRepositoryConfig;
@@ -80,6 +82,12 @@ export class ProjectGen {
     public static getGeneratorConfig(name: string, category: string): Promise<IProjectGenConfig> {
         let appConfig: IProjectGenConfig = <IProjectGenConfig>{};
         appConfig.name = _.camelCase(name);
+        appConfig.pkgManager = "npm";
+        let yarnVersion = CmdUtil.execSync('yarn --version', {silent: true}).stdout;
+        if (yarnVersion) {
+            Log.info(`Yarn version ${yarnVersion} detected. Switching package manager to yarn`);
+            appConfig.pkgManager = "yarn";
+        }
         appConfig.client = <IClientAppConfig>{};
         appConfig.server = <IServerAppConfig>{};
         appConfig.repository = <IRepositoryConfig>{
@@ -95,18 +103,18 @@ export class ProjectGen {
             choices: [ProjectGen.Type.ClientSide, ProjectGen.Type.ServerSide],
             default: ProjectGen.Type.ClientSide
         }];
-        return new Promise((resolve, reject)=> {
+        return new Promise((resolve, reject) => {
             Util.prompt<{type: string}>(questions).then(answer => {
                 appConfig.type = answer.type;
                 if (ProjectGen.Type.ServerSide == appConfig.type) {
                     resolve(ServerAppGen.getGeneratorConfig()
-                        .then((serverAppConfig: IServerAppConfig)=> {
+                        .then((serverAppConfig: IServerAppConfig) => {
                             appConfig.server = serverAppConfig;
                             return GitGen.getGeneratorConfig(appConfig);
                         }))
                 } else if (ProjectGen.Type.ClientSide == appConfig.type) {
                     resolve(ClientAppGen.getGeneratorConfig()
-                        .then((clientAppConfig: IClientAppConfig)=> {
+                        .then((clientAppConfig: IClientAppConfig) => {
                             appConfig.client = clientAppConfig;
                             return GitGen.getGeneratorConfig(appConfig);
                         }))

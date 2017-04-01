@@ -28,7 +28,7 @@ export abstract class ClientAppGen {
     }
 
     private getRepoName(): string {
-        var name = '',
+        let name = '',
             repo = this.vesta.getProjectConfig().repository;
         if (this.config.client.platform == ClientAppGen.Platform.Cordova) {
             name = repo.ionic;
@@ -41,7 +41,7 @@ export abstract class ClientAppGen {
     }
 
     private cloneTemplate() {
-        var dir = this.config.name,
+        let dir = this.config.name,
             repo = this.vesta.getProjectConfig().repository;
         GitGen.clone(GitGen.getRepoUrl(repo.baseUrl, repo.group, this.getRepoName()), dir);
         GitGen.cleanClonedRepo(dir);
@@ -49,7 +49,7 @@ export abstract class ClientAppGen {
 
     public generate() {
         this.cloneTemplate();
-        var dir = this.config.name,
+        let dir = this.config.name,
             templateProjectName = this.getRepoName(),
             replacePattern = {};
         replacePattern[templateProjectName] = dir;
@@ -63,8 +63,8 @@ export abstract class ClientAppGen {
     }
 
     public static getGeneratorConfig(): Promise<IClientAppConfig> {
-        var config: IClientAppConfig = <IClientAppConfig>{};
-        var qs: Array<Question> = [
+        let config: IClientAppConfig = <IClientAppConfig>{};
+        let qs: Array<Question> = [
             <Question>{
                 type: 'list',
                 name: 'platform',
@@ -72,8 +72,8 @@ export abstract class ClientAppGen {
                 choices: [ClientAppGen.Platform.Browser, ClientAppGen.Platform.Cordova]
             }];
         Log.info(`For browser platform we use Material Design, and on Cordova we use Ionic (both on Angular 1.x)`);
-        return new Promise((resolve)=> {
-            Util.prompt<{platform: string}>(qs).then(answer=> {
+        return new Promise((resolve) => {
+            Util.prompt<{platform: string}>(qs).then(answer => {
                 config.type = ClientAppGen.Type.Angular;
                 config.platform = answer.platform;
                 if (config.platform == ClientAppGen.Platform.Browser) {
@@ -83,7 +83,7 @@ export abstract class ClientAppGen {
                         name: 'isCPanel',
                         message: 'Is Admin Panel',
                         default: false
-                    }).then(answer=> {
+                    }).then(answer => {
                         config.isAdminPanel = answer.isCPanel;
                         resolve(config);
                     })
