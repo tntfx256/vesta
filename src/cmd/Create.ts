@@ -1,5 +1,6 @@
 import * as _ from "lodash";
-import {ProjectGen, IProjectGenConfig} from "../gen/ProjectGen";
+import {IProjectConfig, ProjectGen} from "../gen/ProjectGen";
+import {GitGen} from "../gen/file/GitGen";
 
 export class Create {
 
@@ -14,7 +15,15 @@ export class Create {
         }
         projectName = _.camelCase(projectName);
         ProjectGen.getGeneratorConfig(projectName, projectCategory)
-            .then((config: IProjectGenConfig) => {
+            .then(config => {
+                return GitGen.getGeneratorConfig(config.name, config.repository.group)
+                    .then(repoConfig => {
+                        config.name = repoConfig.name || config.name;
+                        config.repository = repoConfig;
+                        return config;
+                    })
+            })
+            .then((config: IProjectConfig) => {
                 let project = new ProjectGen(config);
                 project.generate();
             })

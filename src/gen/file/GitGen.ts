@@ -1,15 +1,14 @@
-import {IProjectGenConfig, ProjectGen} from "../ProjectGen";
-import {ClientAppGen} from "../app/client/ClientAppGen";
 import {Question} from "inquirer";
 import {FsUtil} from "../../util/FsUtil";
-import {IExecSyncResult, CmdUtil} from "../../util/CmdUtil";
+import {CmdUtil, IExecSyncResult} from "../../util/CmdUtil";
 import {Util} from "../../util/Util";
+import {V2App} from "../app/V2App";
 
 export interface IRepositoryConfig {
     baseUrl: string;
     group: string;
     name: string;
-    common: string;
+    common?: string;
 }
 
 export class GitGen {
@@ -28,63 +27,67 @@ export class GitGen {
 
     public static cleanClonedRepo(basePath: string) {
         FsUtil.remove(`${basePath}/.git`);
-        FsUtil.remove(`${basePath}/.gitmodule`);
-        FsUtil.remove(`${basePath}/src/cmn`);
-        FsUtil.remove(`${basePath}/src/app/cmn`);
+        if (!V2App.isActive) {
+            FsUtil.remove(`${basePath}/.gitmodule`);
+            FsUtil.remove(`${basePath}/src/cmn`);
+            FsUtil.remove(`${basePath}/src/app/cmn`);
+        }
     }
 
-    public static getGeneratorConfig(appConfig: IProjectGenConfig): Promise<IProjectGenConfig> {
+    public static getGeneratorConfig(name: string, group?: string): Promise<IRepositoryConfig> {
         return Util.prompt(<Question>{
             type: 'confirm',
             name: 'initRepository',
             message: 'Init git repository: '
         }).then(answer => {
-            if (!answer['initRepository']) return Promise.resolve(appConfig);
+            if (!answer['initRepository']) return Promise.resolve({});
             let qs: Array<Question> = [<Question>{
                 type: 'input',
                 name: 'baseUrl',
                 message: 'Repository base url:',
                 default: 'https://git.hbtb.ir'
             }];
-            if (!appConfig.repository.group) {
+            if (!group) {
                 qs.push(<Question>{
                     type: 'input',
                     name: 'group',
                     message: 'Group name of the remote git repository: '
                 });
             }
-            let defaultProjectName = `${appConfig.name}ApiServer`;
-            if (appConfig.type == ProjectGen.Type.ClientSide) {
-                defaultProjectName = appConfig.name + (appConfig.client.platform == ClientAppGen.Platform.Browser ? 'WebSite' : 'App');
+            if (!V2App.isActive) {
+                qs.push(<Question>{
+                    type: 'input',
+                    name: 'projectName',
+                    message: `Remote repository name: (${name}Api, ${name}Web, ...)`,
+                    default: name
+                });
+                qs.push(<Question>{
+                    type: 'input',
+                    name: 'common',
+                    message: 'Remote repository name for common source: ',
+                    default: `${name}CommonCode`
+                });
+                qs.push(<Question>{
+                    type: 'confirm',
+                    name: 'commonExists',
+                    message: 'Common project already exists: '
+                });
             }
-            qs.push(<Question>{
-                type: 'input',
-                name: 'projectName',
-                message: 'Remote repository name: ',
-                default: defaultProjectName
-            });
-            qs.push(<Question>{
-                type: 'input',
-                name: 'common',
-                message: 'Remote repository name for common source: ',
-                default: `${appConfig.name}CommonCode`
-            });
-            qs.push(<Question>{
-                type: 'confirm',
-                name: 'commonExists',
-                message: 'Common project already exists: '
-            });
             return Util.prompt<any>(qs).then(answer => {
-                if (!appConfig.repository.group && !answer['group']) return appConfig;
-                appConfig.name = answer['projectName'];
+                let repoConfig: IRepositoryConfig = <IRepositoryConfig>{};
+                if (!group && !answer['group']) return repoConfig;
                 GitGen.commonProjectExists = answer['commonExists'];
-                appConfig.repository = <IRepositoryConfig>{
+                repoConfig = <IRepositoryConfig>{
                     baseUrl: answer['baseUrl'],
-                    group: appConfig.repository.group || answer['group'],
-                    name: appConfig.name,
-                    common: answer['common']
+                    group: group || answer['group']
                 };
-                return appConfig;
+                if (!V2App.isActive) {
+                    repoConfig.name = answer['projectName'];
+                    repoConfig.common = answer['common'];
+                } else {
+                    repoConfig.name = name;
+                }
+                return repoConfig;
             });
         })
     }

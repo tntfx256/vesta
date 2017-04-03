@@ -6,11 +6,11 @@ import {Log} from "../util/Log";
 import {CmdUtil} from "../util/CmdUtil";
 import {Err} from "vesta-util/Err";
 import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
-import {Util} from "../util/Util";
+import {Arguments} from "../util/Arguments";
 
 export interface IDeployHistory {
     date: string;
-    type: 'deploy'|'backup';
+    type: 'deploy' | 'backup';
     branch?: string;
 }
 /**
@@ -68,7 +68,7 @@ export class Deployer {
     }
 
     private static getProjectName(url: string) {
-        let [, group, project]=/.+\/(.+)\/(.+)\.git$/.exec(url);
+        let [, group, project] = /.+\/(.+)\/(.+)\.git$/.exec(url);
         return `${group}-${project}`;
     }
 
@@ -82,7 +82,8 @@ export class Deployer {
             args: [],
             deployPath: `app`
         };
-        config.branch = Util.getArgValue(args, '--branch', 'master');
+        let arg = new Arguments(args);
+        config.branch = arg.get('--branch', 'master');
         let path = args[args.length - 1];
         if (!path) {
             Log.error('Invalid file name or HTTP url of remote repository');
@@ -97,7 +98,7 @@ export class Deployer {
         config.repositoryUrl = path;
         config.projectName = Deployer.getProjectName(config.repositoryUrl);
         Deployer.ConfigFile = `${config.projectName}.json`;
-        config.args = args.slice(Util.hasArg(args, '--branch') ? 3 : 1);
+        config.args = args.slice(arg.has('--branch') ? 3 : 1);
         return Promise.resolve(config);
     }
 

@@ -1,5 +1,5 @@
 import * as path from "path";
-import {ProjectGen, IProjectGenConfig} from "../ProjectGen";
+import {IProjectConfig, ProjectGen} from "../ProjectGen";
 import {GitGen} from "../file/GitGen";
 import {Vesta} from "../file/Vesta";
 import {FsUtil} from "../../util/FsUtil";
@@ -8,7 +8,7 @@ import {CmdUtil, IExecOptions} from "../../util/CmdUtil";
 export class CommonGen {
     private vesta: Vesta;
 
-    constructor(private config: IProjectGenConfig) {
+    constructor(private config: IProjectConfig) {
         this.vesta = Vesta.getInstance();
     }
 
@@ -30,7 +30,7 @@ export class CommonGen {
      */
     private createCommonProject() {
         let repository = this.config.repository,
-            templateRepo = this.vesta.getProjectConfig().repository,
+            templateRepo = this.vesta.getConfig().repository,
             cmnDir = repository.common,
             execOptions: IExecOptions = {cwd: cmnDir};
         GitGen.clone(GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), cmnDir);
@@ -46,7 +46,7 @@ export class CommonGen {
 
     private initWithoutSubModule() {
         let dir = this.config.name,
-            templateRepo = this.vesta.getProjectConfig().repository,
+            templateRepo = this.vesta.getConfig().repository,
             destDir = path.join(dir, this.config.type == ProjectGen.Type.ClientSide ? 'src/app/cmn' : 'src/cmn');
         FsUtil.mkdir(destDir);
         GitGen.clone(GitGen.getRepoUrl(templateRepo.baseUrl, templateRepo.group, templateRepo.common), destDir);

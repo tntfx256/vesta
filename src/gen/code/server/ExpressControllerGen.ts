@@ -35,6 +35,9 @@ export class ExpressControllerGen {
 
     constructor(private config: IExpressControllerConfig) {
         this.vesta = Vesta.getInstance();
+        if (this.vesta.isV2) {
+            this.path = 'src/server/api';
+        }
         this.init(this.vesta.getVersion().api);
     }
 
@@ -54,7 +57,7 @@ export class ExpressControllerGen {
             this.controllerFile.addImport('* as path', 'path');
         }
         this.controllerFile.addImport('{Response, Router, NextFunction}', 'express');
-        this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, 'src/api/BaseController'));
+        this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, this.vesta.isV2 ? 'src/server/api/BaseController' : 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({name: 'router', type: 'Router'});
@@ -79,16 +82,14 @@ export class ExpressControllerGen {
         let modelInstanceName = _.camelCase(modelName),
             modelClassName = StringUtil.fcUpper(modelInstanceName);
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
-        this.controllerFile.addImport(`{Err}`, 'vesta-util/Err');
-        this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
-        // this.controllerFile.addImport(`{DatabaseError}`, 'vesta-schema/error/DatabaseError');
-        this.controllerFile.addImport(`{ValidationError}`, 'vesta-schema/error/ValidationError');
+        this.controllerFile.addImport(`{Err}`, this.vesta.isV2 ? 'vesta-lib/Err' : 'vesta-util/Err');
+        this.controllerFile.addImport(`{DatabaseError}`, this.vesta.isV2 ? 'vesta-lib/error/DatabaseError' : 'vesta-schema/error/DatabaseError');
+        this.controllerFile.addImport(`{ValidationError}`, this.vesta.isV2 ? 'vesta-lib/error/ValidationError' : 'vesta-schema/error/ValidationError');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         if (modelClassName != 'Permission') {
             this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/Permission`));
         }
-        // this.controllerFile.addImport(`{IUpsertResult}`, 'vesta-schema/ICRUDResult');
-        this.controllerFile.addImport(`{Vql}`, 'vesta-schema/Vql');
+        this.controllerFile.addImport(`{Vql}`, this.vesta.isV2 ? 'vesta-lib/Vql' : 'vesta-schema/Vql');
         let acl = this.routingPath.replace(/\/+/g, '.');
         acl = acl[0] == '.' ? acl.slice(1) : acl;
         let middleWares = ` this.checkAcl('${acl}', __ACTION__),`;
@@ -136,10 +137,11 @@ export class ExpressControllerGen {
         }
         FsUtil.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
         let apiVersion = this.vesta.getVersion().api;
-        let filePath = `src/api/${apiVersion}/import.ts`;
+        let extPath = this.vesta.isV2 ? '/server' : '';
+        let filePath = `src${extPath}/api/${apiVersion}/import.ts`;
         let code = fs.readFileSync(filePath, {encoding: 'utf8'});
         if (code.search(Placeholder.ExpressController)) {
-            let relPath = Util.genRelativePath(`src/api/${apiVersion}`, this.path);
+            let relPath = Util.genRelativePath(`src${extPath}/api/${apiVersion}`, this.path);
             let importCode = `import {${this.controllerClass.name}} from '${relPath}/${this.controllerClass.name}';`;
             if (code.indexOf(importCode) >= 0) return;
             let embedCode = `${_.camelCase(this.config.name)}: ${this.controllerClass.name},`;
@@ -170,10 +172,10 @@ export class ExpressControllerGen {
         }
         return `${code}
             .then(result => {
-                if (result.items.length > 1) throw new DatabaseError(Err.Code.DBRecordCount);
+                if (result.items.length > 1) throw new DatabaseError(Err.Code.DBRecordCount, null);
                 res.json(result);
             })
-            .catch(error => this.next(error));`;
+            .catch(error => next(error));`;
     }
 
     private getQueryCodeForMultiInstance(): string {
@@ -261,7 +263,7 @@ export class ExpressControllerGen {
     }
 
     private getUploadCode(): string {
-        this.controllerFile.addImport('{FileUploader}', Util.genRelativePath(this.path, 'src/helpers/FileUploader'));
+        this.controllerFile.addImport('{FileUploader}', Util.genRelativePath(this.path, this.vesta.isV2 ? 'src/server/helpers/FileUploader' : 'src/helpers/FileUploader'));
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
         let code = '';
@@ -302,8 +304,8 @@ export class ExpressControllerGen {
     }
 
     public static getGeneratorConfig(name: string, callback) {
-        let config: IExpressControllerConfig = <IExpressControllerConfig>{},
-            models = Object.keys(ModelGen.getModelsList());
+        let config: IExpressControllerConfig = <IExpressControllerConfig>{};
+        let models = Object.keys(ModelGen.getModelsList());
         models.unshift('None');
         if (name) {
             let q: Array<Question> = [
@@ -322,7 +324,7 @@ export class ExpressControllerGen {
                     default: 'None'
                 }];
             config.name = name;
-            Util.prompt<{routingPath: string; model: string;}>(q).then(answer => {
+            Util.prompt<{ routingPath: string; model: string; }>(q).then(answer => {
                 let modelName = answer.model;
                 if (modelName != 'None') {
                     config.model = modelName;
@@ -347,7 +349,7 @@ export class ExpressControllerGen {
                     default: 'None'
                 }];
             config.name = name;
-            Util.prompt<{routingPath: string; models: string;}>(q).then(answer => {
+            Util.prompt<{ routingPath: string; models: string; }>(q).then(answer => {
                 let models = answer.models;
                 if (models != 'None') {
                     config.model = models;

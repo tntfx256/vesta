@@ -1,32 +1,32 @@
 import * as fs from "fs-extra";
-import {IProjectGenConfig} from "../ProjectGen";
-import {IProjectConfig, Config} from "../../Config";
+import {IProjectConfig} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
+import {V2App} from "../app/V2App";
 
 export interface IProjectVersion {
     app: string;
     api: string;
-    platform?: string;
+    platform?: number;
 }
 
 export interface IVesta {
     version: IProjectVersion;
-    config: IProjectGenConfig;
+    config: IProjectConfig;
 }
 
 export class Vesta {
-
     private static instance: Vesta;
-    private projectSetting: IVesta;
+    private vesta: IVesta;
     private path = 'vesta.json';
     private isUpdate: boolean = false;
-    private static projectConfig: IProjectConfig = Config;
+    private v2 = false;
 
-    constructor(private config?: IProjectGenConfig) {
-        if (config) {
-            this.projectSetting = {
-                version: {app: '0.1.0', api: 'v1', platform: '2'},
+    constructor(private config?: IProjectConfig) {
+        if (config) {// creating new project
+            this.v2 = V2App.isActive;
+            this.vesta = {
+                version: {app: '0.1.0', api: 'v1', platform: this.v2 ? 2 : 1},
                 config: config
             };
         } else {
@@ -36,7 +36,9 @@ export class Vesta {
                     Log.error('`vesta.json` not found. Make sure you are in the correct directory');
                     process.exit();
                 }
-                this.projectSetting = JSON.parse(fs.readFileSync(this.path, {encoding: 'utf8'}));
+                this.vesta = JSON.parse(fs.readFileSync(this.path, {encoding: 'utf8'}));
+                let platform = this.vesta.version.platform;
+                this.v2 = platform && platform > 1;
             } catch (e) {
                 Log.error(e);
                 process.exit();
@@ -48,23 +50,27 @@ export class Vesta {
         if (this.isUpdate) {
             Log.error('Invalid operation');
         } else {
-            FsUtil.writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.projectSetting, null, 2));
+            FsUtil.writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.vesta, null, 2));
         }
     }
 
-    public getConfig(): IProjectGenConfig {
-        return this.projectSetting.config;
-    }
-
-    public getProjectConfig(): IProjectConfig {
-        return Vesta.projectConfig;
+    public getConfig(): IProjectConfig {
+        return this.vesta.config;
     }
 
     public getVersion(): IProjectVersion {
-        return this.projectSetting.version;
+        return this.vesta.version;
     }
 
-    public static getInstance(config?: IProjectGenConfig): Vesta {
+    public get isV1() {
+        return !this.v2;
+    }
+
+    public get isV2() {
+        return this.v2;
+    }
+
+    public static getInstance(config?: IProjectConfig): Vesta {
         if (!Vesta.instance) {
             Vesta.instance = new Vesta(config);
         }

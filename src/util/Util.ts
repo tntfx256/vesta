@@ -6,7 +6,7 @@ import {Log} from "./Log";
 
 export class Util {
 
-    static prompt<T>(questions: Question|Array<Question>): Promise<T> {
+    static prompt<T>(questions: Question | Array<Question>): Promise<T> {
         return new Promise<T>(resolve => {
             inquirer.prompt(questions)['then'](answer => {
                 resolve(answer as any as T);
@@ -23,32 +23,6 @@ export class Util {
             return name.substr(0, name.length - 1) + 'ies';
         }
         return name + 's';
-    }
-
-    static toJSON(object: any, prune: boolean = false) {
-        let json = {};
-        for (let key in object) {
-            let value = object[key];
-            if (object.hasOwnProperty(key) && 'function' != typeof value) {
-                if (prune) {
-                    let type = typeof object[key];
-                    if (type == 'object') {
-                        if (object['splice']) {// array
-                            if (value.length) json[key] = value;
-                        } else { // object
-                            if (Object.keys(value).length) json[key] = value;
-                        }
-                    } else if (type == 'string') { // string
-                        if (value) json[key] = value;
-                    } else {
-                        json[key] = value;
-                    }
-                } else {
-                    json[key] = value;
-                }
-            }
-        }
-        return json;
     }
 
     static genRelativePath(from: string, to: string): string {
@@ -91,21 +65,5 @@ export class Util {
 
     static clone<T>(object: T) {
         return <T>JSON.parse(JSON.stringify(object));
-    }
-
-    static getArgs(args: Array<string>) {
-
-    }
-
-    static getArgValue(args: Array<string>, argName: string, defaultValue: any = null): string {
-        let index = args.indexOf(argName);
-        if (index >= 0) {
-            defaultValue = args[index + 1];
-        }
-        return defaultValue;
-    }
-
-    static hasArg(args: Array<string>, argName: string): boolean {
-        return args.indexOf(argName) >= 0;
     }
 }

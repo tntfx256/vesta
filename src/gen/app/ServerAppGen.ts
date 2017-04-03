@@ -1,11 +1,10 @@
 import {Question} from "inquirer";
 import {Vesta} from "../file/Vesta";
 import {DatabaseGen} from "../core/DatabaseGen";
-import {IProjectGenConfig} from "../ProjectGen";
-import {ExpressAppGen} from "./server/ExpressAppGen";
+import {IProjectConfig} from "../ProjectGen";
 import {GitGen} from "../file/GitGen";
 import {Util} from "../../util/Util";
-let speakeasy = require('speakeasy');
+import {GenConfig} from "../../Config";
 
 export interface IServerAppConfig {
     type: string;
@@ -13,12 +12,10 @@ export interface IServerAppConfig {
 }
 
 export class ServerAppGen {
-    private express: ExpressAppGen;
     private vesta: Vesta;
 
-    constructor(private config: IProjectGenConfig) {
+    constructor(private config: IProjectConfig) {
         this.vesta = Vesta.getInstance();
-        this.express = new ExpressAppGen(config);
     }
 
     private getBranchName(): string {
@@ -31,7 +28,7 @@ export class ServerAppGen {
 
     private cloneTemplate() {
         let dir = this.config.name,
-            repo = this.vesta.getProjectConfig().repository;
+            repo = GenConfig.repository;
         GitGen.clone(GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
         GitGen.cleanClonedRepo(dir);
         // server app no longer contains variant settings
@@ -52,7 +49,7 @@ export class ServerAppGen {
                 choices: [DatabaseGen.MySQL, DatabaseGen.Mongodb],
                 default: DatabaseGen.MySQL
             };
-            Util.prompt<{database: string}>(question).then(answer => {
+            Util.prompt<{ database: string }>(question).then(answer => {
                 config.database = answer.database;
                 resolve(config);
             });

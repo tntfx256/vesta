@@ -6,8 +6,9 @@ import {NGDirectiveGen} from "../gen/code/client/ng/NGDirectiveGen";
 import {NGFilterGen} from "../gen/code/client/ng/NGFilterGen";
 import {NGServiceGen} from "../gen/code/client/ng/NGServiceGen";
 import {SassGen} from "../gen/file/SassGen";
-import {NGControllerGen, ControllerType} from "../gen/code/client/ng/NGControllerGen";
+import {ControllerType, NGControllerGen} from "../gen/code/client/ng/NGControllerGen";
 import {ExpressControllerGen} from "../gen/code/server/ExpressControllerGen";
+import {ComponentGen} from "../gen/code/client/ComponentGen";
 
 export class Gen {
 
@@ -23,7 +24,7 @@ export class Gen {
         }
         switch (type) {
             case 'controller':
-                if (projectConfig.type == ProjectGen.Type.ClientSide) {
+                if (vesta.isV1 && projectConfig.type == ProjectGen.Type.ClientSide) {
                     NGControllerGen.getGeneratorConfig(name)
                         .then(config => {
                             if (<any>config.model instanceof Array) {
@@ -47,7 +48,7 @@ export class Gen {
                             }
 
                         })
-                        .catch(err => console.error(err.message))
+                        .catch(err => Log.error(err.message))
                 } else {
                     ExpressControllerGen.getGeneratorConfig(name, config => {
                         if (config.model instanceof Array) {
@@ -105,6 +106,10 @@ export class Gen {
                 let sass = new SassGen(args[1], args[0].replace('--', ''));
                 sass.generate();
                 break;
+            case 'component':
+                let component = ComponentGen.getInstance(args);
+                component && component.generate();
+                break;
             default:
                 Log.error(`Invalid generator option ${type}`);
         }
@@ -126,10 +131,11 @@ Creating new project after asking a series of questions through interactive shel
     TYPE        Type of code snippet to be generated. Possible values are:
                     - model         Creating a model
                     - sass          Creating a sass file of specific type (component, page, font)
-                    - controller    Creating a client (angular) or server (vesta api controller) side controller
+                    - controller    Creating a client (angular) or server (Vesta API) side controller
                     - directive     Creating an angular directive
                     - filter        Creating an angular filter
                     - service       Creating an angular service
+                    - component     Creating a react component
                     
     NAME        The name of the snippet
     

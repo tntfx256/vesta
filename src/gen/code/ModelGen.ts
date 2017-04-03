@@ -10,7 +10,7 @@ import {InterfaceGen} from "../core/InterfaceGen";
 import {ProjectGen} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
-import {Model, IModelFields, IModel} from "vesta-schema/Model";
+import {IModel, IModelFields, Model} from "vesta-schema/Model";
 import {Err} from "vesta-util/Err";
 import {IStructureProperty} from "../core/AbstractStructureGen";
 import {Schema} from "vesta-schema/Schema";
@@ -49,10 +49,10 @@ export class ModelGen {
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
-        this.modelFile.addImport('{Model}', 'vesta-schema/Model');
-        this.modelFile.addImport('{Schema}', 'vesta-schema/Schema');
-        this.modelFile.addImport('{FieldType}', 'vesta-schema/Field');
-        this.modelFile.addImport('{Database}', 'vesta-schema/Database');
+        this.modelFile.addImport('{Model}', this.vesta.isV2 ? 'vesta-lib/Model' : 'vesta-schema/Model');
+        this.modelFile.addImport('{Schema}', this.vesta.isV2 ? 'vesta-lib/Schema' : 'vesta-schema/Schema');
+        this.modelFile.addImport('{FieldType}', this.vesta.isV2 ? 'vesta-lib/Field' : 'vesta-schema/Field');
+        this.modelFile.addImport('{Database}', this.vesta.isV2 ? 'vesta-lib/Database' : 'vesta-schema/Database');
 
         let cm = this.modelClass.setConstructor();
         cm.addParameter({name: 'values', type: 'any', isOptional: true});
@@ -72,7 +72,7 @@ export class ModelGen {
             access: ClassGen.Access.Public,
             isStatic: true
         });
-        if (this.vesta.getConfig().type == ProjectGen.Type.ClientSide) {
+        if (!this.vesta.isV2 && this.vesta.getConfig().type == ProjectGen.Type.ClientSide) {
             this.path = 'src/app/cmn/models';
         }
         FsUtil.mkdir(this.path);
@@ -266,10 +266,16 @@ export class ModelGen {
     }
 
     static getModelsList(): any {
-        let vesta = Vesta.getInstance(),
-            config = vesta.getConfig(),
-            modelDirectory = path.join(process.cwd(), config.type == ProjectGen.Type.ServerSide ? 'src/cmn/models' : 'src/app/cmn/models'),
-            models = {};
+        let vesta = Vesta.getInstance();
+        let config = vesta.getConfig();
+        let tail = '';
+        if (vesta.isV2) {
+            tail = 'src/cmn/models';
+        } else {
+            tail = config.type == ProjectGen.Type.ServerSide ? 'src/cmn/models' : 'src/app/cmn/models';
+        }
+        let modelDirectory = path.join(process.cwd(), tail);
+        let models = {};
         try {
             let modelFiles = fs.readdirSync(modelDirectory);
             modelFiles.forEach(modelFile => {
@@ -297,8 +303,9 @@ export class ModelGen {
      * @returns {Model}
      */
     static getModel(modelName: string): IModel {
-        let possiblePath = ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/app/cmn/models/'],
-            pathToModel = `${modelName}.js`;
+        let possiblePath = Vesta.getInstance().isV2 ? ['vesta/server/cmn/models/'] :
+            ['build/tmp/js/cmn/models/', 'www/app/cmn/models/', 'build/app/cmn/models/'];
+        let pathToModel = `${modelName}.js`;
         let className = ModelGen.extractModelName(pathToModel);
         for (let i = possiblePath.length; i--;) {
             let modelFile = path.join(process.cwd(), possiblePath[i], pathToModel);

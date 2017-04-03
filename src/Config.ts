@@ -1,4 +1,4 @@
-export interface IProjectConfigRepository {
+export interface IProjectGenRepositoryConfig {
     baseUrl: string;
     group: string;
     common: string;
@@ -6,20 +6,22 @@ export interface IProjectConfigRepository {
     ionic: string;
     material: string;
     cpanel: string;
+    template: string;
 }
 
-export interface IProjectConfig {
-    repository: IProjectConfigRepository;
+export interface IProjectGenConfig {
+    repository: IProjectGenRepositoryConfig;
 }
 
-export const Config: IProjectConfig = {
+export const GenConfig: IProjectGenConfig = {
     repository: {
         baseUrl: 'https://github.com',
         group: 'VestaRayanAfzar',
-        common: 'commonCodeTemplate',
-        express: 'expressJsTemplate',
-        ionic: 'ionicCordovaTemplate',
-        material: 'materialWebTemplate',
+        common: 'common-code-template',
+        express: 'express-api-template',
+        ionic: 'ionic-template',
+        material: 'material-web-template',
         cpanel: 'material-cpanel-template',
+        template: 'vesta-template'
     }
 };
