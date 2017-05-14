@@ -1,24 +1,18 @@
-import * as _ from "lodash";
 import {IProjectConfig, ProjectGen} from "../gen/ProjectGen";
 import {GitGen} from "../gen/file/GitGen";
+import {Log} from "../util/Log";
 
 export class Create {
 
     private static createProject(name: string) {
-        let [projectCategory, projectName] = name.split('/');
-        if (!projectName) {
-            projectName = projectCategory;
-            projectCategory = '';
+        if (!name.match(/^[a-z][a-z0-9-_]+/i)) {
+            return Log.error('projectName may only contains [letters, numbers, dash, underscore]');
         }
-        if (!projectName.match(/^[a-z][a-z0-9-_]+/i)) {
-            return console.error('projectName may only contains [letters, numbers, dash, underscore]');
-        }
-        projectName = _.camelCase(projectName);
-        ProjectGen.getGeneratorConfig(projectName, projectCategory)
+        ProjectGen.getGeneratorConfig(name)
             .then(config => {
-                return GitGen.getGeneratorConfig(config.name, config.repository.group)
+                return GitGen.getGeneratorConfig()
                     .then(repoConfig => {
-                        config.name = repoConfig.name || config.name;
+                        // config.name = repoConfig.name || config.name;
                         config.repository = repoConfig;
                         return config;
                     })

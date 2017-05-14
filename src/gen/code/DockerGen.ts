@@ -1,6 +1,5 @@
 import {Util} from "../../util/Util";
-import {IProjectConfig, ProjectGen} from "../ProjectGen";
-import {V2App} from "../app/V2App";
+import {IProjectConfig, ProjectType} from "../ProjectGen";
 let speakeasy = require('speakeasy');
 
 export class DockerGen {
@@ -10,7 +9,7 @@ export class DockerGen {
 
     public compose() {
         let replace: any = {};
-        if (V2App.isActive || this.config.type == ProjectGen.Type.ServerSide) {
+        if (this.config.type == ProjectType.ApiServer) {
             replace = {
                 '__DB_PASSWORD__': speakeasy.generateSecret({length: 16, symbols: false}).ascii,
                 '__SALT__': speakeasy.generateSecret({length: 8, symbols: false}).ascii.replace(/\$/g, '-'),
@@ -18,7 +17,6 @@ export class DockerGen {
             };
         }
         Util.findInFileAndReplace(`${this.config.name}/resources/docker/docker-compose.yml`, replace);
-        let devPath = V2App.isActive ? '/vesta/server' : '';
-        Util.findInFileAndReplace(`${this.config.name}${devPath}/docker-compose.yml`, replace);
+        Util.findInFileAndReplace(`${this.config.name}/docker-compose.yml`, replace);
     }
 }

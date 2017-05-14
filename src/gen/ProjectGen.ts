@@ -5,19 +5,19 @@ import {IServerAppConfig, ServerAppGen} from "./app/ServerAppGen";
 import {CommonGen} from "./app/CommonGen";
 import {Util} from "../util/Util";
 import {GitGen, IRepositoryConfig} from "./file/GitGen";
-import {ClientAppGen, IClientAppConfig} from "./app/client/ClientAppGen";
-import {ClientAppGenFactory} from "./app/ClientAppGenFactory";
+import {ClientAppGen, IClientAppConfig} from "./app/ClientAppGen";
 import {DockerGen} from "./code/DockerGen";
 import {I18nGenConfig} from "./code/I18nGen";
 import {FsUtil} from "../util/FsUtil";
 import {CmdUtil, IExecOptions} from "../util/CmdUtil";
 import {Log} from "../util/Log";
-import {GenConfig} from "../Config";
-import {V2App} from "./app/V2App";
+import {PlatformConfig} from "../PlatformConfig";
+
+export const enum ProjectType{ClientApplication = 1, ControlPanel, ApiServer}
 
 export interface IProjectConfig {
     name: string;
-    type: string;
+    type: ProjectType;
     pkgManager: 'npm' | 'yarn';
     server: IServerAppConfig;
     client: IClientAppConfig;
@@ -27,13 +27,10 @@ export interface IProjectConfig {
 
 export class ProjectGen {
 
-    static Type = {ServerSide: 'serverSide', ClientSide: 'clientSide'};
-
     private static instance: ProjectGen;
     public vesta: Vesta;
     public serverApp: ServerAppGen;
     public clientApp: ClientAppGen;
-    public v2App: V2App;
     public commonApp: CommonGen;
     private docker: DockerGen;
 
@@ -42,94 +39,44 @@ export class ProjectGen {
         this.vesta = Vesta.getInstance(config);
         this.docker = new DockerGen(config);
         //
-        if (this.vesta.isV1) {
-            this.commonApp = new CommonGen(config);
-            if (config.type == ProjectGen.Type.ClientSide) {
-                this.clientApp = ClientAppGenFactory.create(config);
-            } else if (config.type == ProjectGen.Type.ServerSide) {
-                this.serverApp = new ServerAppGen(config);
-            }
-        } else {
-            this.v2App = new V2App(config);
+        this.commonApp = new CommonGen(config);
+        if (config.type == ProjectType.ClientApplication) {
+            this.clientApp = new ClientAppGen(config);
+        } else if (config.type == ProjectType.ApiServer) {
+            this.serverApp = new ServerAppGen(config);
         }
         ProjectGen.instance = this;
     }
 
     public generate() {
-        if (this.vesta.isV1) return this.v1Generate();
-        this.v2Generate();
-    }
-
-    private v1Generate() {
+        let isClientSideProject = this.config.type == ProjectType.ClientApplication;
         let dir = this.config.name;
-        let projectRepo = GenConfig.repository;
-        let projectTemplateName = projectRepo.express;
+        let templateRepo = PlatformConfig.getRepository();
+        let projectTemplateName = GitGen.getRepoName(templateRepo.api);
+        if (isClientSideProject) projectTemplateName = GitGen.getRepoName(this.vesta.isControlPanel ? templateRepo.cpanel : templateRepo.client);
         let repoInfo = this.config.repository;
-        let replacement = {};
-        let isClientSideProject = this.config.type == ProjectGen.Type.ClientSide;
+        let replacement = {[projectTemplateName]: this.config.name};
         let execOption: IExecOptions = {cwd: dir};
-        if (isClientSideProject) {
-            projectTemplateName = this.config.client.framework == ClientAppGen.Framework.Ionic ? projectRepo.ionic : projectRepo.material;
-        }
         FsUtil.mkdir(dir);
         // having the client or server to generate it's projects
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
         CmdUtil.execSync(`git init`, execOption);
         this.vesta.generate();
-        replacement[projectTemplateName] = this.config.name;
         Util.findInFileAndReplace(`${dir}/package.json`, replacement);
         Util.findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
         // Initiating the git repo
         CmdUtil.execSync(`git add .`, execOption);
         CmdUtil.execSync(`git commit -m Vesta-init`, execOption);
         this.commonApp.generate();
-        if (!repoInfo.baseUrl) return;
+        if (!repoInfo.main) return;
         CmdUtil.execSync(`git add .`, execOption);
         CmdUtil.execSync(`git commit -m Vesta-common`, execOption);
-        CmdUtil.execSync(`git remote add origin ${GitGen.getRepoUrl(repoInfo.baseUrl, repoInfo.group, repoInfo.name)}`, execOption);
+        CmdUtil.execSync(`git remote add origin ${repoInfo.main}`, execOption);
         CmdUtil.execSync(`git push -u origin master`, execOption);
     }
 
-    private v2Generate() {
-        let dir = this.config.name;
-        let sourceRepoConfig = GenConfig.repository;
-        let sourceRepoName = sourceRepoConfig.template;
-        let projectRepoConfig = this.config.repository;
-        let replacement = {};
-        let execOption: IExecOptions = {cwd: dir};
-        FsUtil.mkdir(dir);
-        // having the client or server to generate it's projects
-        this.v2App.generate();
-        this.docker.compose();
-        CmdUtil.execSync(`git init`, execOption);
-        this.vesta.generate();
-        replacement[sourceRepoName] = this.config.name;
-        Util.findInFileAndReplace(`${dir}/package.json`, replacement);
-        Util.findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
-        // Initiating the git repo
-        CmdUtil.execSync(`git add .`, execOption);
-        CmdUtil.execSync(`git commit -m Vesta-init`, execOption);
-        if (!projectRepoConfig.baseUrl) return;
-        CmdUtil.execSync(`git remote add origin ${GitGen.getRepoUrl(projectRepoConfig.baseUrl, projectRepoConfig.group, projectRepoConfig.name)}`, execOption);
-        CmdUtil.execSync(`git push -u origin master`, execOption);
-    }
-
-    private static getPlatform(): Promise<number> {
-        let question: Question = <Question>{
-            type: 'list',
-            name: 'version',
-            message: 'Platform version: ',
-            choices: ['V1', 'V2'],
-            default: 'V2'
-        };
-        return Util.prompt<{ version: string }>(question)
-            .then(answer => {
-                return answer.version == 'V1' ? 1 : 2;
-            });
-    }
-
-    public static getGeneratorConfig(name: string, category: string): Promise<IProjectConfig> {
+    public static getGeneratorConfig(name: string): Promise<IProjectConfig> {
         let appConfig: IProjectConfig = <IProjectConfig>{};
         appConfig.name = _.camelCase(name);
         appConfig.pkgManager = "npm";
@@ -138,47 +85,28 @@ export class ProjectGen {
             Log.info(`Yarn version ${yarnVersion} detected. Switching package manager to yarn`);
             appConfig.pkgManager = "yarn";
         }
-        return ProjectGen.getPlatform()
-            .then(platformVersion => {
-                appConfig.client = <IClientAppConfig>{};
-                appConfig.server = <IServerAppConfig>{};
-                appConfig.repository = <IRepositoryConfig>{
-                    baseUrl: '',
-                    group: category,
-                    name: appConfig.name
-                };
-                if (platformVersion === 2) {
-                    return V2App.getGeneratorConfig(appConfig);
-                }
-                let questions: Array<Question> = [<Question>{
-                    type: 'list',
-                    name: 'type',
-                    message: 'Project Type: ',
-                    choices: [ProjectGen.Type.ClientSide, ProjectGen.Type.ServerSide],
-                    default: ProjectGen.Type.ClientSide
-                }];
-                return Util.prompt<{ type: string }>(questions)
-                    .then(answer => {
-                        appConfig.type = answer.type;
-                        if (ProjectGen.Type.ServerSide == appConfig.type) {
-                            return ServerAppGen.getGeneratorConfig()
-                                .then((serverAppConfig: IServerAppConfig) => {
-                                    appConfig.server = serverAppConfig;
-                                    return appConfig;
-                                })
-                        }
-                        if (ProjectGen.Type.ClientSide == appConfig.type) {
-                            return ClientAppGen.getGeneratorConfig()
-                                .then((clientAppConfig: IClientAppConfig) => {
-                                    appConfig.client = clientAppConfig;
-                                    return appConfig;
-                                })
-                        }
-                    });
-            })
-    }
+        appConfig.repository = <IRepositoryConfig>{};
+        const projectTypes = ['Client Application', 'Control Panel', 'Api Server'];
+        let questions: Array<Question> = [<Question>{
+            type: 'list',
+            name: 'type',
+            message: 'Project Type: ',
+            choices: projectTypes
+        }];
+        return Util.prompt<{ type: string }>(questions).then(answer => {
+            appConfig.type = ProjectType.ClientApplication;
+            if (answer.type == projectTypes[1]) appConfig.type = ProjectType.ControlPanel;
+            else if (answer.type == projectTypes[2]) appConfig.type = ProjectType.ApiServer;
 
-    public static getInstance() {
-        return ProjectGen.getInstance();
+            return appConfig.type == ProjectType.ApiServer ?
+                ServerAppGen.getGeneratorConfig().then((serverAppConfig: IServerAppConfig) => {
+                    appConfig.server = serverAppConfig;
+                    return appConfig;
+                }) :
+                ClientAppGen.getGeneratorConfig().then((clientAppConfig: IClientAppConfig) => {
+                    appConfig.client = clientAppConfig;
+                    return appConfig;
+                })
+        });
     }
 }

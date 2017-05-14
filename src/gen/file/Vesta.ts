@@ -1,8 +1,7 @@
 import * as fs from "fs-extra";
-import {IProjectConfig} from "../ProjectGen";
+import {IProjectConfig, ProjectType} from "../ProjectGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
-import {V2App} from "../app/V2App";
 
 export interface IProjectVersion {
     app: string;
@@ -20,13 +19,13 @@ export class Vesta {
     private vesta: IVesta;
     private path = 'vesta.json';
     private isUpdate: boolean = false;
-    private v2 = false;
+    // private v2 = false;
 
     constructor(private config?: IProjectConfig) {
         if (config) {// creating new project
-            this.v2 = V2App.isActive;
+            // this.v2 = true;
             this.vesta = {
-                version: {app: '0.1.0', api: 'v1', platform: this.v2 ? 2 : 1},
+                version: {app: '0.1.0', api: 'v1', platform: 2},
                 config: config
             };
         } else {
@@ -37,8 +36,8 @@ export class Vesta {
                     process.exit();
                 }
                 this.vesta = JSON.parse(fs.readFileSync(this.path, {encoding: 'utf8'}));
-                let platform = this.vesta.version.platform;
-                this.v2 = platform && platform > 1;
+                // let platform = this.vesta.version.platform;
+                // this.v2 = platform && platform > 1;
             } catch (e) {
                 Log.error(e);
                 process.exit();
@@ -62,12 +61,24 @@ export class Vesta {
         return this.vesta.version;
     }
 
-    public get isV1() {
-        return !this.v2;
+    // public get isV2() {
+    //     return this.v2;
+    // }
+
+    public get isClientApplication(): boolean {
+        return this.vesta.config.type == ProjectType.ClientApplication;
     }
 
-    public get isV2() {
-        return this.v2;
+    public get isControlPanel(): boolean {
+        return this.vesta.config.type == ProjectType.ControlPanel;
+    }
+
+    public get isApiServer(): boolean {
+        return this.vesta.config.type == ProjectType.ApiServer;
+    }
+
+    public get cmnDirectory(): string {
+        return this.vesta.config.type == ProjectType.ApiServer ? 'src/cmn' : 'src/client/app/cmn';
     }
 
     public static getInstance(config?: IProjectConfig): Vesta {

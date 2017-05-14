@@ -10,14 +10,16 @@ import {Backup} from "./cmd/Backup";
 import {Docker} from "./cmd/Docker";
 import {Client} from "./cmd/Client";
 import {Log} from "./util/Log";
+import {IPlatformConfig, PlatformConfig} from "./PlatformConfig";
 
 let args = process.argv;
 args.shift();
 args.shift();
 let command = args.shift();
 
+const packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
+
 if (['-v', '--version', 'version'].indexOf(command) >= 0) {
-    let packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
     process.stdout.write(`Vesta Platform v${packageInfo.version}\n`);
     process.exit(0);
 }
@@ -47,6 +49,8 @@ Run 'vesta COMMAND --help' for more information on COMMAND
 `);
     process.exit(0);
 }
+// initiating platform configuration
+PlatformConfig.init(<IPlatformConfig>packageInfo.vesta);
 
 switch (command) {
     // no need to vesta.json
@@ -78,3 +82,7 @@ switch (command) {
     default:
         Log.error(`vesta: '${command}' is not a vesta command\nSee 'Vesta --help'\n`);
 }
+
+process.on('unhandledRejection', err => {
+    console.error('An unhandledRejection occurred:\n', err);
+});

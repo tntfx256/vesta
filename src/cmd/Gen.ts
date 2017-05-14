@@ -1,12 +1,6 @@
-import {Vesta} from "../gen/file/Vesta";
 import {Log} from "../util/Log";
-import {ProjectGen} from "../gen/ProjectGen";
 import {ModelGen} from "../gen/code/ModelGen";
-import {NGDirectiveGen} from "../gen/code/client/ng/NGDirectiveGen";
-import {NGFilterGen} from "../gen/code/client/ng/NGFilterGen";
-import {NGServiceGen} from "../gen/code/client/ng/NGServiceGen";
 import {SassGen} from "../gen/file/SassGen";
-import {ControllerType, NGControllerGen} from "../gen/code/client/ng/NGControllerGen";
 import {ExpressControllerGen} from "../gen/code/server/ExpressControllerGen";
 import {ComponentGen} from "../gen/code/client/ComponentGen";
 
@@ -15,8 +9,6 @@ export class Gen {
     static generateCode(args: Array<string>) {
         let type = args.shift().toLowerCase();
         let name = args[0];
-        let vesta = Vesta.getInstance(),
-            projectConfig = vesta.getConfig();
         if (name || (type != 'controller')) {
             if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
                 return Log.error('Please enter a valid name');
@@ -24,76 +16,29 @@ export class Gen {
         }
         switch (type) {
             case 'controller':
-                if (vesta.isV1 && projectConfig.type == ProjectGen.Type.ClientSide) {
-                    NGControllerGen.getGeneratorConfig(name)
-                        .then(config => {
-                            if (<any>config.model instanceof Array) {
-                                for (let i = config.model.length; i--;) {
-                                    let parts = config.model[i].split(/[\/\\]/);
-                                    let modelName = parts[parts.length - 1];
-                                    let ngController = new NGControllerGen({
-                                        name: modelName,
-                                        type: ControllerType.List,
-                                        module: config.module,
-                                        model: config.model[i],
-                                        injects: config.injects.slice(0),
-                                        openFormInModal: true
-                                    });
-                                    ngController.generate();
-                                }
-                            } else {
-                                config.name = name;
-                                let ngController = new NGControllerGen(config);
-                                ngController.generate();
-                            }
-
-                        })
-                        .catch(err => Log.error(err.message))
-                } else {
-                    ExpressControllerGen.getGeneratorConfig(name, config => {
-                        if (config.model instanceof Array) {
-                            for (let i = config.model.length; i--;) {
-                                let parts = config.model[i].split(/[\/\\]/);
-                                let modelName = parts[parts.length - 1];
-                                let controller = new ExpressControllerGen({
-                                    name: modelName,
-                                    route: config.route,
-                                    model: config.model[i],
-                                });
-                                controller.generate();
-                            }
-                        } else {
-                            let controller = new ExpressControllerGen(config);
+                ExpressControllerGen.getGeneratorConfig(name, config => {
+                    if (config.model instanceof Array) {
+                        for (let i = config.model.length; i--;) {
+                            let parts = config.model[i].split(/[\/\\]/);
+                            let modelName = parts[parts.length - 1];
+                            let controller = new ExpressControllerGen({
+                                name: modelName,
+                                route: config.route,
+                                model: config.model[i],
+                            });
                             controller.generate();
                         }
-                    });
-                }
+                    } else {
+                        let controller = new ExpressControllerGen(config);
+                        controller.generate();
+                    }
+                });
                 break;
             case 'model':
                 let model = new ModelGen(args);
                 model.generate();
                 break;
-            case 'directive':
-                NGDirectiveGen.getGeneratorConfig(config => {
-                    config.name = name;
-                    let ngDirective = new NGDirectiveGen(config);
-                    ngDirective.generate();
-                });
-                break;
-            case 'filter':
-                NGFilterGen.getGeneratorConfig(config => {
-                    config.name = name;
-                    let ngFilter = new NGFilterGen(config);
-                    ngFilter.generate();
-                });
-                break;
-            case 'service':
-                NGServiceGen.getGeneratorConfig(config => {
-                    config.name = name;
-                    let ngService = new NGServiceGen(config);
-                    ngService.generate();
-                });
-                break;
+            // case 'service':
             // case 'form':
             //     NGFormGen.getGeneratorConfig(config => {
             //         config.name = name;

@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as _ from "lodash";
 import {Vesta} from "../../file/Vesta";
 import {FsUtil} from "../../../util/FsUtil";
 import {StringUtil} from "../../../util/StringUtil";
@@ -28,7 +29,9 @@ export const ${this.className} = (props: ${this.className}Props) => (<div><h1>${
     }
 
     private genStateful() {
+        let stateName = _.camelCase(this.className);
         return `import React from "react";
+import {PageComponent} from "../PageComponent";
 
 export interface ${this.className}Props {
 }
@@ -36,12 +39,16 @@ export interface ${this.className}Props {
 export interface ${this.className}State {
 }
 
-export class ${this.className} extends React.Component<${this.className}Props, ${this.className}State> {
+export class ${this.className} extends PageComponent<${this.className}Props, ${this.className}State> {
     
     public render() {
         return (
             <div><h1>${this.className} Component</h1></div>
         );
+    }
+
+    static registerPermission(id) {
+        AuthService.getInstance().registerPermissions(id, {${stateName}: ['read']});
     }
 }
 `;

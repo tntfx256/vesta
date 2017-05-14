@@ -1,37 +1,32 @@
 {
   "name": "vesta",
-  "version": "0.8.2-beta.5",
+  "version": "0.8.3",
   "description": "Vesta Platform",
-  "keywords": [
-    "Code Generator",
-    "NodeJS",
-    "Docker",
-    "Deploy",
-    "Backup"
+  "license": "Apache-2.0",
+  "author": "hbtb <bishehsary@gmail.com>",
+  "contributors": [
+    "javadkh2 <khalilian.javad@gmail.com>"
   ],
   "main": "bin/index.js",
   "bin": {
     "vesta": "bin/index.js"
   },
+  "vesta": {
+    "repository": {
+      "api": "https://github.com/VestaRayanAfzar/vesta-template-api.git",
+      "client": "https://github.com/VestaRayanAfzar/vesta-template-client.git",
+      "cpanel": "https://github.com/VestaRayanAfzar/vesta-template-cpanel.git",
+      "cmn": "https://github.com/VestaRayanAfzar/vesta-template-cmn.git"
+    }
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsc -w -p ."
   },
-  "author": "hbtb <bishehsary@gmail.com>",
-  "contributors": [
-    {
-      "name": "Mohammd Javad Khalilian",
-      "email": "khalilian.javad@gmail.com"
-    }
-  ],
+  "repository": "https://github.com/VestaRayanAfzar/vesta.git",
   "bugs": {
     "url": "https://github.com/VestaRayanAfzar/vesta/issues",
     "email": "bishehsary@gmail.com"
-  },
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VestaRayanAfzar/vesta.git"
   },
   "dependencies": {
     "colors": "^1.1.2",
@@ -42,15 +37,15 @@
     "shelljs": "^0.7.5",
     "speakeasy": "^2.0.0",
     "vesta-datetime-gregorian": "^0.3.4",
-    "vesta-schema": "^0.6.0-beta.2",
-    "vesta-util": "^0.3.2",
+    "vesta-lib": "^0.1.3",
     "xml-to-json": "^0.1.1",
     "yamljs": "^0.2.8"
   },
   "devDependencies": {
-    "fs-extra": "^0.26.7",
+    "@types/shelljs": "^0.7.0",
+    "@types/underscore": "^1.8.0",
     "gulp": "^3.9.1",
     "gulp-typescript": "^3.1.3",
-    "typescript": "^2.1.4"
+    "typescript": "^2.2.2"
   }
 }

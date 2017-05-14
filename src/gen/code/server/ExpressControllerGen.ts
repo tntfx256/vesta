@@ -2,6 +2,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
 import {Question} from "inquirer";
+import {FieldType} from "vesta-lib/Field";
 import {ClassGen} from "../../core/ClassGen";
 import {TsFileGen} from "../../core/TSFileGen";
 import {MethodGen} from "../../core/MethodGen";
@@ -11,8 +12,7 @@ import {Placeholder} from "../../core/Placeholder";
 import {ModelGen} from "../ModelGen";
 import {FsUtil} from "../../../util/FsUtil";
 import {Log} from "../../../util/Log";
-import {IModelFields} from "vesta-schema/Model";
-import {FieldType} from "vesta-schema/Field";
+import {IModelFields} from "vesta-lib";
 import {StringUtil} from "../../../util/StringUtil";
 
 export interface IExpressControllerConfig {
@@ -35,9 +35,6 @@ export class ExpressControllerGen {
 
     constructor(private config: IExpressControllerConfig) {
         this.vesta = Vesta.getInstance();
-        if (this.vesta.isV2) {
-            this.path = 'src/server/api';
-        }
         this.init(this.vesta.getVersion().api);
     }
 
@@ -57,7 +54,7 @@ export class ExpressControllerGen {
             this.controllerFile.addImport('* as path', 'path');
         }
         this.controllerFile.addImport('{Response, Router, NextFunction}', 'express');
-        this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, this.vesta.isV2 ? 'src/server/api/BaseController' : 'src/api/BaseController'));
+        this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({name: 'router', type: 'Router'});
@@ -82,14 +79,14 @@ export class ExpressControllerGen {
         let modelInstanceName = _.camelCase(modelName),
             modelClassName = StringUtil.fcUpper(modelInstanceName);
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
-        this.controllerFile.addImport(`{Err}`, this.vesta.isV2 ? 'vesta-lib/Err' : 'vesta-util/Err');
-        this.controllerFile.addImport(`{DatabaseError}`, this.vesta.isV2 ? 'vesta-lib/error/DatabaseError' : 'vesta-schema/error/DatabaseError');
-        this.controllerFile.addImport(`{ValidationError}`, this.vesta.isV2 ? 'vesta-lib/error/ValidationError' : 'vesta-schema/error/ValidationError');
+        this.controllerFile.addImport(`{Err}`, 'vesta-lib/Err');
+        this.controllerFile.addImport(`{DatabaseError}`, 'vesta-lib/error/DatabaseError');
+        this.controllerFile.addImport(`{ValidationError}`, 'vesta-lib/error/ValidationError');
+        this.controllerFile.addImport(`{Vql}`, 'vesta-lib/Vql');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         if (modelClassName != 'Permission') {
             this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/Permission`));
         }
-        this.controllerFile.addImport(`{Vql}`, this.vesta.isV2 ? 'vesta-lib/Vql' : 'vesta-schema/Vql');
         let acl = this.routingPath.replace(/\/+/g, '.');
         acl = acl[0] == '.' ? acl.slice(1) : acl;
         let middleWares = ` this.checkAcl('${acl}', __ACTION__),`;
@@ -137,11 +134,10 @@ export class ExpressControllerGen {
         }
         FsUtil.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
         let apiVersion = this.vesta.getVersion().api;
-        let extPath = this.vesta.isV2 ? '/server' : '';
-        let filePath = `src${extPath}/api/${apiVersion}/import.ts`;
+        let filePath = `src/api/${apiVersion}/import.ts`;
         let code = fs.readFileSync(filePath, {encoding: 'utf8'});
         if (code.search(Placeholder.ExpressController)) {
-            let relPath = Util.genRelativePath(`src${extPath}/api/${apiVersion}`, this.path);
+            let relPath = Util.genRelativePath(`src/api/${apiVersion}`, this.path);
             let importCode = `import {${this.controllerClass.name}} from '${relPath}/${this.controllerClass.name}';`;
             if (code.indexOf(importCode) >= 0) return;
             let embedCode = `${_.camelCase(this.config.name)}: ${this.controllerClass.name},`;
@@ -263,7 +259,7 @@ export class ExpressControllerGen {
     }
 
     private getUploadCode(): string {
-        this.controllerFile.addImport('{FileUploader}', Util.genRelativePath(this.path, this.vesta.isV2 ? 'src/server/helpers/FileUploader' : 'src/helpers/FileUploader'));
+        this.controllerFile.addImport('{FileUploader}', Util.genRelativePath(this.path, 'src/helpers/FileUploader'));
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
         let code = '';
