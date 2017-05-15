@@ -17,6 +17,7 @@ export class CommonGen {
         if (!this.config.repository.common) return;
         let cwd = this.config.name;
         let repo = this.config.repository;
+        FsUtil.remove(`${cwd}/${this.vesta.cmnDirectory}`);
         return CmdUtil.execSync(`git submodule add ${repo.common} ${this.vesta.cmnDirectory}`, {cwd});
     }
 
@@ -29,7 +30,7 @@ export class CommonGen {
     private createCommonProject() {
         let repository = this.config.repository,
             cmnDir = GitGen.getRepoName(repository.common),
-            execOptions: IExecOptions = {cwd: this.vesta.cmnDirectory};
+            execOptions: IExecOptions = {cwd: GitGen.getRepoName(this.config.repository.common)};
         GitGen.clone(PlatformConfig.getRepository().cmn, cmnDir);
         GitGen.cleanClonedRepo(cmnDir);
         CmdUtil.execSync(`git init`, execOptions);

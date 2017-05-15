@@ -10,7 +10,6 @@ import {DockerGen} from "./code/DockerGen";
 import {I18nGenConfig} from "./code/I18nGen";
 import {FsUtil} from "../util/FsUtil";
 import {CmdUtil, IExecOptions} from "../util/CmdUtil";
-import {Log} from "../util/Log";
 import {PlatformConfig} from "../PlatformConfig";
 
 export const enum ProjectType{ClientApplication = 1, ControlPanel, ApiServer}
@@ -80,11 +79,6 @@ export class ProjectGen {
         let appConfig: IProjectConfig = <IProjectConfig>{};
         appConfig.name = _.camelCase(name);
         appConfig.pkgManager = "npm";
-        let yarnVersion = CmdUtil.execSync('yarn --version', {silent: true}).stdout;
-        if (yarnVersion) {
-            Log.info(`Yarn version ${yarnVersion} detected. Switching package manager to yarn`);
-            appConfig.pkgManager = "yarn";
-        }
         appConfig.repository = <IRepositoryConfig>{};
         const projectTypes = ['Client Application', 'Control Panel', 'Api Server'];
         let questions: Array<Question> = [<Question>{

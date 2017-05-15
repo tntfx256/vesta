@@ -33,7 +33,7 @@ export class Update {
     }
 
     static help() {
-        process.stdout.write(`
+        Log.write(`
 Usage: vesta update [options...]
 
 Updates a package to it's latest version

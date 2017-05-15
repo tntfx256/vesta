@@ -1,4 +1,5 @@
 import {Deployer} from "../deploy/Deployer";
+import {Log} from "../util/Log";
 
 export class Deploy {
 
@@ -18,7 +19,7 @@ export class Deploy {
     }
 
     static help() {
-        process.stdout.write(`
+        Log.write(`
 Usage: vesta deploy [options...] PATH
 
 Deploy a project from remote repository

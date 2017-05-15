@@ -4,6 +4,7 @@ import {Vesta} from "../../file/Vesta";
 import {FsUtil} from "../../../util/FsUtil";
 import {StringUtil} from "../../../util/StringUtil";
 import {Arguments} from "../../../util/Arguments";
+import {Log} from "../../../util/Log";
 
 export class ComponentGen {
     private vesta: Vesta;
@@ -73,7 +74,7 @@ export class ${this.className} extends PageComponent<${this.className}Props, ${t
     }
 
     static help() {
-        process.stdout.write(`
+        Log.write(`
 Usage: vesta gen component [options...] NAME
 
 Creating React component 

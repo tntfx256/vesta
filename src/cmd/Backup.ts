@@ -1,4 +1,5 @@
 import {Backuper} from "../deploy/Backuper";
+import {Log} from "../util/Log";
 
 export class Backup {
 
@@ -18,7 +19,7 @@ export class Backup {
     }
 
     static help() {
-        process.stdout.write(`
+        Log.write(`
 Usage: vesta backup PATH
 
 Backup all storage data into a single tar file

@@ -1,47 +1,46 @@
-import * as shell from "shelljs";
-import {ExecOptions, ExecOutputReturnValue} from "shelljs";
+import {exec, execSync, ExecSyncOptions} from "child_process";
 import {Log} from "./Log";
 import {StringUtil} from "./StringUtil";
 
-export interface IExecSyncResult extends ExecOutputReturnValue {
-    // updated version changed the output to stdout; std did not
+export interface IExecOptions extends ExecSyncOptions {
+    silent?: boolean;
+    interactive?: boolean;
+}
+
+export interface IExecReasult {
+    error: Error;
     stdout: string;
     stderr: string;
 }
 
-export interface IExecOptions extends ExecOptions {
-    cwd?: string;
-    stdio?: any;
-    customFds?: any;
-    env?: any;
-    encoding?: string;
-    timeout?: number;
-    maxBuffer?: number;
-    killSignal?: string;
-}
-
 export class CmdUtil {
 
-    static execSync(command, options?: IExecOptions): IExecSyncResult {
+    static exec(command, options?: IExecOptions): Promise<IExecReasult> {
+        return new Promise<IExecReasult>((resolve) => {
+            exec(command, options, (error: Error, stdout: string, stderr: string) => {
+                resolve({error, stdout, stderr});
+            })
+        });
+    }
+
+    static execSync(command, options?: IExecOptions): string {
         options = options || {};
+        if (options.hasOwnProperty('interactive')) {
+            options.interactive = true;
+            delete options.interactive;
+        }
         if (!options.silent) {
             Log.info(`${options.cwd || '.'}/> ${command} `);
+            delete options.silent;
         }
-        return <IExecSyncResult>shell.exec(command, options);
+        options.stdio = ['inherit', options.interactive ? 'inherit' : 'pipe', 'inherit'];
+        // options.encoding = 'utf8';
+        return execSync(command, options).toString('utf8');
     }
 
     static getOutputOf(command, options?: IExecOptions): string {
-        options = options || {silent: true};
-        return StringUtil.trimLineBreaks(CmdUtil.execSync(command, options).stdout);
-    }
-
-    static getResult(command: string, options?: IExecOptions): Promise<string> {
-        options = options || {silent: true};
-        return new Promise<string>((resolve, reject) => {
-            shell.exec(command, options, (code: number, output: string) => {
-                resolve(output);
-            })
-        })
+        options = options || {silent: true, interactive: false};
+        return StringUtil.trimLineBreaks(CmdUtil.execSync(command, options));
     }
 
     static table(header: Array<string>, rows: Array<Array<string>>) {

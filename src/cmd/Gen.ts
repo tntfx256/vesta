@@ -68,7 +68,7 @@ export class Gen {
     }
 
     static help() {
-        process.stdout.write(`
+        Log.write(`
 Usage: vesta gen TYPE [options...] NAME
 
 Creating new project after asking a series of questions through interactive shell

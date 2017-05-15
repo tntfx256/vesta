@@ -73,10 +73,6 @@ export class Deployer {
     }
 
     public static getDeployConfig(args: Array<string>): Promise<IDeployConfig> {
-        if (CmdUtil.execSync(`gulp -v`, {silent: true}).code) {
-            Log.error('You must install gulp-cli! Run `sudo npm install -g gulp-cli`');
-            return Promise.reject(new Err(Err.Code.OperationFailed, 'gulp-cli is not installed'));
-        }
         let config: IDeployConfig = <IDeployConfig>{
             history: [],
             args: [],

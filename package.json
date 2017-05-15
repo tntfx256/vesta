@@ -1,6 +1,6 @@
 {
   "name": "vesta",
-  "version": "0.8.3",
+  "version": "0.2.0-alpha.1",
   "description": "Vesta Platform",
   "license": "Apache-2.0",
   "author": "hbtb <bishehsary@gmail.com>",
@@ -34,7 +34,6 @@
     "inquirer": "^2.0.0",
     "is-root": "^1.0.0",
     "lodash": "^4.17.4",
-    "shelljs": "^0.7.5",
     "speakeasy": "^2.0.0",
     "vesta-datetime-gregorian": "^0.3.4",
     "vesta-lib": "^0.1.3",
