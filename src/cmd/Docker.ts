@@ -1,4 +1,6 @@
 import {DockerUtil} from "../util/DockerUtil";
+import {Log} from "../util/Log";
+
 export class Docker {
 
     static parse(args: Array<string>) {
@@ -36,7 +38,7 @@ export class Docker {
     }
 
     static help() {
-        process.stdout.write(`
+        Log.write(`
 Usage: vesta docker COMMAND [options...] [PATH]
 
 Manage docker relevant operations

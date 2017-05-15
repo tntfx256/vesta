@@ -1,9 +1,3 @@
-#Environments
-- Vesta.isServer
-- Vesta.isDesktop / Vesta.isElectron
-- Vesta.isMobile / Vesta.isCordova
-- Vesta.isClient / Vesta.isBrowser
-
 
 # Features
 - Everything happens at build time, not run time
@@ -18,9 +12,8 @@
 - 
 
 # Modules
-- vesta-router (it generates code for `react-router` and `expressJs`)
 - vesta-auth (ACL, Accounting, )
-- vesta-schema (Database with client side direct connection in development)
-- vesta-cordova-* automatically do stuff (writing facade for each cordova plugin that is used
+- vesta-lib
+- vesta-cordova automatically do stuff (writing facade for each cordova plugin that is used
 like ngCordova project)
 

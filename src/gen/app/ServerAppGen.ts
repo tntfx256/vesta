@@ -1,11 +1,7 @@
-import {Question} from "inquirer";
 import {Vesta} from "../file/Vesta";
-import {DatabaseGen} from "../core/DatabaseGen";
-import {IProjectGenConfig} from "../ProjectGen";
-import {ExpressAppGen} from "./server/ExpressAppGen";
+import {IProjectConfig} from "../ProjectGen";
 import {GitGen} from "../file/GitGen";
-import {Util} from "../../util/Util";
-let speakeasy = require('speakeasy');
+import {PlatformConfig} from "../../PlatformConfig";
 
 export interface IServerAppConfig {
     type: string;
@@ -13,29 +9,16 @@ export interface IServerAppConfig {
 }
 
 export class ServerAppGen {
-    private express: ExpressAppGen;
     private vesta: Vesta;
 
-    constructor(private config: IProjectGenConfig) {
+    constructor(private config: IProjectConfig) {
         this.vesta = Vesta.getInstance();
-        this.express = new ExpressAppGen(config);
-    }
-
-    private getBranchName(): string {
-        // let branch = 'master';
-        // if (this.config.server.database != DatabaseGen.None) {
-        //     branch += `-${this.config.server.database}`;
-        // }
-        return 'master';
     }
 
     private cloneTemplate() {
-        let dir = this.config.name,
-            repo = this.vesta.getProjectConfig().repository;
-        GitGen.clone(GitGen.getRepoUrl(repo.baseUrl, repo.group, repo.express), dir, this.getBranchName());
+        let dir = this.config.name;
+        GitGen.clone(PlatformConfig.getRepository().api, dir, 'master');
         GitGen.cleanClonedRepo(dir);
-        // server app no longer contains variant settings
-        // FsUtil.copy(`${dir}/resources/gitignore/src/config/setting.var.ts`, `${dir}/src/config/setting.var.ts`);
     }
 
     public generate() {
@@ -43,19 +26,6 @@ export class ServerAppGen {
     }
 
     static getGeneratorConfig(): Promise<IServerAppConfig> {
-        let config: IServerAppConfig = <IServerAppConfig>{type: 'express'};
-        return new Promise<IServerAppConfig>(resolve => {
-            let question = <Question>{
-                type: 'list',
-                name: 'database',
-                message: 'Database: ',
-                choices: [DatabaseGen.MySQL, DatabaseGen.Mongodb],
-                default: DatabaseGen.MySQL
-            };
-            Util.prompt<{database: string}>(question).then(answer => {
-                config.database = answer.database;
-                resolve(config);
-            });
-        });
+        return Promise.resolve(<IServerAppConfig>{type: 'express'});
     }
 }

@@ -3,8 +3,8 @@ import * as _ from "lodash";
 import {TsFileGen} from "../core/TSFileGen";
 import {ModelGen} from "./ModelGen";
 import {Log} from "../../util/Log";
-import {IFieldProperties, FieldType, RelationType} from "vesta-schema/Field";
-import {FileMemeType} from "vesta-util/FileMemeType";
+import {IFieldProperties, FieldType, RelationType} from "vesta-lib/Field";
+import {FileMemeType} from "vesta-lib/FileMemeType";
 import {Util} from "../../util/Util";
 import {StringUtil} from "../../util/StringUtil";
 

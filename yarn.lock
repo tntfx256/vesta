@@ -2,6 +2,20 @@
 # yarn lockfile v1
 
 
+"@types/node@*":
+  version "7.0.13"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-7.0.13.tgz#1b0a53fe9ef9c3a5d061b126cc9b915bca43a3f5"
+
+"@types/shelljs@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@types/shelljs/-/shelljs-0.7.0.tgz#229c157c6bc1e67d6b990e6c5e18dbd2ff58cff0"
+  dependencies:
+    "@types/node" "*"
+
+"@types/underscore@^1.8.0":
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@types/underscore/-/underscore-1.8.0.tgz#7a22ef584d6fe59af2e407bae079e2b7f8a5102f"
+
 ansi-escapes@^1.1.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/ansi-escapes/-/ansi-escapes-1.4.0.tgz#d3a8a83b319aa67793662b13e761c7911422306e"
@@ -444,7 +458,7 @@ glob@^5.0.3:
     once "^1.3.0"
     path-is-absolute "^1.0.0"
 
-glob@^7.0.0, glob@^7.0.5:
+glob@^7.0.5:
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/glob/-/glob-7.1.1.tgz#805211df04faaf1c63a3600306cdf5ade50b2ec8"
   dependencies:
@@ -939,11 +953,7 @@ lodash.templatesettings@^3.0.0:
     lodash._reinterpolate "^3.0.0"
     lodash.escape "^3.0.0"
 
-lodash@^4.0.0, lodash@^4.3.0:
-  version "4.16.6"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.16.6.tgz#d22c9ac660288f3843e16ba7d2b5d06cca27d777"
-
-lodash@^4.17.4:
+lodash@^4.0.0, lodash@^4.17.4, lodash@^4.3.0:
   version "4.17.4"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.4.tgz#78203a4d1c328ae1d86dca6460e369b57f4055ae"
 
@@ -1359,14 +1369,6 @@ sequencify@~0.0.7:
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/sequencify/-/sequencify-0.0.7.tgz#90cff19d02e07027fd767f5ead3e7b95d1e7380c"
 
-shelljs@^0.7.5:
-  version "0.7.7"
-  resolved "https://registry.yarnpkg.com/shelljs/-/shelljs-0.7.7.tgz#b2f5c77ef97148f4b4f6e22682e10bba8667cff1"
-  dependencies:
-    glob "^7.0.0"
-    interpret "^1.0.0"
-    rechoir "^0.6.2"
-
 sigmund@~1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/sigmund/-/sigmund-1.0.1.tgz#3ff21f198cad2175f9f3b781853fd94d0d19b590"
@@ -1524,7 +1526,7 @@ typedarray@~0.0.5:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
 
-typescript@^2.1.4:
+typescript@^2.2.2:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.2.2.tgz#606022508479b55ffa368b58fee963a03dfd7b0c"
 
@@ -1585,21 +1587,15 @@ vesta-i18n@^0.2.15:
   version "0.2.15"
   resolved "https://registry.yarnpkg.com/vesta-i18n/-/vesta-i18n-0.2.15.tgz#1544d99194b78778f60e21d96bc8599fb59dcf5c"
 
+vesta-lib@^0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/vesta-lib/-/vesta-lib-0.1.3.tgz#36db2f4b83255833d967b4652eb7b19d21df9715"
+
 vesta-locale-en-us@^0.2.5:
   version "0.2.5"
   resolved "https://registry.yarnpkg.com/vesta-locale-en-us/-/vesta-locale-en-us-0.2.5.tgz#13ba2fecec3aaf1bcf6c1c7a34a9d93b1adb1130"
   dependencies:
     vesta-i18n "^0.2.15"
-
-vesta-schema@^0.6.0-beta.2:
-  version "0.6.0-beta.7"
-  resolved "https://registry.yarnpkg.com/vesta-schema/-/vesta-schema-0.6.0-beta.7.tgz#05171433b022b009e03d214014e23a485ee2bf79"
-  dependencies:
-    vesta-util "^0.3.2"
-
-vesta-util@^0.3.2:
-  version "0.3.4"
-  resolved "https://registry.yarnpkg.com/vesta-util/-/vesta-util-0.3.4.tgz#cb0bf0d43d01f411f27a96c9d39d1125f166e01e"
 
 vinyl-fs@^0.3.0:
   version "0.3.14"

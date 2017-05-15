@@ -1,8 +1,8 @@
 import * as colors from "colors";
 
 export class Log {
-    public static simple(message: string) {
-        console.log(message);
+    public static write(message: string) {
+        process.stdout.write(message);
     }
 
     public static info(message: string) {
@@ -10,7 +10,7 @@ export class Log {
     }
 
     public static error(message: string) {
-        process.stderr.write(colors.red(message));
+        process.stderr.write(`\n${colors.red(message)}`);
     }
 
     public static warning(message: string) {
@@ -22,6 +22,6 @@ export class Log {
     }
 
     public static color(color: string, message: string) {
-        process.stdout.write(colors[color](message));
+        Log.write(`\n${colors[color](message)}`);
     }
 }

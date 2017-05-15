@@ -1,11 +1,12 @@
 import {Question} from "inquirer";
 import {DockerUtil} from "../util/DockerUtil";
 import {Util} from "../util/Util";
+import {Log} from "../util/Log";
 
 export class Init {
 
     static initProject() {
-        Util.prompt<{initType: string}>(<Question>{
+        Util.prompt<{ initType: string }>(<Question>{
             name: 'initType',
             message: 'Choose one of the following operations',
             type: 'list',
@@ -33,7 +34,7 @@ export class Init {
     }
 
     static help() {
-        process.stdout.write(`
+        Log.write(`
 Usage: vesta init [options...]
 
 Preparing a server (ubuntu 14.4 and up)

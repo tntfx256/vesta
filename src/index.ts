@@ -1,5 +1,4 @@
 #! /usr/bin/env node
-import * as fs from "fs-extra";
 import * as path from "path";
 import {Create} from "./cmd/Create";
 import {Init} from "./cmd/Init";
@@ -8,22 +7,24 @@ import {Update} from "./cmd/Update";
 import {Deploy} from "./cmd/Deploy";
 import {Backup} from "./cmd/Backup";
 import {Docker} from "./cmd/Docker";
-import {Client} from "./cmd/Client";
+import {FsUtil} from "./util/FsUtil";
 import {Log} from "./util/Log";
+import {IPlatformConfig, PlatformConfig} from "./PlatformConfig";
 
 let args = process.argv;
 args.shift();
 args.shift();
 let command = args.shift();
 
+const packageInfo = FsUtil.readJsonFile(path.join(__dirname, '../package.json'));
+
 if (['-v', '--version', 'version'].indexOf(command) >= 0) {
-    let packageInfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), {encoding: 'utf8'}));
-    process.stdout.write(`Vesta Platform v${packageInfo.version}\n`);
+    Log.write(`Vesta Platform v${packageInfo.version}\n`);
     process.exit(0);
 }
 
 if (!command || ['-h', '--help', 'help'].indexOf(command) >= 0) {
-    process.stdout.write(`
+    Log.write(`
 Usage: vesta COMMAND [args...]
        vesta [ --help | --version ]
 
@@ -34,9 +35,8 @@ Options:
     -v, --version   Displays the version of vesta platform
 
 Commands:
-    init            Initiating a vesta project from existing code and Managing server 
+    init            Initiating a vesta project from existing code and Managing server (Ubuntu) 
     create          Creating new project
-    client          Managing client technology
     gen             Generate code for mentioned type
     deploy          Deploy a project from remote repository
     backup          Backup all storage data into a single tar file
@@ -47,6 +47,8 @@ Run 'vesta COMMAND --help' for more information on COMMAND
 `);
     process.exit(0);
 }
+// initiating platform configuration
+PlatformConfig.init(<IPlatformConfig>packageInfo.vesta);
 
 switch (command) {
     // no need to vesta.json
@@ -69,12 +71,13 @@ switch (command) {
         Update.parse(args);
         break;
     // vesta.json must exist
-    case 'client':
-        Client.parse(args);
-        break;
     case 'gen':
         Gen.parse(args);
         break;
     default:
         Log.error(`vesta: '${command}' is not a vesta command\nSee 'Vesta --help'\n`);
 }
+
+process.on('unhandledRejection', err => {
+    console.error('An unhandledRejection occurred:\n', err);
+});

@@ -4,13 +4,13 @@ import {GitGen} from "../gen/file/GitGen";
 import {FsUtil} from "../util/FsUtil";
 import {Log} from "../util/Log";
 import {CmdUtil} from "../util/CmdUtil";
-import {Err} from "vesta-util/Err";
+import {Err} from "vesta-lib/Err";
 import {GregorianDate} from "vesta-datetime-gregorian/GregorianDate";
-import {Util} from "../util/Util";
+import {Arguments} from "../util/Arguments";
 
 export interface IDeployHistory {
     date: string;
-    type: 'deploy'|'backup';
+    type: 'deploy' | 'backup';
     branch?: string;
 }
 /**
@@ -68,21 +68,18 @@ export class Deployer {
     }
 
     private static getProjectName(url: string) {
-        let [, group, project]=/.+\/(.+)\/(.+)\.git$/.exec(url);
+        let [, group, project] = /.+\/(.+)\/(.+)\.git$/.exec(url);
         return `${group}-${project}`;
     }
 
     public static getDeployConfig(args: Array<string>): Promise<IDeployConfig> {
-        if (CmdUtil.execSync(`gulp -v`, {silent: true}).code) {
-            Log.error('You must install gulp-cli! Run `sudo npm install -g gulp-cli`');
-            return Promise.reject(new Err(Err.Code.OperationFailed, 'gulp-cli is not installed'));
-        }
         let config: IDeployConfig = <IDeployConfig>{
             history: [],
             args: [],
             deployPath: `app`
         };
-        config.branch = Util.getArgValue(args, '--branch', 'master');
+        let arg = new Arguments(args);
+        config.branch = arg.get('--branch', 'master');
         let path = args[args.length - 1];
         if (!path) {
             Log.error('Invalid file name or HTTP url of remote repository');
@@ -97,7 +94,7 @@ export class Deployer {
         config.repositoryUrl = path;
         config.projectName = Deployer.getProjectName(config.repositoryUrl);
         Deployer.ConfigFile = `${config.projectName}.json`;
-        config.args = args.slice(Util.hasArg(args, '--branch') ? 3 : 1);
+        config.args = args.slice(arg.has('--branch') ? 3 : 1);
         return Promise.resolve(config);
     }
 
