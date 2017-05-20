@@ -7,6 +7,7 @@ import {Update} from "./cmd/Update";
 import {Deploy} from "./cmd/Deploy";
 import {Backup} from "./cmd/Backup";
 import {Docker} from "./cmd/Docker";
+import {Module} from "./cmd/Module";
 import {FsUtil} from "./util/FsUtil";
 import {Log} from "./util/Log";
 import {IPlatformConfig, PlatformConfig} from "./PlatformConfig";
@@ -37,6 +38,7 @@ Options:
 Commands:
     init            Initiating a vesta project from existing code and Managing server (Ubuntu) 
     create          Creating new project
+    module          Creating new module for vesta platform
     gen             Generate code for mentioned type
     deploy          Deploy a project from remote repository
     backup          Backup all storage data into a single tar file
@@ -57,6 +59,9 @@ switch (command) {
         break;
     case 'create':
         Create.parse(args);
+        break;
+    case 'module':
+        Module.parse(args);
         break;
     case 'deploy':
         Deploy.parse(args);

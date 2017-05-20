@@ -3,6 +3,7 @@ export interface IPlatformRepositoryConfig {
     client: string;
     cmn: string;
     cpanel: string;
+    module: string;
 }
 
 export interface IPlatformConfig {
