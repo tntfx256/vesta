@@ -3,10 +3,9 @@ import * as _ from "lodash";
 import {TsFileGen} from "../core/TSFileGen";
 import {ModelGen} from "./ModelGen";
 import {Log} from "../../util/Log";
-import {IFieldProperties, FieldType, RelationType} from "vesta-lib/Field";
-import {FileMemeType} from "vesta-lib/FileMemeType";
 import {Util} from "../../util/Util";
 import {StringUtil} from "../../util/StringUtil";
+import {IFieldProperties, FieldType, FileMemeType, RelationType} from "@vesta/core";
 
 export class FieldGen {
     // private isMultilingual:boolean = false;
@@ -62,7 +61,7 @@ export class FieldGen {
         };
         return Util.prompt<{fieldType: string}>(question)
             .then(fieldTypeAnswer => {
-                this.properties.type = FieldType[fieldTypeAnswer.fieldType];
+                this.properties.type = this.getFieldType(fieldTypeAnswer.fieldType);
                 let questions = this.getQuestionsBasedOnFieldType(this.properties.type, false);
                 return Util.prompt<any>(questions);
             })
@@ -76,6 +75,28 @@ export class FieldGen {
             });
     }
 
+    private getFieldType(name: string): FieldType {
+        let map = {
+            String: FieldType.String,
+            EMail: FieldType.EMail,
+            Password: FieldType.Password,
+            Text: FieldType.Text,
+            Tel: FieldType.Tel,
+            URL: FieldType.URL,
+            Number: FieldType.Number,
+            Integer: FieldType.Integer,
+            Float: FieldType.Float,
+            Timestamp: FieldType.Timestamp,
+            File: FieldType.File,
+            Boolean: FieldType.Boolean,
+            Object: FieldType.Object,
+            Enum: FieldType.Enum,
+            Relation: FieldType.Relation,
+            List: FieldType.List,
+        };
+        return map[name] || 0;
+    }
+
     private setPropertiesFromAnswers(answers: any) {
         for (let properties = Object.keys(answers), i = 0, il = properties.length; i < il; ++i) {
             let property = properties[i];
@@ -87,7 +108,7 @@ export class FieldGen {
             } else if (property == 'relationType') {
                 this.properties.relation = {type: answers.relationType, model: answers.relatedModel};
             } else if (property == 'list') {
-                this.properties.list = FieldType[<string>answers.list];
+                this.properties.list = this.getFieldType(<string>answers.list);
             } else {
                 this.properties[property] = answers[property];
             }

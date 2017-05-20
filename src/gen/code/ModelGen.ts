@@ -9,13 +9,10 @@ import {TsFileGen} from "../core/TSFileGen";
 import {InterfaceGen} from "../core/InterfaceGen";
 import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
-import {IModel, IModelFields, Model} from "vesta-lib/Model";
-import {Err} from "vesta-lib/Err";
 import {IStructureProperty} from "../core/AbstractStructureGen";
-import {Schema} from "vesta-lib/Schema";
-import {Field, FieldType} from "vesta-lib/Field";
 import {Util} from "../../util/Util";
 import {StringUtil} from "../../util/StringUtil";
+import {IModel, FieldType, IModelFields, Schema, Field, Err} from "@vesta/core";
 let xml2json = require('xml-to-json');
 
 interface IFields {
@@ -48,14 +45,12 @@ export class ModelGen {
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
-        this.modelFile.addImport('{Schema}', 'vesta-lib/Schema');
-        this.modelFile.addImport('{FieldType}', 'vesta-lib/Field');
-        this.modelFile.addImport('{IModelValues, Model}', 'vesta-lib/Model');
-        this.modelFile.addImport('{Database}', 'vesta-lib/Database');
+        this.modelFile.addImport('{Model, Schema, Database, FieldType}', '../medium');
 
         let cm = this.modelClass.setConstructor();
-        cm.addParameter({name: 'values', type: 'IModelValues', isOptional: true});
-        cm.setContent(`super(${modelName}.schema, ${modelName}.database);
+        cm.addParameter({name: 'values', type: `I${modelName}`, isOptional: true});
+        cm.addParameter({name: 'database', type: `Database`, isOptional: true});
+        cm.setContent(`super(${modelName}.schema, database || ${modelName}.database);
         this.setValues(values);`);
 
         this.modelClass.addProperty({
