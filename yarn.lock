@@ -16,6 +16,20 @@
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/@types/underscore/-/underscore-1.8.0.tgz#7a22ef584d6fe59af2e407bae079e2b7f8a5102f"
 
+"@vesta/core@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@vesta/core/-/core-0.2.0.tgz#b9da4058c0227adbb198c660ef7e23e26078c028"
+
+"@vesta/core@^0.2.3":
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/@vesta/core/-/core-0.2.3.tgz#893d3b74df22471930f5e3c596e8108885c71acf"
+
+"@vesta/culture-us@^0.1.3":
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/@vesta/culture-us/-/culture-us-0.1.3.tgz#b322ae098183febc2e2ad5038010738a937dfad0"
+  dependencies:
+    "@vesta/core" "^0.2.3"
+
 ansi-escapes@^1.1.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/ansi-escapes/-/ansi-escapes-1.4.0.tgz#d3a8a83b319aa67793662b13e761c7911422306e"
@@ -1569,33 +1583,6 @@ validate-npm-package-license@^3.0.1:
   dependencies:
     spdx-correct "~1.0.0"
     spdx-expression-parse "~1.0.0"
-
-vesta-datetime-gregorian@^0.3.4:
-  version "0.3.4"
-  resolved "https://registry.yarnpkg.com/vesta-datetime-gregorian/-/vesta-datetime-gregorian-0.3.4.tgz#bdfdddc4f5ca874cac33cea191465678227ef404"
-  dependencies:
-    vesta-datetime "^0.2.5"
-    vesta-locale-en-us "^0.2.5"
-
-vesta-datetime@^0.2.5:
-  version "0.2.7"
-  resolved "https://registry.yarnpkg.com/vesta-datetime/-/vesta-datetime-0.2.7.tgz#b381ed4650d679e84e6f151ddacc9d77a02415e3"
-  dependencies:
-    vesta-i18n "^0.2.15"
-
-vesta-i18n@^0.2.15:
-  version "0.2.15"
-  resolved "https://registry.yarnpkg.com/vesta-i18n/-/vesta-i18n-0.2.15.tgz#1544d99194b78778f60e21d96bc8599fb59dcf5c"
-
-vesta-lib@^0.1.3:
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/vesta-lib/-/vesta-lib-0.1.3.tgz#36db2f4b83255833d967b4652eb7b19d21df9715"
-
-vesta-locale-en-us@^0.2.5:
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/vesta-locale-en-us/-/vesta-locale-en-us-0.2.5.tgz#13ba2fecec3aaf1bcf6c1c7a34a9d93b1adb1130"
-  dependencies:
-    vesta-i18n "^0.2.15"
 
 vinyl-fs@^0.3.0:
   version "0.3.14"

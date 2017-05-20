@@ -2,7 +2,6 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as _ from "lodash";
 import {Question} from "inquirer";
-import {FieldType} from "vesta-lib/Field";
 import {ClassGen} from "../../core/ClassGen";
 import {TsFileGen} from "../../core/TSFileGen";
 import {MethodGen} from "../../core/MethodGen";
@@ -12,8 +11,8 @@ import {Placeholder} from "../../core/Placeholder";
 import {ModelGen} from "../ModelGen";
 import {FsUtil} from "../../../util/FsUtil";
 import {Log} from "../../../util/Log";
-import {IModelFields} from "vesta-lib";
 import {StringUtil} from "../../../util/StringUtil";
+import {IModelFields, FieldType} from "@vesta/core";
 
 export interface IExpressControllerConfig {
     route: string;
@@ -79,10 +78,7 @@ export class ExpressControllerGen {
         let modelInstanceName = _.camelCase(modelName),
             modelClassName = StringUtil.fcUpper(modelInstanceName);
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
-        this.controllerFile.addImport(`{Err}`, 'vesta-lib/Err');
-        this.controllerFile.addImport(`{DatabaseError}`, 'vesta-lib/error/DatabaseError');
-        this.controllerFile.addImport(`{ValidationError}`, 'vesta-lib/error/ValidationError');
-        this.controllerFile.addImport(`{Vql}`, 'vesta-lib/Vql');
+        this.controllerFile.addImport(`{Err, DatabaseError, ValidationError, Vql}`, '@vesta/core');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         if (modelClassName != 'Permission') {
             this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/Permission`));
@@ -162,9 +158,9 @@ export class ExpressControllerGen {
             let fieldsTofetch = Object.keys(this.relationsFields);
             code = `let query = new Vql(${modelName}.schema.name);
         query.filter({id: req.params.id}).fetchRecordFor('${fieldsTofetch.join("', '")}');
-        ${modelName}.findByQuery<I${modelName}>(query)`;
+        ${modelName}.find<I${modelName}>(query)`;
         } else {
-            code = `${modelName}.findById<I${modelName}>(req.params.id)`
+            code = `${modelName}.find<I${modelName}>(req.params.id)`
         }
         return `${code}
             .then(result => {
@@ -193,7 +189,7 @@ export class ExpressControllerGen {
             let orderBy = req.query.orderBy[0];
             query.sortBy(orderBy.field, orderBy.ascending == 'true');
         }
-        ${modelName}.findByQuery(query)
+        ${modelName}.find(query)
             .then(result => res.json(result))
             .catch(error => next(error));`;
     }
@@ -241,7 +237,7 @@ export class ExpressControllerGen {
         if (validationError) {
             return next(new ValidationError(validationError));
         }
-        ${modelName}.findById<I${modelName}>(${modelInstanceName}.id)
+        ${modelName}.find<I${modelName}>(${modelInstanceName}.id)
             .then(result => {
                 if (result.items.length == 1) return ${modelInstanceName}.update<I${modelName}>().then(result => res.json(result));
                 throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
@@ -253,7 +249,7 @@ export class ExpressControllerGen {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}({id: req.params.id});
-        ${modelInstanceName}.delete()
+        ${modelInstanceName}.remove()
             .then(result => res.json(result))
             .catch(error => next(error));`;
     }
@@ -284,7 +280,7 @@ export class ExpressControllerGen {
         }
         return `let ${modelInstanceName}: ${modelName};
         let destDirectory = path.join(this.setting.dir.upload, '${modelInstanceName}');
-        ${modelName}.findById<I${modelName}>(+req.params.id)
+        ${modelName}.find<I${modelName}>(+req.params.id)
             .then(result => {
                 if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
                 ${modelInstanceName} = new ${modelName}(result.items[0]);

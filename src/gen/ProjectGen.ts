@@ -87,20 +87,22 @@ export class ProjectGen {
             message: 'Project Type: ',
             choices: projectTypes
         }];
-        return Util.prompt<{ type: string }>(questions).then(answer => {
-            appConfig.type = ProjectType.ClientApplication;
-            if (answer.type == projectTypes[1]) appConfig.type = ProjectType.ControlPanel;
-            else if (answer.type == projectTypes[2]) appConfig.type = ProjectType.ApiServer;
+        return Util.prompt<any>(questions)
+            .then(answer => {
+                appConfig.type = ProjectType.ClientApplication;
+                if (answer.type == projectTypes[1]) appConfig.type = ProjectType.ControlPanel;
+                else if (answer.type == projectTypes[2]) appConfig.type = ProjectType.ApiServer;
 
-            return appConfig.type == ProjectType.ApiServer ?
-                ServerAppGen.getGeneratorConfig().then((serverAppConfig: IServerAppConfig) => {
-                    appConfig.server = serverAppConfig;
-                    return appConfig;
-                }) :
-                ClientAppGen.getGeneratorConfig().then((clientAppConfig: IClientAppConfig) => {
-                    appConfig.client = clientAppConfig;
-                    return appConfig;
-                })
-        });
+                return appConfig.type == ProjectType.ApiServer ?
+                    ServerAppGen.getGeneratorConfig().then((serverAppConfig: IServerAppConfig) => {
+                        appConfig.server = serverAppConfig;
+                        return appConfig;
+                    }) :
+                    ClientAppGen.getGeneratorConfig().then((clientAppConfig: IClientAppConfig) => {
+                        appConfig.client = clientAppConfig;
+                        return appConfig;
+                    })
+            })
+
     }
 }
