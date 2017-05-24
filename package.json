@@ -30,8 +30,8 @@
     "email": "bishehsary@gmail.com"
   },
   "dependencies": {
-    "@vesta/core": "^0.2.0",
-    "@vesta/culture-us": "^0.1.3",
+    "@vesta/core": "^0.2.7",
+    "@vesta/culture-us": "^0.1.4",
     "colors": "^1.1.2",
     "fs-extra": "^0.26.7",
     "inquirer": "^2.0.0",
@@ -44,8 +44,6 @@
   "devDependencies": {
     "@types/shelljs": "^0.7.0",
     "@types/underscore": "^1.8.0",
-    "gulp": "^3.9.1",
-    "gulp-typescript": "^3.1.3",
     "typescript": "^2.2.2"
   }
 }
