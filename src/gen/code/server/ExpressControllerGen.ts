@@ -65,7 +65,7 @@ export class ExpressControllerGen {
     }
 
     private addResponseMethod(name: string) {
-        let method = this.controllerClass.addMethod(name);
+        let method = this.controllerClass.addMethod(name, ClassGen.Access.Public, false, false, true);
         method.addParameter({name: 'req', type: 'IExtRequest'});
         method.addParameter({name: 'res', type: 'Response'});
         method.addParameter({name: 'next', type: 'NextFunction'});
@@ -90,37 +90,37 @@ export class ExpressControllerGen {
         let methodName = `get${modelClassName}Count`;
         let methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Read');
         this.addResponseMethod(methodName).setContent(this.getCountCode());
-        this.routeMethod.appendContent(`router.get('${this.routingPath}/count',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+        this.routeMethod.appendContent(`router.get('${this.routingPath}/count',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'get' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Read');
         this.addResponseMethod(methodName).setContent(this.getQueryCode(true));
-        this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+        this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'get' + Util.plural(modelClassName);
         this.addResponseMethod(methodName).setContent(this.getQueryCode(false));
-        this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+        this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'add' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Add');
         this.addResponseMethod(methodName).setContent(this.getInsertCode());
-        this.routeMethod.appendContent(`router.post('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+        this.routeMethod.appendContent(`router.post('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'update' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Edit');
         this.addResponseMethod(methodName).setContent(this.getUpdateCode());
-        this.routeMethod.appendContent(`router.put('${this.routingPath}',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+        this.routeMethod.appendContent(`router.put('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'remove' + modelClassName;
         methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Delete');
         this.addResponseMethod(methodName).setContent(this.getDeleteCode());
-        this.routeMethod.appendContent(`router.delete('${this.routingPath}/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+        this.routeMethod.appendContent(`router.delete('${this.routingPath}/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         // file upload
         if (this.filesFields) {
             methodName = 'upload';
             methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Edit');
             this.addResponseMethod(methodName).setContent(this.getUploadCode());
-            this.routeMethod.appendContent(`router.post('${this.routingPath}/file/:id',${methodBasedMiddleWares} this.${methodName}.bind(this));`);
+            this.routeMethod.appendContent(`router.post('${this.routingPath}/file/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         }
     }
 
@@ -158,16 +158,13 @@ export class ExpressControllerGen {
             let fieldsTofetch = Object.keys(this.relationsFields);
             code = `let query = new Vql(${modelName}.schema.name);
         query.filter({id: req.params.id}).fetchRecordFor('${fieldsTofetch.join("', '")}');
-        ${modelName}.find<I${modelName}>(query)`;
+        let result = await ${modelName}.find<I${modelName}>(query)`;
         } else {
-            code = `${modelName}.find<I${modelName}>(req.params.id)`
+            code = `let result = await ${modelName}.find<I${modelName}>(req.params.id);`
         }
         return `${code}
-            .then(result => {
-                if (result.items.length > 1) throw new DatabaseError(Err.Code.DBRecordCount, null);
-                res.json(result);
-            })
-            .catch(error => next(error));`;
+        if (result.items.length > 1) throw new DatabaseError(Err.Code.DBRecordCount, null);
+        res.json(result);`;
     }
 
     private getQueryCodeForMultiInstance(): string {
@@ -179,7 +176,7 @@ export class ExpressControllerGen {
             let ${modelInstanceName} = new ${modelName}(filter);
             let validationError = ${modelInstanceName}.validate(...Object.keys(filter));
             if (validationError) {
-                return next(new ValidationError(validationError));
+                throw new ValidationError(validationError);
             }
             query.filter(filter);
         }
@@ -189,9 +186,8 @@ export class ExpressControllerGen {
             let orderBy = req.query.orderBy[0];
             query.sortBy(orderBy.field, orderBy.ascending == 'true');
         }
-        ${modelName}.find(query)
-            .then(result => res.json(result))
-            .catch(error => next(error));`;
+        let result = await ${modelName}.find(query);
+        res.json(result);`;
     }
 
     private getCountCode(): string {
@@ -203,13 +199,12 @@ export class ExpressControllerGen {
             let ${modelInstanceName} = new ${modelName}(filter);
             let validationError = ${modelInstanceName}.validate(...Object.keys(filter));
             if (validationError) {
-                return next(new ValidationError(validationError));
+                throw new ValidationError(validationError);
             }
             query.filter(filter);
         }
-        ${modelName}.count(query)
-            .then(result => res.json(result))
-            .catch(error => next(error));`;
+        let result = ${modelName}.count(query);
+        res.json(result);`
     }
 
     private getQueryCode(isSingle: boolean): string {
@@ -224,9 +219,8 @@ export class ExpressControllerGen {
         if (validationError) {
             return next(new ValidationError(validationError));
         }
-        ${modelInstanceName}.insert<I${modelName}>()
-            .then(result => res.json(result))
-            .catch(error => next(error));`;
+        let result = await ${modelInstanceName}.insert<I${modelName}>();
+        res.json(result);`;
     }
 
     private getUpdateCode(): string {
@@ -237,21 +231,21 @@ export class ExpressControllerGen {
         if (validationError) {
             return next(new ValidationError(validationError));
         }
-        ${modelName}.find<I${modelName}>(${modelInstanceName}.id)
-            .then(result => {
-                if (result.items.length == 1) return ${modelInstanceName}.update<I${modelName}>().then(result => res.json(result));
-                throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
-            })
-            .catch(error => next(error));`;
+        let result = await ${modelName}.find<I${modelName}>(${modelInstanceName}.id);
+        if (result.items.length == 1){ 
+            let uResult = ${modelInstanceName}.update<I${modelName}>();
+            res.json(uResult);
+        }else{
+            throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
+        }`;
     }
 
     private getDeleteCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = _.camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}({id: req.params.id});
-        ${modelInstanceName}.remove()
-            .then(result => res.json(result))
-            .catch(error => next(error));`;
+        let result = ${modelInstanceName}.remove();
+        res.json(result);`;
     }
 
     private getUploadCode(): string {
@@ -262,37 +256,32 @@ export class ExpressControllerGen {
         let fileNames = Object.keys(this.filesFields);
         if (fileNames.length == 1) {
             code = `let oldFileName = ${modelInstanceName}.${fileNames[0]};
-                ${modelInstanceName}.${fileNames[0]} = upl.${fileNames[0]};
-                return FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
+            ${modelInstanceName}.${fileNames[0]} = upl.${fileNames[0]};
+        await FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
         } else {
             code = `let delList:Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
                 let oldName = `old${StringUtil.fcUpper(fileNames[i])}`;
                 code += `
-                if (upl.${fileNames[i]}) {
-                    let ${oldName} = ${modelInstanceName}.${fileNames[i]};
-                    delList.push(FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${${oldName}}\`)
-                        .then(() => ${modelInstanceName}.${fileNames[i]} = upl.${fileNames[i]}));
-                }`
+        if (upl.${fileNames[i]}) {
+            let ${oldName} = ${modelInstanceName}.${fileNames[i]};
+            delList.push(FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${${oldName}}\`)
+                .then(() => ${modelInstanceName}.${fileNames[i]} = upl.${fileNames[i]}));
+        }`
             }
             code += `
-                return Promise.all(delList);`;
+        await Promise.all(delList);`;
         }
         return `let ${modelInstanceName}: ${modelName};
         let destDirectory = path.join(this.setting.dir.upload, '${modelInstanceName}');
-        ${modelName}.find<I${modelName}>(+req.params.id)
-            .then(result => {
-                if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
-                ${modelInstanceName} = new ${modelName}(result.items[0]);
-                let uploader = new FileUploader<I${modelName}>(destDirectory);
-                return uploader.upload(req);
-            })
-            .then(upl => {
-                ${code}
-            })
-            .then(() => ${modelInstanceName}.update())
-            .then(result => res.json(result))
-            .catch(reason => next(new Err(reason.error.code, reason.error.message)));`;
+        let result = await ${modelName}.find<I${modelName}>(+req.params.id);
+        if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
+        ${modelInstanceName} = new ${modelName}(result.items[0]);
+        let uploader = new FileUploader<I${modelName}>(destDirectory);
+        let upl = await uploader.upload(req);
+        ${code}
+        let uResult = await ${modelInstanceName}.update();    
+        res.json(uResult);`;
     }
 
     public static getGeneratorConfig(name: string, callback) {

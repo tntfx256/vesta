@@ -18,6 +18,7 @@ export class MethodGen {
     private isConstructor: boolean = false;
     private isStaticMethod: boolean = false;
     private isAbstract: boolean = false;
+    private isAsync: boolean = false;
     private shouldBeExported: boolean = false;
     private isSimpleMethod: boolean = false;
     private isInterface: boolean = false;
@@ -36,6 +37,10 @@ export class MethodGen {
 
     public setAsAbstract(isAbstract: boolean = true) {
         this.isAbstract = isAbstract;
+    }
+
+    public setAsAsync(isAsync: boolean = false) {
+        this.isAsync = isAsync;
     }
 
     public setAccessType(access: string = ClassGen.Access.Public) {
@@ -136,6 +141,7 @@ export class MethodGen {
             return `    ${this.name}(${parametersCode})${this.returnType};`;
         }
         let st = this.isStaticMethod ? ' static' : '';
+        st = this.isAsync ? `${st} async` : st;
         if (this.isAbstract) {
             return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};`;
         }
@@ -153,6 +159,7 @@ export class MethodGen {
         }
         // not a constructor
         let st = this.isStaticMethod ? ' static' : '';
+        st = this.isAsync ? `${st} async` : st;
         if (this.isAbstract) {
             return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};\n`;
         }

@@ -14,11 +14,12 @@ export class ClassGen extends AbstractStructureGen {
         super(name);
     }
 
-    public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false): MethodGen {
+    public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false, isAsync: boolean = false): MethodGen {
         let method = super.addMethod(name);
         method.setAccessType(access);
         method.setAsStatic(isStatic);
         method.setAsAbstract(isAbstract);
+        method.setAsAsync(isAsync);
         return method;
     }
 

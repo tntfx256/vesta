@@ -66,19 +66,19 @@ export class Vesta {
     // }
 
     public get isClientApplication(): boolean {
-        return this.vesta.config.type == ProjectType.ClientApplication;
+        return this.vesta.config.type == ProjectType[ProjectType.ClientApplication];
     }
 
     public get isControlPanel(): boolean {
-        return this.vesta.config.type == ProjectType.ControlPanel;
+        return this.vesta.config.type == ProjectType[ProjectType.ControlPanel];
     }
 
     public get isApiServer(): boolean {
-        return this.vesta.config.type == ProjectType.ApiServer;
+        return this.vesta.config.type == ProjectType[ProjectType.ApiServer];
     }
 
     public get cmnDirectory(): string {
-        return this.vesta.config.type == ProjectType.ApiServer ? 'src/cmn' : 'src/client/app/cmn';
+        return this.vesta.config.type == ProjectType[ProjectType.ApiServer] ? 'src/cmn' : 'src/client/app/cmn';
     }
 
     public static getInstance(config?: IProjectConfig): Vesta {
