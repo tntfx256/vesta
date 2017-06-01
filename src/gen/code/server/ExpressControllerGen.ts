@@ -48,7 +48,7 @@ export class ExpressControllerGen {
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
-        this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        if(this.config.model) this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
         if (this.filesFields) {
             this.controllerFile.addImport('* as path', 'path');
         }
