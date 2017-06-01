@@ -12,11 +12,11 @@ import {FsUtil} from "../util/FsUtil";
 import {CmdUtil, IExecOptions} from "../util/CmdUtil";
 import {PlatformConfig} from "../PlatformConfig";
 
-export enum ProjectType{ClientApplication = 1, ControlPanel, ApiServer}
+export const enum ProjectType{ClientApplication = 1, ControlPanel, ApiServer}
 
 export interface IProjectConfig {
     name: string;
-    type: string;
+    type: ProjectType;
     pkgManager: 'npm' | 'yarn';
     server: IServerAppConfig;
     client: IClientAppConfig;
