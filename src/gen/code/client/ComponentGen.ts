@@ -33,6 +33,7 @@ export const ${this.className} = (props: ${this.className}Props) => (<div><h1>${
         let stateName = _.camelCase(this.className);
         return `import React from "react";
 import {PageComponent} from "../PageComponent";
+import {AuthService} from "../../service/AuthService";
 
 export interface ${this.className}Props {
 }
