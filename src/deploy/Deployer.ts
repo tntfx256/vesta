@@ -49,13 +49,8 @@ export class Deployer {
         let deployPath = `${this.config.deployPath}/${this.config.projectName}`;
         let args = [this.cloningPath, deployPath];
         args = args.concat(this.config.args);
-        if (this.alreadyCloned) {
-            CmdUtil.execSync(`git reset --hard origin/master`, {cwd: this.cloningPath});
-            CmdUtil.execSync(`git clean -f -d`, {cwd: this.cloningPath});
-            CmdUtil.execSync(`git pull origin master`, {cwd: this.cloningPath});
-        } else {
-            GitGen.clone(this.config.repositoryUrl, this.cloningPath);
-        }
+        FsUtil.remove(this.cloningPath);
+        GitGen.clone(this.config.repositoryUrl, this.cloningPath);
         CmdUtil.execSync(`git checkout ${this.config.branch}`, {cwd: this.cloningPath});
         if (this.config.branch != 'master') {
             CmdUtil.execSync(`git pull`, {cwd: this.cloningPath});
@@ -64,7 +59,7 @@ export class Deployer {
         CmdUtil.execSync(`chmod +x ${this.cloningPath}/deploy.sh`);
         CmdUtil.execSync(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
         FsUtil.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
-        // FsUtil.remove(this.cloningPath);
+        FsUtil.remove(this.cloningPath);
     }
 
     private static getProjectName(url: string) {

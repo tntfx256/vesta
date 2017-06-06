@@ -5,13 +5,15 @@ import {FsUtil} from "../../../util/FsUtil";
 import {StringUtil} from "../../../util/StringUtil";
 import {Arguments} from "../../../util/Arguments";
 import {Log} from "../../../util/Log";
+import {TsFileGen} from "../../core/TSFileGen";
+import {Util} from "../../../util/Util";
 
 export class ComponentGen {
     private vesta: Vesta;
     private className: string;
-    private path = 'src/client/app/components/root';
+    private path = 'src/client/app/components/';
 
-    constructor(private name: string, path: string = '/', private stateless?) {
+    constructor(private name: string, path: string = 'roo', private stateless?) {
         this.vesta = Vesta.getInstance();
         this.path += path;
         this.className = StringUtil.fcUpper(this.name);
@@ -20,8 +22,10 @@ export class ComponentGen {
 
     private genStateless() {
         return `import React from "react";
+export interface ${this.className}Params {
+}
 
-export interface ${this.className}Props {
+export interface ${this.className}Props extends RouteComponentProps<${this.className}Params>{
 }
 
 export const ${this.className} = (props: ${this.className}Props) => (<div><h1>${this.className} Component</h1></div>);
@@ -31,33 +35,45 @@ export const ${this.className} = (props: ${this.className}Props) => (<div><h1>${
 
     private genStateful() {
         let stateName = _.camelCase(this.className);
-        return `import React from "react";
-import {PageComponent} from "../PageComponent";
-
-export interface ${this.className}Props {
-}
-
-export interface ${this.className}State {
-}
-
-export class ${this.className} extends PageComponent<${this.className}Props, ${this.className}State> {
-    
-    public render() {
-        return (
-            <div><h1>${this.className} Component</h1></div>
-        );
+        let componentFile = new TsFileGen(this.className);
+        componentFile.addImport('React', 'react', TsFileGen.ImportType.Module);
+        componentFile.addImport('{RouteComponentProps}', 'react-router');
+        componentFile.addImport('{AuthService}', Util.genRelativePath(this.path, 'src/client/app/service/AuthService'));
+        componentFile.addImport('{PageComponent}', Util.genRelativePath(this.path, 'src/client/app/components/PageComponent'));
+        // params interface
+        let paramInterface = componentFile.addInterface(`${this.className}Params`);
+        let propsInterface = componentFile.addInterface(`${this.className}Props`);
+        propsInterface.setParentClass(`RouteComponentProps<${paramInterface.name}>`);
+        let stateInterface = componentFile.addInterface(`${this.className}State`);
+        // component class
+        let componentClass = componentFile.addClass(this.className);
+        componentClass.setConstructor();
+        componentClass.getConstructor().addParameter({name: 'props', type: propsInterface.name});
+        componentClass.getConstructor().setContent(`super(props);
+        this.state = {};`);
+        componentClass.setParentClass(`PageComponent<${propsInterface.name}, ${stateInterface.name}>`);
+        (componentClass.addMethod('render')).setContent(`return (
+            <div className="page ${stateName}-component">
+                <h1>${this.className} Component</h1>
+            </div>
+        );`);
+        let pMethod = componentClass.addMethod('registerPermission');
+        pMethod.setAsStatic();
+        pMethod.addParameter({name: 'id', type: 'string'});
+        pMethod.setContent(`AuthService.getInstance().registerPermissions(id, {${stateName}: ['read']});`);
+        return componentFile.generate();
     }
 
-    static registerPermission(id) {
-        AuthService.getInstance().registerPermissions(id, {${stateName}: ['read']});
-    }
-}
-`;
+    private createScss() {
+        let stateName = _.camelCase(this.className);
+        fs.writeFileSync(`src/client/scss/components/_${stateName}.scss`, `.${stateName}-component {\n\n}`, {encoding: 'utf8'});
+        Util.findInFileAndReplace('src/client/scss/_common.scss', {'///<vesta:scssComponent/>': `@import "components/${stateName}";\n///<vesta:scssComponent/>`}, true);
     }
 
     public generate() {
         let code = this.stateless ? this.genStateless() : this.genStateful();
         fs.writeFileSync(`${this.path}/${this.className}.tsx`, code);
+        this.createScss();
     }
 
     static getInstance(args: Array<string>): ComponentGen {
@@ -68,7 +84,7 @@ export class ${this.className} extends PageComponent<${this.className}Props, ${t
             ComponentGen.help();
             return null;
         }
-        let path = arg.get('--path', '/');
+        let path = arg.get('--path', 'root');
         let stateless = arg.has('--stateless');
         return new ComponentGen(name, path, stateless);
     }
