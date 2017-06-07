@@ -43,8 +43,9 @@ export const ${this.className} = (props: ${this.className}Props) => (<div><h1>${
         // params interface
         let paramInterface = componentFile.addInterface(`${this.className}Params`);
         let propsInterface = componentFile.addInterface(`${this.className}Props`);
-        propsInterface.setParentClass(`RouteComponentProps<${paramInterface.name}>`);
+        propsInterface.setParentClass(`PageComponentProps<${paramInterface.name}>`);
         let stateInterface = componentFile.addInterface(`${this.className}State`);
+        stateInterface.setParentClass(`PageComponentState`);
         // component class
         let componentClass = componentFile.addClass(this.className);
         componentClass.setConstructor();
