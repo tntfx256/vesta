@@ -25,7 +25,7 @@ export class ComponentGen {
 export interface ${this.className}Params {
 }
 
-export interface ${this.className}Props extends RouteComponentProps<${this.className}Params>{
+export interface ${this.className}Props extends PageComponentProps<${this.className}Params>{
 }
 
 export const ${this.className} = (props: ${this.className}Props) => (<div><h1>${this.className} Component</h1></div>);
