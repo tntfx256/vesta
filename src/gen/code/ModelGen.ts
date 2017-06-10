@@ -45,7 +45,7 @@ export class ModelGen {
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
-        this.modelFile.addImport('{Model, Schema, Database, FieldType}', '../medium');
+        this.modelFile.addImport('{Model, Schema, Database, FieldType}', '../../medium');
 
         let cm = this.modelClass.setConstructor();
         cm.addParameter({name: 'values', type: `I${modelName}`, isOptional: true});
