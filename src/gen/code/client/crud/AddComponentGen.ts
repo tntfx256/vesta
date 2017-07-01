@@ -25,10 +25,12 @@ export class AddComponentGen {
         addFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'), TsFileGen.ImportType.Module);
         addFile.addImport(`{${formClassName}}`, `./${formClassName}`, TsFileGen.ImportType.Module);
         addFile.addImport(`{ChangeEventHandler, FormWrapper, SubmitEventHandler}`, genRelativePath(path, `src/client/app/components/general/form/FormWrapper`), TsFileGen.ImportType.Module);
+        addFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`), TsFileGen.ImportType.Module);
         // params
         addFile.addInterface(`${this.className}Params`);
         let addProps = addFile.addInterface(`${this.className}Props`);
         addProps.setParentClass(`PageComponentProps<${this.className}Params>`);
+        addProps.addProperty({name: model.instanceName, type: model.interfaceName});
         addProps.addProperty({name: 'save', type: 'SubmitEventHandler'});
         addProps.addProperty({name: 'onChange', type: 'ChangeEventHandler'});
         addProps.addProperty({name: 'validationErrors', type: 'IValidationError'});
@@ -42,7 +44,7 @@ export class AddComponentGen {
                 <h1>Add new ${model.originalClassName}</h1>
                 <div className="form-wrapper">
                     <FormWrapper name="${model.instanceName}AddForm" onSubmit={this.props.save}>
-                        <${formClassName} onChange={this.props.onChange} validationErrors={this.props.validationErrors}/>
+                        <${formClassName} ${model.instanceName}={this.props.${model.instanceName}} onChange={this.props.onChange} validationErrors={this.props.validationErrors}/>
                         <div className="btn-group">
                             <button className="btn btn-primary" type="submit">Add New ${model.originalClassName}</button>
                             <button className="btn" type="button" onClick={this.props.history.goBack}>Cancel</button>

@@ -39,7 +39,6 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
     let ${model.instanceName} = props.${model.instanceName} || {};
     return (
         <div className="${model.instanceName}Form-component">
-            <input type="hidden" name="id" id="id" value={${model.instanceName}.id || ''}/>
         </div>
     );
 }`, TsFileGen.CodeLocation.AfterClass);

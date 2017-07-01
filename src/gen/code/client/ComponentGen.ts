@@ -95,6 +95,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
             componentFile.addImport('{DynamicRouter}', genRelativePath(this.path, 'src/client/app/medium'));
             componentFile.addImport('{PageTitle}', genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
             componentFile.addImport('{Preloader}', genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
+            componentFile.addImport('{CrudMenu}', genRelativePath(this.path, 'src/client/app/components/general/CrudMenu'));
             let modelImportStatement = this.model.originalClassName == this.className ? `${this.model.originalClassName} as ${this.model.className}` : this.model.className;
             componentFile.addImport(`{I${this.model.originalClassName}, ${modelImportStatement}}`, genRelativePath(this.path, this.model.file));
             componentFile.addImport('{Util}', genRelativePath(this.path, 'src/client/app/util/Util'));
@@ -129,11 +130,6 @@ export const ${this.className} = (props: ${this.className}Props) => {
         } else {
             this.addSimpleComponentMethods(componentClass);
         }
-        // // permission method
-        // let pMethod = componentClass.addMethod('registerPermission');
-        // pMethod.setAsStatic();
-        // pMethod.addParameter({name: 'id', type: 'number'});
-        // pMethod.setContent(`AuthService.getInstance().registerPermissions(id, {${resource}: ['${actions.join("', '")}']});`);
         return componentClass;
     }
 
@@ -154,7 +150,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
         let stateName = camelCase(this.className);
         // constructor method
         componentClass.getConstructor().setContent(`super(props);
-        this.state = {validationErrors: null, showLoader: false, ${this.model.instanceName}: null};`);
+        this.state = {validationErrors: null, showLoader: false, ${this.model.instanceName}: {}};`);
         // fetch method
         let fetchMethod = componentClass.addMethod(`fetch`);
         fetchMethod.setAsArrowFunction(true);
@@ -205,17 +201,20 @@ export const ${this.className} = (props: ${this.className}Props) => {
             });`);
         // onChange method
         let onChange = componentClass.addMethod('onChange');
+        onChange.setAsArrowFunction(true);
         onChange.addParameter({name: 'name', type: 'string'});
         onChange.addParameter({name: 'value', type: 'any'});
         onChange.setContent(`let ${model.instanceName} = Util.shallowClone(this.state.${model.instanceName});
         ${model.instanceName}[name] = value;
         this.setState({${model.instanceName}});`);
         // render method
-        (componentClass.addMethod('render')).setContent(`return (
+        (componentClass.addMethod('render')).setContent(`const ${model.instanceName}Id = this.state.${model.instanceName} ? this.state.${model.instanceName}.id : 0;
+        return (
             <div className="page ${stateName}-component">
                 <PageTitle title="${this.className}"/>
                 <h1>${this.className}</h1>
                 <Preloader options={{show: this.state.showLoader}}/>
+                <CrudMenu path="${stateName}" id={${model.instanceName}Id}/>
                 <DynamicRouter>
                     <Switch>
                         <Route path="/${stateName}/add" render={this.tz.willTransitionTo(${this.className}Add, {${stateName}: ['add']},{
