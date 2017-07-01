@@ -1,69 +1,62 @@
-import * as path from "path";
-import * as fse from "fs-extra";
-import * as inquirer from "inquirer";
-import {Question} from "inquirer";
+import {existsSync, readFileSync, writeFileSync} from "fs";
+import {prompt as iPrompt, Question} from "inquirer";
 import {Log} from "./Log";
+import {remove} from "./FsUtil";
 
-export class Util {
-
-    static prompt<T>(questions: Question | Array<Question>): Promise<T> {
-        return new Promise<T>(resolve => {
-            inquirer.prompt(questions)['then'](answer => {
-                resolve(answer as any as T);
-            });
+export function ask<T>(questions: Question | Array<Question>): Promise<T> {
+    return new Promise<T>(resolve => {
+        console.log(questions);
+        iPrompt(questions).then(answer => {
+            console.log(answer);
+            resolve(answer as any as T);
         })
-    }
+    })
+}
 
-    static plural(name: string): string {
-        let lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
-        if (['a', 'i', 'u', 's'].indexOf(lastChar) >= 0) {
-            return name + 'es';
-        }
-        if (['y'].indexOf(name.charAt(name.length - 1)) >= 0) {
-            return name.substr(0, name.length - 1) + 'ies';
-        }
-        return name + 's';
-    }
-
-    static genRelativePath(from: string, to: string): string {
-        let relPath = path.relative(from, to).replace(/\\/g, '/').replace(/\.ts$/, '');
-        if (relPath.charAt(0) != '.') {
-            relPath = './' + relPath;
-        }
-        return relPath;
-    }
-
-    static joinPath(...paths: Array<string>): string {
-        return path.join(...paths).replace(/\\/g, '/');
-    }
-
-    static findInFileAndReplace(filePath: string, patternReplacePair: any, preventIfExists: boolean = false) {
-        if (fse.existsSync(filePath)) {
-            let code = fse.readFileSync(filePath, {encoding: 'utf8'});
-            for (let pattern in patternReplacePair) {
-                if (patternReplacePair.hasOwnProperty(pattern)) {
-                    if (preventIfExists && code.indexOf(patternReplacePair[pattern]) >= 0) {
-                        continue;
-                    }
-                    let regex = new RegExp(pattern, 'g');
-                    code = code.replace(regex, patternReplacePair[pattern]);
+export function findInFileAndReplace(filePath: string, patternReplacePair: any, preventIfExists: boolean = false) {
+    if (existsSync(filePath)) {
+        let code = readFileSync(filePath, 'utf8');
+        for (let pattern in patternReplacePair) {
+            if (patternReplacePair.hasOwnProperty(pattern)) {
+                if (preventIfExists && code.indexOf(patternReplacePair[pattern]) >= 0) {
+                    continue;
                 }
+                let regex = new RegExp(pattern, 'g');
+                code = code.replace(regex, patternReplacePair[pattern]);
             }
-            fse.writeFileSync(filePath, code);
-            return;
         }
-        Log.error(`File not found @${filePath}`);
+        writeFileSync(filePath, code);
+        return;
     }
+    Log.error(`File not found @${filePath}`);
+}
 
-    static fileHasContent(filePath: string, pattern: string): boolean {
-        if (fse.existsSync(filePath)) {
-            let code = fse.readFileSync(filePath, {encoding: 'utf8'});
-            return code.indexOf(pattern) >= 0;
+export function fileHasContent(filePath: string, pattern: string): boolean {
+    if (existsSync(filePath)) {
+        let code = readFileSync(filePath, 'utf8');
+        return code.indexOf(pattern) >= 0;
+    }
+    return false;
+}
+
+export function clone<T>(object: T) {
+    return <T>JSON.parse(JSON.stringify(object));
+}
+
+export function finalizeClonedTemplate(root: string, newName: string = '') {
+    let packageFile = `${root}/package.json`;
+    if (name) {
+        if (existsSync(packageFile)) {
+            let json: any = JSON.parse(readFileSync(root, 'utf8'));
+            json.private = true;
+            json.license = 'UNLICENSED';
+            json.version = '0.1.0';
+            json.name = newName;
+            ['repository', 'author', 'description', 'contributors', 'bugs'].forEach(key => delete json[key]);
+            writeFileSync(packageFile, JSON.stringify(json, null, 2));
         }
-        return false;
+    } else {
+        remove(packageFile);
     }
-
-    static clone<T>(object: T) {
-        return <T>JSON.parse(JSON.stringify(object));
-    }
+    ['.git', 'CHANGELOG.md', 'LICENSE', 'README.md'].forEach(file => remove(`${root}/${file}`));
 }

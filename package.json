@@ -33,17 +33,18 @@
     "@vesta/core": "^0.2.7",
     "@vesta/culture-us": "^0.1.4",
     "colors": "^1.1.2",
-    "fs-extra": "^0.26.7",
-    "inquirer": "^2.0.0",
+    "fs-extra": "^3.0.1",
+    "inquirer": "^3.1.1",
     "is-root": "^1.0.0",
-    "lodash": "^4.17.4",
     "speakeasy": "^2.0.0",
+    "typescript": "^2.3.4",
     "xml-to-json": "^0.1.1",
     "yamljs": "^0.2.8"
   },
   "devDependencies": {
+    "@types/fs-extra": "^3.0.3",
+    "@types/inquirer": "^0.0.34",
     "@types/shelljs": "^0.7.0",
-    "@types/underscore": "^1.8.0",
-    "typescript": "^2.2.2"
+    "@types/underscore": "^1.8.0"
   }
 }

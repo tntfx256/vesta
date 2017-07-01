@@ -1,24 +1,18 @@
 import * as fs from "fs-extra";
-import * as path from "path";
 import * as YAML from "yamljs";
-import * as _ from "lodash";
-import {IDeployConfig, Deployer} from "./Deployer";
-import {FsUtil} from "../util/FsUtil";
+import {IDeployConfig} from "./Deployer";
 import {Log} from "../util/Log";
-import {CmdUtil} from "../util/CmdUtil";
 import {DockerUtil} from "../util/DockerUtil";
 import {GregorianDate} from "@vesta/culture-us";
-import {Err} from "@vesta/core";
+import {execute} from "../util/CmdUtil";
 
 export class Backuper {
-    private static ConfigFile: string;
     private backupName: string;
     private volumePrefix: string;
 
     constructor(private config: IDeployConfig) {
         let date = new GregorianDate();
         this.backupName = `backup_${date.format('Ymd-His')}`;
-        config.history.push({date: date.format('Y/m/d H:i:s'), type: 'backup'});
     }
 
     public backup() {
@@ -50,33 +44,9 @@ export class Backuper {
                 dirsToBackup.push(volumeDirectoryMap[volume]);
             }
         }
-        CmdUtil.execSync(`docker run ${volumeOption.join(' ')} --name ${this.backupName} busybox tar -cvf ${this.backupName}.tar ${dirsToBackup.join(' ')}`);
-        CmdUtil.execSync(`docker cp ${this.backupName}:/${this.backupName}.tar ./${this.backupName}.tar`);
-        CmdUtil.execSync(`docker rm -fv ${this.backupName}`);
-        FsUtil.writeFile(Backuper.ConfigFile, JSON.stringify(this.config, null, 2));
+        execute(`docker run ${volumeOption.join(' ')} --name ${this.backupName} busybox tar -cvf ${this.backupName}.tar ${dirsToBackup.join(' ')}`);
+        execute(`docker cp ${this.backupName}:/${this.backupName}.tar ./${this.backupName}.tar`);
+        execute(`docker rm -fv ${this.backupName}`);
         Log.info(`\n\nBackup was create to ${this.backupName}.tar`);
-    }
-
-    public static getDeployConfig(args: Array<string>): Promise<IDeployConfig> {
-        let fileName: string,
-            config: IDeployConfig = <IDeployConfig>{history: []};
-        if (args.length) {
-            fileName = args[0];
-            if (!fs.existsSync(fileName)) {
-                Log.error(`Deploy config file not found: ${fileName}`);
-                return Promise.reject(new Err(Err.Code.WrongInput));
-            }
-            _.assign(config, Deployer.fetchConfig(fileName));
-        } else {
-            let cwd = process.cwd();
-            config.projectName = path.basename(cwd);
-            config.deployPath = path.dirname(cwd);
-            fileName = `${config.projectName}.json`;
-            if (fs.existsSync(fileName)) {
-                _.assign(config, Deployer.fetchConfig(fileName));
-            }
-        }
-        Backuper.ConfigFile = fileName;
-        return Promise.resolve(config);
     }
 }

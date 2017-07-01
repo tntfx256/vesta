@@ -1,11 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
-import {CmdUtil} from "./CmdUtil";
-import {Util} from "./Util";
 import {Question} from "inquirer";
 import {Log} from "./Log";
-import {OsUtil} from "./OsUtil";
 import {IDeployConfig} from "../deploy/Deployer";
+import {ask} from "./Util";
+import {execute, getOutputOf, table} from "./CmdUtil";
+import {getKernelVersion, getOsCodeName} from "./OsUtil";
 let isRoot = require('is-root');
 
 interface IContainerInfo {
@@ -19,35 +19,35 @@ export class DockerUtil {
 
     public static cleanup() {
         // removing volumes
-        CmdUtil.execSync(`docker volume rm $(docker volume ls -qf dangling=true)`);
+        execute(`docker volume rm $(docker volume ls -qf dangling=true)`);
         // removing untagged images
-        CmdUtil.execSync(`docker rmi $(docker images | grep "^<none>" | awk "{print $3}")`);
+        execute(`docker rmi $(docker images | grep "^<none>" | awk "{print $3}")`);
     }
 
     public static installEngine() {
         if (!isRoot()) return Log.error('You must run this command as root!');
-        const osCodeName = OsUtil.getOsCodeName();
-        CmdUtil.execSync(`apt-get update -y`);
-        CmdUtil.execSync(`apt-get remove docker docker-engine`);
+        const osCodeName = getOsCodeName();
+        execute(`apt-get update -y`);
+        execute(`apt-get remove docker docker-engine`);
         if (osCodeName.toLowerCase() === 'trusty') {
-            const kernel = OsUtil.getKernelVersion();
-            CmdUtil.execSync(`apt-get install linux-image-extra-${kernel} linux-image-extra-virtual`);
+            const kernel = getKernelVersion();
+            execute(`apt-get install linux-image-extra-${kernel} linux-image-extra-virtual`);
         }
-        CmdUtil.execSync(`apt-get install -y apt-transport-https ca-certificates curl software-properties-common`);
-        CmdUtil.execSync(`curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -`);
-        CmdUtil.execSync(`apt-key fingerprint 0EBFCD88`);
-        CmdUtil.execSync(`add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu ${osCodeName} stable"`);
-        CmdUtil.execSync(`apt-get update -y`);
-        // CmdUtil.execSync(`apt-get install -y docker-ce`);
-        CmdUtil.execSync(`apt-cache madison docker-ce`);
-        // CmdUtil.execSync(`apt-get install -y docker-ce=<version>`);
+        execute(`apt-get install -y apt-transport-https ca-certificates curl software-properties-common`);
+        execute(`curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -`);
+        execute(`apt-key fingerprint 0EBFCD88`);
+        execute(`add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu ${osCodeName} stable"`);
+        execute(`apt-get update -y`);
+        // execute(`apt-get install -y docker-ce`);
+        execute(`apt-cache madison docker-ce`);
+        // execute(`apt-get install -y docker-ce=<version>`);
         Log.info("Use 'apt-get install docker-ce=<version>' to install");
         Log.info("Use 'usermod -aG docker <username>' to add user to docker group");
     }
 
     public static installCompose() {
         if (!isRoot()) return Log.error('You must run this command as root!');
-        Util.prompt<{ version: string }>(<Question>{
+        ask<{ version: string }>(<Question>{
             name: 'version',
             type: 'input',
             message: 'Enter docker-compose version that you wish to install: ',
@@ -55,10 +55,10 @@ export class DockerUtil {
         })
             .then(answer => {
                 if (answer.version) {
-                    CmdUtil.execSync(`curl -L https://github.com/docker/compose/releases/download/${answer.version}/docker-compose-${CmdUtil.getOutputOf('uname -s')}-${CmdUtil.getOutputOf('uname -m')} > /tmp/docker-compose`);
-                    CmdUtil.execSync(`cp /tmp/docker-compose /usr/local/bin/docker-compose`);
-                    CmdUtil.execSync(`chmod +x /usr/local/bin/docker-compose`);
-                    CmdUtil.execSync(`docker-compose --version`);
+                    execute(`curl -L https://github.com/docker/compose/releases/download/${answer.version}/docker-compose-${getOutputOf('uname -s')}-${getOutputOf('uname -m')} > /tmp/docker-compose`);
+                    execute(`cp /tmp/docker-compose /usr/local/bin/docker-compose`);
+                    execute(`chmod +x /usr/local/bin/docker-compose`);
+                    execute(`docker-compose --version`);
                 }
             });
 
@@ -81,7 +81,7 @@ export class DockerUtil {
                 Log.error(`Error reading deployed file: ${e.message}`);
             }
         }
-        CmdUtil.execSync('docker-compose up -d');
+        execute('docker-compose up -d');
     }
 
     public static getContainersInfo(filter?: string): Array<IContainerInfo> {
@@ -89,7 +89,7 @@ export class DockerUtil {
         if (filter) {
             command += ` --filter ${filter}`;
         }
-        let output = CmdUtil.execSync(command);
+        let output = execute(command);
         let data: Array<IContainerInfo> = [];
         let lines = output.split(/\r?\n/);
         for (let i = 1, il = lines.length; i < il; ++i) {
@@ -118,7 +118,7 @@ export class DockerUtil {
             let container = info[i];
             rows.push([container.id, container.name, container.status, container.ports.join(', ')]);
         }
-        CmdUtil.table(['ID', 'NAME', 'STATUS', 'PORT'], rows);
+        table(['ID', 'NAME', 'STATUS', 'PORT'], rows);
     }
 
     public static down(file: string) {
@@ -131,7 +131,7 @@ export class DockerUtil {
                 Log.error(`Error reading deployed file: ${e.message}`);
             }
         }
-        CmdUtil.execSync('docker-compose down');
+        execute('docker-compose down');
     }
 
     public static scale(file: string, scaleTo?: number) {
@@ -145,7 +145,7 @@ export class DockerUtil {
             }
         }
         if (!scaleTo) return DockerUtil.ps(file);
-        CmdUtil.execSync(`docker-compose scale api=${scaleTo}`);
+        execute(`docker-compose scale api=${scaleTo}`);
         let containerName = DockerUtil.getContainerName(path.parse(process.cwd()).base);
         let info = DockerUtil.getContainersInfo(`name=${containerName}`);
         let apiContainerName = `${containerName}_api`;
@@ -163,7 +163,7 @@ export class DockerUtil {
                 for (let i = info.ports.length; i--;) {
                     if (info.ports[i].indexOf('3000/tcp') > 0) {
                         ports.push(/.+:(\d+)-/.exec(info.ports[i])[1]);
-                        let result = CmdUtil.execSync(`docker inspect ${info.id}`);
+                        let result = execute(`docker inspect ${info.id}`);
                         inspections.push(/IPAddress.+"(.+)"/.exec(result)[1]);
                     }
                 }

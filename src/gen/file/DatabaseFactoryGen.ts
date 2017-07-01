@@ -1,9 +1,8 @@
 import {ClassGen} from "../core/ClassGen";
 import {DatabaseGen} from "../core/DatabaseGen";
-import {IFileGenerator} from "../core/IFileGenerator";
 import {TsFileGen} from "../core/TSFileGen";
 
-export class DatabaseFactoryGen implements IFileGenerator {
+export class DatabaseFactoryGen {
 
     private factoryClass: ClassGen;
     private factoryFile: TsFileGen;

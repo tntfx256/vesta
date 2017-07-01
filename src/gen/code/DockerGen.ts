@@ -1,6 +1,6 @@
-import {Util} from "../../util/Util";
 import {IProjectConfig, ProjectType} from "../ProjectGen";
 import {Vesta} from "../file/Vesta";
+import {findInFileAndReplace} from "../../util/Util";
 let speakeasy = require('speakeasy');
 
 export class DockerGen {
@@ -18,10 +18,10 @@ export class DockerGen {
             };
         }
         if (Vesta.getInstance().isApiServer) {
-            Util.findInFileAndReplace(`${this.config.name}/vesta/docker-compose.yml`, replace);
+            findInFileAndReplace(`${this.config.name}/vesta/docker-compose.yml`, replace);
         } else {
-            Util.findInFileAndReplace(`${this.config.name}/vesta/server/docker-compose.yml`, replace);
+            findInFileAndReplace(`${this.config.name}/vesta/server/docker-compose.yml`, replace);
         }
-        Util.findInFileAndReplace(`${this.config.name}/resources/docker/docker-compose.yml`, replace);
+        findInFileAndReplace(`${this.config.name}/resources/docker/docker-compose.yml`, replace);
     }
 }

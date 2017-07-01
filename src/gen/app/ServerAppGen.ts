@@ -4,8 +4,6 @@ import {GitGen} from "../file/GitGen";
 import {PlatformConfig} from "../../PlatformConfig";
 
 export interface IServerAppConfig {
-    type: string;
-    database: string;
 }
 
 export class ServerAppGen {
@@ -18,14 +16,9 @@ export class ServerAppGen {
     private cloneTemplate() {
         let dir = this.config.name;
         GitGen.clone(PlatformConfig.getRepository().api, dir, 'master');
-        GitGen.cleanClonedRepo(dir);
     }
 
     public generate() {
         return this.cloneTemplate();
-    }
-
-    static getGeneratorConfig(): Promise<IServerAppConfig> {
-        return Promise.resolve(<IServerAppConfig>{type: 'express'});
     }
 }

@@ -2,6 +2,15 @@ import {IMixin} from "./TSFileGen";
 import {AbstractStructureGen} from "./AbstractStructureGen";
 import {MethodGen} from "./MethodGen";
 
+export interface IMetodProperties {
+    name: string;
+    access?: string;
+    isStatic?: boolean;
+    isAbstract?: boolean;
+    isAsync?: boolean;
+    isArrow?: boolean;
+}
+
 export class ClassGen extends AbstractStructureGen {
     static Access = {
         Public: 'public',

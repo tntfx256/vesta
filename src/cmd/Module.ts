@@ -1,21 +1,23 @@
 import {Log} from "../util/Log";
 import {ModuleGen} from "../gen/ModuleGen";
+import {ArgParser} from "../util/ArgParser";
 
 export class Module {
 
     private static createModule(name: string) {
-        if (name.length && !name.match(/^[a-z][a-z0-9-_]+$/i)) {
-            return Log.error('projectName may only contains [letters, numbers, dash, underscore]');
-        }
         let module = new ModuleGen({name});
         module.generate();
     }
 
-    static parse(args: Array<string>) {
-        if (['-h', '--help', 'help'].indexOf(args[0]) >= 0) {
+    static init(argParser: ArgParser) {
+        if (argParser.hasHelp()) {
             return Module.help();
         }
-        Module.createModule(args.length ? args[0] : '');
+        let name = argParser.get();
+        if (!name || !name.match(/^[a-z][a-z0-9-]+$/i)) {
+            return Log.error('Module name may only contains [letters, numbers, dash]');
+        }
+        Module.createModule(name);
     }
 
     static help() {

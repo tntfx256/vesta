@@ -1,45 +1,40 @@
 import {DockerUtil} from "../util/DockerUtil";
 import {Log} from "../util/Log";
+import {ArgParser} from "../util/ArgParser";
 
 export class Docker {
 
-    static parse(args: Array<string>) {
-        if (['-h', '--help', 'help'].indexOf(args[0]) >= 0) {
+    static init(argParser: ArgParser) {
+        if (argParser.hasHelp()) {
             return Docker.help();
         }
-        let command = args.shift();
+        let command = argParser.get();
         switch (command) {
             case 'clean':
                 DockerUtil.cleanup();
                 break;
             case  'ps':
-                DockerUtil.ps(args[0]);
+                DockerUtil.ps(argParser[0]);
                 break;
             case  'up':
-                DockerUtil.up(args[0]);
+                DockerUtil.up(argParser[0]);
                 break;
             case  'down':
-                DockerUtil.down(args[0]);
+                DockerUtil.down(argParser[0]);
                 break;
             case  'scale':
-                if (args.length == 1) {
-                    if (isNaN(+args[0])) {
-                        DockerUtil.scale(args[0]);
-                    } else {
-                        DockerUtil.scale('', +args[0]);
-                    }
-                } else {
-                    DockerUtil.scale(args[0], +args[1]);
-                }
+                let filePath = argParser.get();
+                let to = argParser.get('--to');
+                DockerUtil.scale(filePath, +to);
                 break;
             default:
-                process.stderr.write(`vesta docker: invalid command '${command}'.\nSee 'vesta docker --help'\n`);
+                Log.error(`vesta docker: invalid command '${command}'.\nSee 'vesta docker --help'`);
         }
     }
 
     static help() {
         Log.write(`
-Usage: vesta docker COMMAND [options...] [PATH]
+Usage: vesta docker <COMMAND> <PATH> [options...]
 
 Manage docker relevant operations
 
@@ -54,11 +49,14 @@ Commands:
             This command will only scale the 'api' container of the specific project. Then vesta will obtain
              the new container's ip and port and updates the upstream section of nginx configuration file.
              You still need to restart the nginx service manually for the changes to take effect
-    
+
+Options:
+    --to        Number of scaled containers 
+    -h,--help   Display this help
 Example:
     vesta docker up deployedProjectName.json
         Executes 'docker-compose up -d' in the docker-compose.yml file path  
-    vesta scale 5 deployedProjectName.json
+    vesta scale deployedProjectName.json --to=5
         Executes 'docker-compose scale api=5' in the docker-compose.yml file path and updates the nginx config file
     vesta scale deployedProjectName.json
         This will return the number of api containers

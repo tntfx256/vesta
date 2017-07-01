@@ -8,25 +8,24 @@ import {Deploy} from "./cmd/Deploy";
 import {Backup} from "./cmd/Backup";
 import {Docker} from "./cmd/Docker";
 import {Module} from "./cmd/Module";
-import {FsUtil} from "./util/FsUtil";
 import {Log} from "./util/Log";
 import {IPlatformConfig, PlatformConfig} from "./PlatformConfig";
+import {ArgParser} from "./util/ArgParser";
+import {readJsonFile} from "./util/FsUtil";
 
-let args = process.argv;
-args.shift();
-args.shift();
-let command = args.shift();
+const argParser = ArgParser.getInstance();
+let command = argParser.get();
 
-const packageInfo = FsUtil.readJsonFile(path.join(__dirname, '../package.json'));
+const packageInfo = readJsonFile<any>(path.join(__dirname, '../package.json'));
 
-if (['-v', '--version', 'version'].indexOf(command) >= 0) {
-    Log.write(`Vesta Platform v${packageInfo.version}\n`);
-    process.exit(0);
-}
+if (!command) {
+    if (argParser.has('--version', '-v')) {
+        Log.write(`Vesta Platform v${packageInfo.version}\n`);
+    } else if (argParser.hasHelp()) {
+        Log.write(`
+Vesta Platform v${packageInfo.version}
 
-if (!command || ['-h', '--help', 'help'].indexOf(command) >= 0) {
-    Log.write(`
-Usage: vesta COMMAND [args...]
+Usage: vesta <COMMAND> [args...]
        vesta [ --help | --version ]
 
 Vesta platform command line
@@ -36,7 +35,7 @@ Options:
     -v, --version   Displays the version of vesta platform
 
 Commands:
-    init            Initiating a vesta project from existing code and Managing server (Ubuntu) 
+    init            Initiating a vesta project from existing code and Managing server (Ubuntu)
     create          Creating new project
     module          Creating new module for vesta platform
     gen             Generate code for mentioned type
@@ -45,8 +44,14 @@ Commands:
     docker          Manage docker relevant operations
     update          Updates a package to it's latest version
 
-Run 'vesta COMMAND --help' for more information on COMMAND
+Run 'vesta <COMMAND> --help' for more information on COMMAND
+
+Attention:
+    <arg>               Mandatory argument
+    [arg]               Optional argument
+    {default: value}    The default value if argument is not provided
 `);
+    }
     process.exit(0);
 }
 // initiating platform configuration
@@ -55,32 +60,33 @@ PlatformConfig.init(<IPlatformConfig>packageInfo.vesta);
 switch (command) {
     // no need to vesta.json
     case 'init':
-        Init.parse(args);
+        Init.init();
         break;
     case 'create':
-        Create.parse(args);
+        Create.init();
         break;
     case 'module':
-        Module.parse(args);
+        Module.init(argParser);
         break;
     case 'deploy':
-        Deploy.parse(args);
+        Deploy.init(argParser);
         break;
     case 'backup':
-        Backup.parse(args);
+        Backup.init(argParser);
         break;
     case 'docker':
-        Docker.parse(args);
+        Docker.init(argParser);
         break;
     case 'update':
-        Update.parse(args);
+        Update.init(argParser);
         break;
     // vesta.json must exist
     case 'gen':
-        Gen.parse(args);
+        Gen.init(argParser);
         break;
     default:
-        Log.error(`vesta: '${command}' is not a vesta command\nSee 'Vesta --help'\n`);
+        let error = command ? `'${command}' is not a vesta command\n` : '';
+        Log.error(`vesta: ${error}See 'Vesta --help'\n`);
 }
 
 process.on('unhandledRejection', err => {

@@ -1,12 +1,7 @@
 import * as fs from "fs-extra";
-import * as _ from "lodash";
 import {GitGen} from "../gen/file/GitGen";
-import {FsUtil} from "../util/FsUtil";
-import {Log} from "../util/Log";
-import {CmdUtil} from "../util/CmdUtil";
-import {GregorianDate} from "@vesta/culture-us";
-import {Arguments} from "../util/Arguments";
-import {Err} from "@vesta/core";
+import {execute} from "../util/CmdUtil";
+import {mkdir, remove, rename} from "../util/FsUtil";
 
 export interface IDeployHistory {
     date: string;
@@ -29,19 +24,15 @@ export interface IDeployConfig {
 }
 
 export class Deployer {
-    private static ConfigFile: string;
     private cloningPath: string;
     private alreadyCloned: boolean = false;
 
     constructor(private config: IDeployConfig) {
-        let date = new GregorianDate();
-        this.config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy', branch: config.branch});
         this.cloningPath = config.projectName;
         if (fs.existsSync(this.cloningPath)) {
-            // FsUtil.remove(this.cloningPath);
             this.alreadyCloned = true;
         } else {
-            FsUtil.mkdir(config.deployPath);
+            mkdir(config.deployPath);
         }
     }
 
@@ -49,58 +40,17 @@ export class Deployer {
         let deployPath = `${this.config.deployPath}/${this.config.projectName}`;
         let args = [this.cloningPath, deployPath];
         args = args.concat(this.config.args);
-        FsUtil.remove(this.cloningPath);
+        remove(this.cloningPath);
         GitGen.clone(this.config.repositoryUrl, this.cloningPath);
-        CmdUtil.execSync(`git checkout ${this.config.branch}`, {cwd: this.cloningPath});
+        execute(`git checkout ${this.config.branch}`, {cwd: this.cloningPath});
         if (this.config.branch != 'master') {
-            CmdUtil.execSync(`git pull`, {cwd: this.cloningPath});
+            execute(`git pull`, {cwd: this.cloningPath});
         }
-        FsUtil.rename(`${this.cloningPath}/resources/ci/deploy.sh`, `${this.cloningPath}/deploy.sh`);
-        CmdUtil.execSync(`chmod +x ${this.cloningPath}/deploy.sh`);
-        CmdUtil.execSync(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
-        FsUtil.writeFile(Deployer.ConfigFile, JSON.stringify(this.config, null, 2));
-        FsUtil.remove(this.cloningPath);
+        rename(`${this.cloningPath}/resources/ci/deploy.sh`, `${this.cloningPath}/deploy.sh`);
+        execute(`chmod +x ${this.cloningPath}/deploy.sh`);
+        execute(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
+        remove(this.cloningPath);
     }
 
-    private static getProjectName(url: string) {
-        let [, group, project] = /.+\/(.+)\/(.+)\.git$/.exec(url);
-        return `${group}-${project}`;
-    }
 
-    public static getDeployConfig(args: Array<string>): Promise<IDeployConfig> {
-        let config: IDeployConfig = <IDeployConfig>{
-            history: [],
-            args: [],
-            deployPath: `app`
-        };
-        let arg = new Arguments(args);
-        config.branch = arg.get('--branch', 'master');
-        let path = args[args.length - 1];
-        if (!path) {
-            Log.error('Invalid file name or HTTP url of remote repository');
-            return Promise.reject(new Err(Err.Code.WrongInput));
-        }
-        // Log.warning(`\nWARNING: Make sure that your '${config.branch}' branch is updated and contains the final changes!\n`);
-        if (fs.existsSync(path)) {
-            _.assign(config, Deployer.fetchConfig(path));
-            Deployer.ConfigFile = `${config.projectName}.json`;
-            return Promise.resolve(config);
-        }
-        config.repositoryUrl = path;
-        config.projectName = Deployer.getProjectName(config.repositoryUrl);
-        Deployer.ConfigFile = `${config.projectName}.json`;
-        config.args = args.slice(arg.has('--branch') ? 3 : 1);
-        return Promise.resolve(config);
-    }
-
-    public static fetchConfig(filename: string): IDeployConfig {
-        let config: IDeployConfig = <IDeployConfig>{};
-        try {
-            config = JSON.parse(fs.readFileSync(filename, {encoding: 'utf8'}));
-        } catch (e) {
-            Log.error(`Deploy config file -${filename}- is corrupted!`);
-            return null;
-        }
-        return config;
-    }
 }

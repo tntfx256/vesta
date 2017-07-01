@@ -1,12 +1,11 @@
-import * as _ from "lodash";
 import * as path from "path";
 import {ClassGen} from "./ClassGen";
 import {InterfaceGen} from "./InterfaceGen";
 import {EnumGen} from "./EnumGen";
 import {MethodGen} from "./MethodGen";
-import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
-import {StringUtil} from "../../util/StringUtil";
+import {camelCase, pascalCase} from "../../util/StringUtil";
+import {writeFile} from "../../util/FsUtil";
 
 export interface IImportStatement {
     name: string;
@@ -30,7 +29,7 @@ export class TsFileGen {
     private classes: Array<ClassGen> = [];
     private interfaces: Array<InterfaceGen> = [];
     private importStatements: Array<string> = [];
-    private importCache: Array<{name: string; path: string}> = [];
+    private importCache: Array<{ name: string; path: string }> = [];
 
     constructor(public name: string) {
     }
@@ -81,7 +80,7 @@ export class TsFileGen {
         if (!name) {
             name = this.name;
         }
-        name = StringUtil.fcUpper(_.camelCase(name));
+        name = pascalCase(name);
         let clss = this.getClass(name);
         if (clss) return clss;
         clss = new ClassGen(name, isAbstract);
@@ -90,7 +89,7 @@ export class TsFileGen {
     }
 
     public getClass(name: string): ClassGen {
-        name = StringUtil.fcUpper(_.camelCase(name));
+        name = pascalCase(name);
         for (let i = this.classes.length; i--;) {
             if (this.classes[i].name == name) {
                 return this.classes[i];
@@ -99,13 +98,8 @@ export class TsFileGen {
         return null;
     }
 
-    public addInterface(inputName?: string): InterfaceGen {
-        let name = inputName;
-        if (!name) {
-            name = this.name;
-        }
-        name = StringUtil.fcUpper(_.camelCase(name));
-        if (name.charAt(0) != 'I' || !inputName) name = `I${name}`;
+    public addInterface(inputName: string): InterfaceGen {
+        let name = pascalCase(inputName);
         let intfc = this.getInterface(name);
         if (intfc) return intfc;
         intfc = new InterfaceGen(name);
@@ -114,7 +108,7 @@ export class TsFileGen {
     }
 
     public getInterface(name: string): InterfaceGen {
-        name = StringUtil.fcUpper(_.camelCase(name));
+        name = pascalCase(name);
         if (name.charAt(0) != 'I') name += `I${name}`;
         for (let i = this.interfaces.length; i--;) {
             if (this.interfaces[i].name == name) {
@@ -125,7 +119,7 @@ export class TsFileGen {
     }
 
     public addEnum(name: string): EnumGen {
-        name = StringUtil.fcUpper(_.camelCase(name));
+        name = pascalCase(name);
         let enm = this.getEnum(name);
         if (enm) return enm;
         enm = new EnumGen(name);
@@ -134,7 +128,7 @@ export class TsFileGen {
     }
 
     public getEnum(name: string): EnumGen {
-        name = StringUtil.fcUpper(_.camelCase(name));
+        name = pascalCase(name);
         for (let i = this.enums.length; i--;) {
             if (this.enums[i].name == name) {
                 return this.enums[i];
@@ -144,7 +138,7 @@ export class TsFileGen {
     }
 
     public addMethod(name: string): MethodGen {
-        name = _.camelCase(name);
+        name = camelCase(name);
         let method = this.getMethod(name);
         if (method) return method;
         method = new MethodGen(name);
@@ -153,7 +147,7 @@ export class TsFileGen {
     }
 
     public getMethod(name: string): MethodGen {
-        name = _.camelCase(name);
+        name = camelCase(name);
         for (let i = this.methods.length; i--;) {
             if (this.enums[i].name == name) {
                 return this.methods[i];
@@ -167,45 +161,39 @@ export class TsFileGen {
     }
 
     private getMixin(position) {
-        let code = '';
+        let code = [];
         for (let i = 0, il = this.mixins.length; i < il; ++i) {
             if (this.mixins[i].position == position) {
-                code += `\n${this.mixins[i].code}`;
+                code.push(`${this.mixins[i].code}`);
             }
         }
-        return code ? `\n${code}` : '';
+        return code.length ? `${code.join('\n')}\n` : '';
     }
 
     public generate(): string {
         let code = '';
-        code += this.refs.join('\n');
-        code += this.importStatements.join('\n');
-        code += this.importStatements.length ? '\n' : '';
+        code += this.refs.length ? `${this.refs.join('\n')}` : '';
+        code += this.importStatements.length ? `${this.importStatements.join('\n')}\n` : '';
         code += this.getMixin(TsFileGen.CodeLocation.AfterImport);
         // enum
         for (let i = 0, il = this.enums.length; i < il; ++i) {
-            code += code ? '\n' : '';
             code += this.enums[i].generate();
+            code += code ? '\n' : '';
         }
-        code += this.enums.length ? '\n' : '';
-        let mixin = this.getMixin(TsFileGen.CodeLocation.AfterEnum);
-        code += mixin + (mixin ? '\n' : '');
+        code += this.getMixin(TsFileGen.CodeLocation.AfterEnum);
         // interface
         for (let i = 0, il = this.interfaces.length; i < il; ++i) {
-            code += code ? '\n' : '';
-            code += this.interfaces[i].generate();
+            code += '\n' + this.interfaces[i].generate() + '\n';
         }
         code += this.getMixin(TsFileGen.CodeLocation.AfterInterface);
         // classes
         for (let i = 0, il = this.classes.length; i < il; ++i) {
-            code += code ? '\n' : '';
-            code += this.classes[i].generate();
+            code += this.classes[i].generate() + '\n';
         }
         code += this.getMixin(TsFileGen.CodeLocation.AfterClass);
         // methods
         for (let i = 0, il = this.methods.length; i < il; ++i) {
-            code += code ? '\n' : '';
-            code += this.methods[i].generate();
+            code += this.methods[i].generate() + '\n';
         }
         code += this.getMixin(TsFileGen.CodeLocation.AfterMethod);
         return code;
@@ -213,7 +201,7 @@ export class TsFileGen {
 
     public write(directory: string, ext: string = 'ts'): void {
         try {
-            FsUtil.writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
+            writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
         } catch (e) {
             Log.error(e.message);
         }

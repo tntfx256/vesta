@@ -1,10 +1,11 @@
-import * as path from "path";
+import {join as pathJoin} from "path";
 import {IProjectConfig} from "../ProjectGen";
 import {GitGen} from "../file/GitGen";
 import {Vesta} from "../file/Vesta";
-import {FsUtil} from "../../util/FsUtil";
-import {CmdUtil, IExecOptions} from "../../util/CmdUtil";
 import {PlatformConfig} from "../../PlatformConfig";
+import {execute, IExecOptions} from "../../util/CmdUtil";
+import {finalizeClonedTemplate} from "../../util/Util";
+import {mkdir, remove} from "../../util/FsUtil";
 
 export class CommonGen {
     private vesta: Vesta;
@@ -17,8 +18,8 @@ export class CommonGen {
         if (!this.config.repository.common) return;
         let cwd = this.config.name;
         let repo = this.config.repository;
-        FsUtil.remove(`${cwd}/${this.vesta.cmnDirectory}`);
-        return CmdUtil.execSync(`git submodule add ${repo.common} ${this.vesta.cmnDirectory}`, {cwd});
+        remove(`${cwd}/${this.vesta.cmnDirectory}`);
+        return execute(`git submodule add ${repo.common} ${this.vesta.cmnDirectory}`, {cwd});
     }
 
     /**
@@ -32,25 +33,20 @@ export class CommonGen {
             cmnDir = GitGen.getRepoName(repository.common),
             execOptions: IExecOptions = {cwd: GitGen.getRepoName(this.config.repository.common)};
         GitGen.clone(PlatformConfig.getRepository().cmn, cmnDir);
-        GitGen.cleanClonedRepo(cmnDir);
-        CmdUtil.execSync(`git init`, execOptions);
-        CmdUtil.execSync(`git add .`, execOptions);
-        CmdUtil.execSync(`git commit -m Vesta-init`, execOptions);
-        CmdUtil.execSync(`git remote add origin ${repository.common}`, execOptions);
-        CmdUtil.execSync(`git push -u origin master`, execOptions);
-    }
-
-    private cleanClonedRepo(dir) {
-        GitGen.cleanClonedRepo(dir);
-        FsUtil.remove(`${dir}/package.json`);
+        finalizeClonedTemplate(cmnDir);
+        execute(`git init`, execOptions);
+        execute(`git add .`, execOptions);
+        execute(`git commit -m Vesta-init`, execOptions);
+        execute(`git remote add origin ${repository.common}`, execOptions);
+        execute(`git push -u origin master`, execOptions);
     }
 
     private initWithoutSubModule() {
         let dir = this.config.name,
-            destDir = path.join(dir, this.vesta.cmnDirectory);
-        FsUtil.mkdir(destDir);
+            destDir = pathJoin(dir, this.vesta.cmnDirectory);
+        mkdir(destDir);
         GitGen.clone(PlatformConfig.getRepository().cmn, destDir);
-        this.cleanClonedRepo(destDir);
+        finalizeClonedTemplate(destDir);
     }
 
     /**

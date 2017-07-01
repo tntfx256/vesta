@@ -3,91 +3,71 @@ import {ModelGen} from "../gen/code/ModelGen";
 import {SassGen} from "../gen/file/SassGen";
 import {ExpressControllerGen} from "../gen/code/server/ExpressControllerGen";
 import {ComponentGen} from "../gen/code/client/ComponentGen";
+import {ArgParser} from "../util/ArgParser";
 
 export class Gen {
 
-    static generateCode(args: Array<string>) {
-        let type = args.shift().toLowerCase();
-        let name = args[0];
-        if (name || (type != 'controller')) {
-            if (!name || !name.match(/^[a-z][a-z0-9\-_]+/i)) {
-                return Log.error('Please enter a valid name');
-            }
+    static init(argParser: ArgParser) {
+        let type = argParser.get();
+        if (argParser.hasHelp()) {
+            return Gen.showHelp(type);
         }
+        Gen.generate(type, argParser);
+    }
+
+    private static generate(type: string, argParser: ArgParser) {
         switch (type) {
             case 'controller':
-                ExpressControllerGen.getGeneratorConfig(name, config => {
-                    if (config.model instanceof Array) {
-                        for (let i = config.model.length; i--;) {
-                            let parts = config.model[i].split(/[\/\\]/);
-                            let modelName = parts[parts.length - 1];
-                            let controller = new ExpressControllerGen({
-                                name: modelName,
-                                route: config.route,
-                                model: config.model[i],
-                            });
-                            controller.generate();
-                        }
-                    } else {
-                        let controller = new ExpressControllerGen(config);
-                        controller.generate();
-                    }
-                });
+                ExpressControllerGen.init(argParser);
                 break;
             case 'model':
-                let model = new ModelGen(args);
-                model.generate();
+                ModelGen.init(argParser);
                 break;
-            // case 'service':
-            // case 'form':
-            //     NGFormGen.getGeneratorConfig(config => {
-            //         config.name = name;
-            //         config.writeToFile = true;
-            //         let ngForm = new NGFormGen(config);
-            //         ngForm.generate();
-            //     });
-            //     break;
             case 'sass':
-                let sass = new SassGen(args[1], args[0].replace('--', ''));
-                sass.generate();
+                SassGen.init(argParser);
                 break;
             case 'component':
-                let component = ComponentGen.getInstance(args);
-                component && component.generate();
+                ComponentGen.init(argParser);
+                break;
+            default:
+                Log.error(`Invalid generator type ${type || ''}`);
+        }
+    }
+
+    private static showHelp(type) {
+        switch (type) {
+            case 'controller':
+                break;
+            case 'model':
+                break;
+            case 'sass':
+                SassGen.help();
+                break;
+            case 'component':
+                ComponentGen.help();
                 break;
             default:
                 Log.error(`Invalid generator option ${type}`);
         }
     }
 
-    static parse(args: Array<string>) {
-        if (!args.length || ['-h', '--help', 'help'].indexOf(args[0]) >= 0) {
-            return Gen.help();
-        }
-        Gen.generateCode(args);
-    }
-
     static help() {
         Log.write(`
-Usage: vesta gen TYPE [options...] NAME
+Usage: vesta gen <TYPE> <NAME> [options...]
 
-Creating new project after asking a series of questions through interactive shell
+Creating specified code snippet base on provided configuration
 
-    TYPE        Type of code snippet to be generated. Possible values are:
-                    - model         Creating a model
-                    - sass          Creating a sass file of specific type (component, page, font)
-                    - controller    Creating a client (angular) or server (Vesta API) side controller
-                    - directive     Creating an angular directive
-                    - filter        Creating an angular filter
-                    - service       Creating an angular service
-                    - component     Creating a react component
+    TYPE        Type of code snippet to be generated. Possible values are:                          
+                    TYPE            Side               Description
+                    ---------------------------------------------------------------------------------------------
+                    controller      Server             Creating a server side (Vesta API) controller                   
+                    model           Client/Server      Creating a model                                                
+                    component       Client             Creating a react component                                      
+                    sass            Client             Creating a sass file of specific type (component, page, font)   
                     
     NAME        The name of the snippet
     
-Options:
-    --font      Generates a sass file for font (only sass type)
-    --page      Generates a sass file for a page (only sass type)
-    --component Generates a sass file for a component (only sass type)
+Run 'vesta gen <TYPE> --help' for more information on TYPE
 `);
     }
 }

@@ -1,6 +1,6 @@
-import * as _ from "lodash";
 import {ClassGen} from "./ClassGen";
 import {Log} from "../../util/Log";
+import {camelCase} from "../../util/StringUtil";
 
 export interface IMethodParameter {
     name: string;
@@ -19,6 +19,7 @@ export class MethodGen {
     private isStaticMethod: boolean = false;
     private isAbstract: boolean = false;
     private isAsync: boolean = false;
+    private isArrow: boolean = false;
     private shouldBeExported: boolean = false;
     private isSimpleMethod: boolean = false;
     private isInterface: boolean = false;
@@ -27,7 +28,7 @@ export class MethodGen {
         if (!name) {
             this.isConstructor = true;
         } else {
-            this.name = _.camelCase(name);
+            this.name = camelCase(name);
         }
     }
 
@@ -41,6 +42,10 @@ export class MethodGen {
 
     public setAsAsync(isAsync: boolean = false) {
         this.isAsync = isAsync;
+    }
+
+    public setAsArrowFunction(isArrowFunction: boolean = true) {
+        this.isArrow = isArrowFunction;
     }
 
     public setAccessType(access: string = ClassGen.Access.Public) {
@@ -165,7 +170,10 @@ export class MethodGen {
         }
         let content = this.content ? `
         ${this.content}` : '';
-        return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType} {${content}
+        return this.isArrow ?
+            `    ${this.accessType}${st} ${this.name} = (${parametersCode})${this.returnType} => {${content}
+    }\n` :
+            `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType} {${content}
     }\n`;
     }
 

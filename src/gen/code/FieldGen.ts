@@ -1,11 +1,10 @@
 import {Question} from "inquirer";
-import * as _ from "lodash";
 import {TsFileGen} from "../core/TSFileGen";
 import {ModelGen} from "./ModelGen";
 import {Log} from "../../util/Log";
-import {Util} from "../../util/Util";
-import {StringUtil} from "../../util/StringUtil";
-import {IFieldProperties, FieldType, FileMemeType, RelationType} from "@vesta/core";
+import {FieldType, FileMemeType, IFieldProperties, RelationType} from "@vesta/core";
+import {fcUpper} from "../../util/StringUtil";
+import {ask} from "../../util/Util";
 
 export class FieldGen {
     // private isMultilingual:boolean = false;
@@ -59,18 +58,18 @@ export class FieldGen {
             default: 'String',
             choices: this.getFieldTypeChoices()
         };
-        return Util.prompt<{fieldType: string}>(question)
+        return ask<{ fieldType: string }>(question)
             .then(fieldTypeAnswer => {
                 this.properties.type = this.getFieldType(fieldTypeAnswer.fieldType);
                 let questions = this.getQuestionsBasedOnFieldType(this.properties.type, false);
-                return Util.prompt<any>(questions);
+                return ask<any>(questions);
             })
             .then(answers => {
                 this.setPropertiesFromAnswers(answers);
                 // if field is of type list, a new series of questions should be answered based on the items type
                 if (this.properties.list) {
                     let listQuestions = this.getQuestionsBasedOnFieldType(this.properties.list, true);
-                    return Util.prompt(listQuestions).then(answers => this.setPropertiesFromAnswers(answers));
+                    return ask(listQuestions).then(answers => this.setPropertiesFromAnswers(answers));
                 }
             });
     }
@@ -102,7 +101,7 @@ export class FieldGen {
             let property = properties[i];
             if (['relatedModel'].indexOf(property) >= 0) continue;
             if (property == 'enum') {
-                this.properties.enum = (answers.enum).split(',').map(item => _.trim(item));
+                this.properties.enum = (answers.enum).split(',').map(item => item.trim());
             } else if (property == 'fileType') {
                 this.properties.fileType = this.getFileTypes(answers.fileType);
             } else if (property == 'relationType') {
@@ -124,7 +123,7 @@ export class FieldGen {
             fileTypes = [];
         for (let i = arr.length; i--;) {
             let meme = [];
-            arr[i] = _.trim(arr[i]);
+            arr[i] = arr[i].trim();
             if (arr[i].indexOf('/') > 0) {
                 if (FileMemeType.isValid(arr[i])) {
                     meme = [arr[i]];
@@ -347,13 +346,13 @@ export class FieldGen {
             enumArray = this.properties.enum;
             Log.warning(`Do not forget to import the (${this.enumName})`);
         } else {
-            this.enumName = StringUtil.fcUpper(this.modelFile.name) + StringUtil.fcUpper(this.name);
+            this.enumName = fcUpper(this.modelFile.name) + fcUpper(this.name);
             let enumField = this.modelFile.addEnum(this.enumName);
             enumField.shouldExport(true);
             firstEnum = `${this.enumName}.${firstEnum}`;
             for (let i = 0, il = this.properties.enum.length; i < il; ++i) {
                 enumField.addProperty(this.properties.enum[i]);
-                let v = StringUtil.fcUpper(this.properties.enum[i]);
+                let v = fcUpper(this.properties.enum[i]);
                 enumArray.push(`${this.enumName}.${v}`);
                 if (i == 0) {
                     firstEnum = enumArray[0];
@@ -364,7 +363,7 @@ export class FieldGen {
         return `.enum(${enumArray.join(", ")})`;
     }
 
-    public getNameTypePair(): {fieldName: string, fieldType: string, interfaceFieldType: string, defaultValue: string} {
+    public getNameTypePair(): { fieldName: string, fieldType: string, interfaceFieldType: string, defaultValue: string } {
         let fieldType = this.properties.type == FieldType.Enum ? this.enumName : this.getCodeForActualFieldType(this.properties.type);
         return {
             fieldName: this.name,

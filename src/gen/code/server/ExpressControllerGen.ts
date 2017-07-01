@@ -1,18 +1,16 @@
 import * as fs from "fs-extra";
 import * as path from "path";
-import * as _ from "lodash";
-import {Question} from "inquirer";
 import {ClassGen} from "../../core/ClassGen";
 import {TsFileGen} from "../../core/TSFileGen";
 import {MethodGen} from "../../core/MethodGen";
 import {Vesta} from "../../file/Vesta";
-import {Util} from "../../../util/Util";
 import {Placeholder} from "../../core/Placeholder";
 import {ModelGen} from "../ModelGen";
-import {FsUtil} from "../../../util/FsUtil";
 import {Log} from "../../../util/Log";
-import {StringUtil} from "../../../util/StringUtil";
-import {IModelFields, FieldType} from "@vesta/core";
+import {FieldType, IModelFields} from "@vesta/core";
+import {ArgParser} from "../../../util/ArgParser";
+import {camelCase, fcUpper, plural} from "../../../util/StringUtil";
+import {genRelativePath, writeFile} from "../../../util/FsUtil";
 
 export interface IExpressControllerConfig {
     route: string;
@@ -43,17 +41,17 @@ export class ExpressControllerGen {
         }
         this.apiVersion = version;
         this.path = path.join(this.path, version, 'controller', this.config.route);
-        this.rawName = _.camelCase(this.config.name);
-        let controllerName = StringUtil.fcUpper(this.rawName) + 'Controller';
+        this.rawName = camelCase(this.config.name);
+        let controllerName = fcUpper(this.rawName) + 'Controller';
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
-        if(this.config.model) this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        if (this.config.model) this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
         if (this.filesFields) {
             this.controllerFile.addImport('* as path', 'path');
         }
         this.controllerFile.addImport('{Response, Router, NextFunction}', 'express');
-        this.controllerFile.addImport('{BaseController, IExtRequest}', Util.genRelativePath(this.path, 'src/api/BaseController'));
+        this.controllerFile.addImport('{BaseController, IExtRequest}', genRelativePath(this.path, 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({name: 'router', type: 'Router'});
@@ -75,13 +73,13 @@ export class ExpressControllerGen {
 
     private addCRUDOperations() {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = _.camelCase(modelName),
-            modelClassName = StringUtil.fcUpper(modelInstanceName);
+        let modelInstanceName = camelCase(modelName),
+            modelClassName = fcUpper(modelInstanceName);
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         this.controllerFile.addImport(`{Err, DatabaseError, ValidationError, Vql}`, '@vesta/core');
-        this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, Util.genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
+        this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         if (modelClassName != 'Permission') {
-            this.controllerFile.addImport(`{Permission}`, Util.genRelativePath(this.path, `src/cmn/models/Permission`));
+            this.controllerFile.addImport(`{Permission}`, genRelativePath(this.path, `src/cmn/models/Permission`));
         }
         let acl = this.routingPath.replace(/\/+/g, '.');
         acl = acl[0] == '.' ? acl.slice(1) : acl;
@@ -97,7 +95,7 @@ export class ExpressControllerGen {
         this.addResponseMethod(methodName).setContent(this.getQueryCode(true));
         this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
-        methodName = 'get' + Util.plural(modelClassName);
+        methodName = 'get' + plural(modelClassName);
         this.addResponseMethod(methodName).setContent(this.getQueryCode(false));
         this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
@@ -128,23 +126,23 @@ export class ExpressControllerGen {
         if (this.config.model) {
             this.addCRUDOperations();
         }
-        FsUtil.writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
+        writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
         let apiVersion = this.vesta.getVersion().api;
         let filePath = `src/api/${apiVersion}/import.ts`;
         let code = fs.readFileSync(filePath, {encoding: 'utf8'});
         if (code.search(Placeholder.ExpressController)) {
-            let relPath = Util.genRelativePath(`src/api/${apiVersion}`, this.path);
+            let relPath = genRelativePath(`src/api/${apiVersion}`, this.path);
             let importCode = `import {${this.controllerClass.name}} from '${relPath}/${this.controllerClass.name}';`;
             if (code.indexOf(importCode) >= 0) return;
-            let embedCode = `${_.camelCase(this.config.name)}: ${this.controllerClass.name},`;
+            let embedCode = `${camelCase(this.config.name)}: ${this.controllerClass.name},`;
             code = code.replace(Placeholder.Import, `${importCode}\n${Placeholder.Import}`);
             code = code.replace(Placeholder.ExpressController, `${embedCode}\n\t\t${Placeholder.ExpressController}`);
-            FsUtil.writeFile(filePath, code);
+            writeFile(filePath, code);
         }
     }
 
     private normalizeRoutingPath(): void {
-        let edge = _.camelCase(this.config.name);
+        let edge = camelCase(this.config.name);
         this.routingPath = `${this.config.route}`;
         if (this.routingPath.charAt(0) != '/') this.routingPath = `/${this.routingPath}`;
         this.routingPath += `/${edge}`;
@@ -155,9 +153,9 @@ export class ExpressControllerGen {
         let modelName = ModelGen.extractModelName(this.config.model);
         let code = '';
         if (this.relationsFields) {
-            let fieldsTofetch = Object.keys(this.relationsFields);
+            let fieldsToFetch = Object.keys(this.relationsFields);
             code = `let query = new Vql(${modelName}.schema.name);
-        query.filter({id: req.params.id}).fetchRecordFor('${fieldsTofetch.join("', '")}');
+        query.filter({id: req.params.id}).fetchRecordFor('${fieldsToFetch.join("', '")}');
         let result = await ${modelName}.find<I${modelName}>(query)`;
         } else {
             code = `let result = await ${modelName}.find<I${modelName}>(req.params.id);`
@@ -169,7 +167,7 @@ export class ExpressControllerGen {
 
     private getQueryCodeForMultiInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = _.camelCase(modelName);
+        let modelInstanceName = camelCase(modelName);
         return `let query = new Vql(${modelName}.schema.name);
         let filter = req.query.query;
         if (filter) {
@@ -192,7 +190,7 @@ export class ExpressControllerGen {
 
     private getCountCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = _.camelCase(modelName);
+        let modelInstanceName = camelCase(modelName);
         return `let query = new Vql(${modelName}.schema.name);
         let filter = req.query.query;
         if (filter) {
@@ -213,7 +211,7 @@ export class ExpressControllerGen {
 
     private getInsertCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = _.camelCase(modelName);
+        let modelInstanceName = camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}(req.body),
             validationError = ${modelInstanceName}.validate();
         if (validationError) {
@@ -225,7 +223,7 @@ export class ExpressControllerGen {
 
     private getUpdateCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = _.camelCase(modelName);
+        let modelInstanceName = camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}(req.body),
             validationError = ${modelInstanceName}.validate();
         if (validationError) {
@@ -242,16 +240,16 @@ export class ExpressControllerGen {
 
     private getDeleteCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = _.camelCase(modelName);
+        let modelInstanceName = camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}({id: req.params.id});
         let result = ${modelInstanceName}.remove();
         res.json(result);`;
     }
 
     private getUploadCode(): string {
-        this.controllerFile.addImport('{FileUploader}', Util.genRelativePath(this.path, 'src/helpers/FileUploader'));
+        this.controllerFile.addImport('{FileUploader}', genRelativePath(this.path, 'src/helpers/FileUploader'));
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = _.camelCase(modelName);
+        let modelInstanceName = camelCase(modelName);
         let code = '';
         let fileNames = Object.keys(this.filesFields);
         if (fileNames.length == 1) {
@@ -261,7 +259,7 @@ export class ExpressControllerGen {
         } else {
             code = `let delList:Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
-                let oldName = `old${StringUtil.fcUpper(fileNames[i])}`;
+                let oldName = `old${fcUpper(fileNames[i])}`;
                 code += `
         if (upl.${fileNames[i]}) {
             let ${oldName} = ${modelInstanceName}.${fileNames[i]};
@@ -284,60 +282,31 @@ export class ExpressControllerGen {
         res.json(uResult);`;
     }
 
-    public static getGeneratorConfig(name: string, callback) {
-        let config: IExpressControllerConfig = <IExpressControllerConfig>{};
-        let models = Object.keys(ModelGen.getModelsList());
-        models.unshift('None');
-        if (name) {
-            let q: Array<Question> = [
-                <Question>{
-                    name: 'routingPath',
-                    type: 'input',
-                    message: 'Routing Path: ',
-                    choices: models,
-                    default: '/'
-                },
-                <Question>{
-                    name: 'model',
-                    type: 'list',
-                    message: 'Model for CRUD: ',
-                    choices: models,
-                    default: 'None'
-                }];
-            config.name = name;
-            Util.prompt<{ routingPath: string; model: string; }>(q).then(answer => {
-                let modelName = answer.model;
-                if (modelName != 'None') {
-                    config.model = modelName;
-                }
-                config.route = answer.routingPath;
-                callback(config);
-            });
-        } else {
-            let q: Array<Question> = [
-                <Question>{
-                    name: 'routingPath',
-                    type: 'input',
-                    message: 'Routing Path: ',
-                    choices: models,
-                    default: '/'
-                },
-                <Question>{
-                    name: 'models',
-                    message: 'choose Model for CRUD (select none for create controller for all model): ',
-                    type: 'checkbox',
-                    choices: models,
-                    default: 'None'
-                }];
-            config.name = name;
-            Util.prompt<{ routingPath: string; models: string; }>(q).then(answer => {
-                let models = answer.models;
-                if (models != 'None') {
-                    config.model = models;
-                }
-                config.route = answer.routingPath;
-                callback(config);
-            });
+    public static init(arg: ArgParser): IExpressControllerConfig {
+        let config: IExpressControllerConfig = {
+            name: arg.get(),
+            model: arg.get('--model', null),
+            route: arg.get('--route', null)
+        };
+        if (!config.name || !/^[a-z]+$/i.exec(config.name)) {
+            Log.error("Missing/Invalid controller name\nSee 'vesta gen controller --help' for more information");
+            return;
         }
+        let controller = new ExpressControllerGen(config);
+        controller.generate();
+    }
+
+    static help() {
+        Log.write(`
+Usage: vesta gen controller <NAME> [options...]
+
+Creating a server side (Vesta API) controller 
+
+    NAME        The name of the controller
+    
+Options:
+    --model     Generates CRUD controller on specified model
+    --route     Routing path
+`);
     }
 }

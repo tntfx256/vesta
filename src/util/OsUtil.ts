@@ -1,12 +1,9 @@
-import {CmdUtil} from "./CmdUtil";
+import {getOutputOf} from "./CmdUtil";
 
-export class OsUtil {
+export function getOsCodeName(): string {
+    return getOutputOf(`lsb_release -cs`).trim();
+}
 
-    public static getOsCodeName(): string {
-        return CmdUtil.getOutputOf(`lsb_release -cs`).trim();
-    }
-
-    static getKernelVersion() {
-        return CmdUtil.getOutputOf(`uname -r`).trim();
-    }
+export function getKernelVersion() {
+    return getOutputOf(`uname -r`).trim();
 }

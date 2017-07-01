@@ -1,6 +1,5 @@
-import * as _ from "lodash";
 import {MethodGen} from "./MethodGen";
-import {StringUtil} from "../../util/StringUtil";
+import {camelCase, pascalCase} from "../../util/StringUtil";
 
 export interface IMethods {
     [name: string]: MethodGen;
@@ -25,7 +24,7 @@ export abstract class AbstractStructureGen {
     protected constructorMethod: MethodGen;
 
     constructor(name: string) {
-        this.name = StringUtil.fcUpper(_.camelCase(name));
+        this.name = pascalCase(name);
     }
 
     public setConstructor(): MethodGen {
@@ -49,7 +48,7 @@ export abstract class AbstractStructureGen {
     }
 
     public getMethod(name: string): MethodGen {
-        name = _.camelCase(name);
+        name = camelCase(name);
         for (let i = this.methods.length; i--;) {
             if (this.methods[i].name == name) {
                 return this.methods[i];

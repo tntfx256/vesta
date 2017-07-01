@@ -1,8 +1,7 @@
-import * as _ from "lodash";
-import {Util} from "../../util/Util";
 import {IProjectConfig} from "../ProjectGen";
 import {Question} from "inquirer";
 import {Log} from "../../util/Log";
+import {ask} from "../../util/Util";
 
 export interface I18nGenConfig {
     locales: Array<string>;
@@ -15,10 +14,10 @@ export class I18nGen {
     }
 
     public static getGeneratorConfig(appConfig: IProjectConfig): Promise<IProjectConfig> {
-        return Util.prompt(<Question>{type: 'confirm', name: 'enableI18n', message: 'Enable I18N support: '})
+        return ask(<Question>{type: 'confirm', name: 'enableI18n', message: 'Enable I18N support: '})
             .then(answer => {
                 if (!answer['enableI18n']) return appConfig;
-                return Util.prompt([
+                return ask([
                     <Question>{type: 'input', name: 'locales', message: 'Locales: '},
                     <Question>{type: 'confirm', name: 'useOnModel', message: 'Use on Models: '}
                 ])
@@ -27,7 +26,7 @@ export class I18nGen {
                 let locales = answer['locales'].split(',');
                 if (!locales.length) return appConfig;
                 for (let i = locales.length; i--;) {
-                    locales[i] = _.trim(locales[i]);
+                    locales[i] = locales[i].trim();
                     if (!/[a-z]{2}\-[A-Z]{2}/.exec(locales[i])) {
                         Log.error(`Invalid locale '${locales[i]}'`);
                     }

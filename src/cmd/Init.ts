@@ -1,12 +1,13 @@
 import {Question} from "inquirer";
 import {DockerUtil} from "../util/DockerUtil";
-import {Util} from "../util/Util";
 import {Log} from "../util/Log";
+import {ArgParser} from "../util/ArgParser";
+import {ask} from "../util/Util";
 
 export class Init {
 
     static initProject() {
-        Util.prompt<{ initType: string }>(<Question>{
+        ask<{ initType: string }>(<Question>{
             name: 'initType',
             message: 'Choose one of the following operations',
             type: 'list',
@@ -24,12 +25,13 @@ export class Init {
             })
     }
 
-    static parse(args: Array<string>) {
-        if (['-h', '--help', 'help'].indexOf(args[0]) >= 0) {
+    static init() {
+        const argParser = ArgParser.getInstance();
+        if (argParser.hasHelp()) {
             return Init.help();
         }
-        if (args.indexOf('--docker-compose') >= 0) return DockerUtil.installCompose();
-        if (args.indexOf('--docker') >= 0) return DockerUtil.installEngine();
+        if (argParser.has('--docker-compose')) return DockerUtil.installCompose();
+        if (argParser.has('--docker')) return DockerUtil.installEngine();
         Init.initProject();
     }
 

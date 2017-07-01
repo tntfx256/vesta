@@ -1,16 +1,14 @@
-import {Question} from "inquirer";
-import * as _ from "lodash";
 import {Vesta} from "./file/Vesta";
 import {IServerAppConfig, ServerAppGen} from "./app/ServerAppGen";
 import {CommonGen} from "./app/CommonGen";
-import {Util} from "../util/Util";
 import {GitGen, IRepositoryConfig} from "./file/GitGen";
 import {ClientAppGen, IClientAppConfig} from "./app/ClientAppGen";
 import {DockerGen} from "./code/DockerGen";
 import {I18nGenConfig} from "./code/I18nGen";
-import {FsUtil} from "../util/FsUtil";
-import {CmdUtil, IExecOptions} from "../util/CmdUtil";
 import {PlatformConfig} from "../PlatformConfig";
+import {execute, IExecOptions} from "../util/CmdUtil";
+import {mkdir} from "../util/FsUtil";
+import {finalizeClonedTemplate, findInFileAndReplace} from "../util/Util";
 
 export const enum ProjectType{ClientApplication = 1, ControlPanel, ApiServer}
 
@@ -18,10 +16,10 @@ export interface IProjectConfig {
     name: string;
     type: ProjectType;
     pkgManager: 'npm' | 'yarn';
-    server: IServerAppConfig;
-    client: IClientAppConfig;
-    repository: IRepositoryConfig;
-    i18n: I18nGenConfig;
+    server?: IServerAppConfig;
+    client?: IClientAppConfig;
+    repository?: IRepositoryConfig;
+    i18n?: I18nGenConfig;
 }
 
 export class ProjectGen {
@@ -56,53 +54,22 @@ export class ProjectGen {
         let repoInfo = this.config.repository;
         let replacement = {[projectTemplateName]: this.config.name};
         let execOption: IExecOptions = {cwd: dir};
-        FsUtil.mkdir(dir);
+        mkdir(dir);
         // having the client or server to generate it's projects
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
-        CmdUtil.execSync(`git init`, execOption);
+        execute(`git init`, execOption);
         this.vesta.generate();
-        Util.findInFileAndReplace(`${dir}/package.json`, replacement);
-        Util.findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
+        finalizeClonedTemplate(dir, this.config.name);
+        findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
         // Initiating the git repo
-        CmdUtil.execSync(`git add .`, execOption);
-        CmdUtil.execSync(`git commit -m Vesta-init`, execOption);
+        execute(`git add .`, execOption);
+        execute(`git commit -m Vesta-init`, execOption);
         this.commonApp.generate();
         if (!repoInfo.main) return;
-        CmdUtil.execSync(`git add .`, execOption);
-        CmdUtil.execSync(`git commit -m Vesta-common`, execOption);
-        CmdUtil.execSync(`git remote add origin ${repoInfo.main}`, execOption);
-        CmdUtil.execSync(`git push -u origin master`, execOption);
-    }
-
-    public static getGeneratorConfig(name: string): Promise<IProjectConfig> {
-        let appConfig: IProjectConfig = <IProjectConfig>{};
-        appConfig.name = _.camelCase(name);
-        appConfig.pkgManager = "npm";
-        appConfig.repository = <IRepositoryConfig>{};
-        const projectTypes = ['Client Application', 'Control Panel', 'Api Server'];
-        let questions: Array<Question> = [<Question>{
-            type: 'list',
-            name: 'type',
-            message: 'Project Type: ',
-            choices: projectTypes
-        }];
-        return Util.prompt<any>(questions)
-            .then(answer => {
-                appConfig.type = ProjectType.ClientApplication;
-                if (answer.type == projectTypes[1]) appConfig.type = ProjectType.ControlPanel;
-                else if (answer.type == projectTypes[2]) appConfig.type = ProjectType.ApiServer;
-
-                return appConfig.type == ProjectType.ApiServer ?
-                    ServerAppGen.getGeneratorConfig().then((serverAppConfig: IServerAppConfig) => {
-                        appConfig.server = serverAppConfig;
-                        return appConfig;
-                    }) :
-                    ClientAppGen.getGeneratorConfig().then((clientAppConfig: IClientAppConfig) => {
-                        appConfig.client = clientAppConfig;
-                        return appConfig;
-                    })
-            })
-
+        execute(`git add .`, execOption);
+        execute(`git commit -m Vesta-common`, execOption);
+        execute(`git remote add origin ${repoInfo.main}`, execOption);
+        execute(`git push -u origin master`, execOption);
     }
 }

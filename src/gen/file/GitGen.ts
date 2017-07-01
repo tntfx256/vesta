@@ -1,7 +1,6 @@
 import {Question} from "inquirer";
-import {FsUtil} from "../../util/FsUtil";
-import {CmdUtil} from "../../util/CmdUtil";
-import {Util} from "../../util/Util";
+import {execute} from "../../util/CmdUtil";
+import {ask} from "../../util/Util";
 
 export interface IRepositoryConfig {
     common?: string;
@@ -13,7 +12,7 @@ export class GitGen {
 
     public static clone(repository: string, destination: string = '', branch: string = ''): string {
         let branchCmd = branch ? `-b ${branch}` : '';
-        return CmdUtil.execSync(`git clone ${branchCmd} ${repository} ${destination}`);
+        return execute(`git clone ${branchCmd} ${repository} ${destination}`);
     }
 
     public static getRepoName(repoUrl: string): string {
@@ -22,16 +21,9 @@ export class GitGen {
         return '';
     }
 
-    public static cleanClonedRepo(basePath: string) {
-        FsUtil.remove(`${basePath}/.git`);
-        FsUtil.remove(`${basePath}/CHANGELOG.md`);
-        FsUtil.remove(`${basePath}/LICENSE`);
-        FsUtil.remove(`${basePath}/README.md`);
-    }
-
     public static getGeneratorConfig(name: string): Promise<IRepositoryConfig> {
         return name ?
-            Util.prompt<{ initRepository: boolean }>(<Question>{
+            ask<{ initRepository: boolean }>(<Question>{
                 type: 'confirm',
                 name: 'initRepository',
                 message: 'Init git repository: '
@@ -56,7 +48,7 @@ export class GitGen {
                 name: 'commonExists',
                 message: 'Common project already exists: '
             }];
-        return Util.prompt<{ main: string; common: string, commonExists: boolean }>(qs).then(answer => {
+        return ask<{ main: string; common: string, commonExists: boolean }>(qs).then(answer => {
             GitGen.commonProjectExists = answer.commonExists;
             return <IRepositoryConfig>{
                 main: answer.main,

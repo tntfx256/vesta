@@ -1,19 +1,22 @@
 import * as fs from "fs-extra";
 import * as path from "path";
-import * as _ from "lodash";
 import {Question} from "inquirer";
 import {ClassGen} from "../core/ClassGen";
 import {Vesta} from "../file/Vesta";
 import {FieldGen as FieldGen} from "./FieldGen";
 import {TsFileGen} from "../core/TSFileGen";
 import {InterfaceGen} from "../core/InterfaceGen";
-import {FsUtil} from "../../util/FsUtil";
 import {Log} from "../../util/Log";
 import {IStructureProperty} from "../core/AbstractStructureGen";
-import {Util} from "../../util/Util";
-import {StringUtil} from "../../util/StringUtil";
-import {IModel, FieldType, IModelFields, Schema, Field, Err} from "@vesta/core";
-let xml2json = require('xml-to-json');
+import {Err, Field, FieldType, IModel, IModelFields, Schema} from "@vesta/core";
+import {ArgParser} from "../../util/ArgParser";
+import {camelCase, pascalCase} from "../../util/StringUtil";
+import {mkdir, unixPath, writeFile} from "../../util/FsUtil";
+import {ask} from "../../util/Util";
+
+export interface ModelGenConfig {
+    name: string;
+}
 
 interface IFields {
     [name: string]: FieldGen
@@ -27,21 +30,17 @@ export class ModelGen {
     private path: string = 'src/cmn/models';
     private vesta: Vesta;
     private fields: IFields = {};
-    private xml: string;
 
-    constructor(private args: Array<string>) {
+    constructor(private config: ModelGenConfig) {
         this.vesta = Vesta.getInstance();
-        if (fs.existsSync(args[1])) {
-            this.xml = args[1];
-        } else {
-            this.initModel(args[0]);
-        }
+        const modelName = pascalCase(config.name);
+        this.initModel(modelName);
     }
 
     private initModel(modelName) {
-        modelName = StringUtil.fcUpper(_.camelCase(modelName));
+        modelName = pascalCase(modelName);
         this.modelFile = new TsFileGen(modelName);
-        this.modelInterface = this.modelFile.addInterface();
+        this.modelInterface = this.modelFile.addInterface(`I${this.modelFile.name}`);
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
@@ -69,7 +68,7 @@ export class ModelGen {
         if (!this.vesta.isApiServer) {
             this.path = 'src/client/app/cmn/models';
         }
-        FsUtil.mkdir(this.path);
+        mkdir(this.path);
     }
 
     private readField() {
@@ -78,9 +77,9 @@ export class ModelGen {
             type: 'input',
             message: 'Field Name: '
         };
-        Util.prompt<{ fieldName: string }>(question).then(answer => {
+        ask<{ fieldName: string }>(question).then(answer => {
             if (!answer.fieldName) return this.write();
-            let fieldName = _.camelCase(<string>answer.fieldName);
+            let fieldName = camelCase(<string>answer.fieldName);
             let field = new FieldGen(this.modelFile, fieldName);
             this.fields[fieldName] = field;
             field.readFieldProperties()
@@ -89,145 +88,12 @@ export class ModelGen {
                     this.readField();
                 })
                 .catch(err => Log.error(err.message));
-        })
-    }
-
-    private readFields() {
-        let idField = new FieldGen(this.modelFile, 'id');
-        idField.setAsPrimary();
-        this.fields['id'] = idField;
-        let status = fs.lstatSync(this.xml);
-        let steps = [];
-        if (status.isDirectory()) {
-            let files = fs.readdirSync(this.xml);
-            for (let i = files.length; i--;) {
-                steps.push(this.parseXml(this.xml + '\\' + files[i]));
-            }
-        } else if (status.isFile()) {
-            steps.push(this.parseXml(this.xml));
-        } else {
-            Log.error('\n:: Invalid file path \n');
-            process.exit(1);
-        }
-        Promise.all(steps).then(() => {
-            console.log('writing models');
-        }).catch(err => {
-            console.log("error:" + JSON.stringify(err));
-        })
-    }
-
-    private parseXml(xml) {
-        return new Promise((resolve, reject) => {
-            xml2json({input: xml}, (err, result) => {
-                let parts = xml.split(/[\/\\]/);
-                let modelName = parts[parts.length - 1].replace('.xml', '').replace('.XML', '');
-                let model = new ModelGen([modelName]);
-                if (err) return reject(result);
-                let body = result['S:Envelope']['S:Body'];
-                let schema = body[Object.keys(body)[0]]['return'][0];
-                let fieldsName = Object.keys(schema);
-                for (let i = fieldsName.length; i--;) {
-                    let fieldName = _.camelCase(fieldsName[i]);
-                    let type = 'string';
-                    switch (fieldName) {
-                        case 'id':
-                            fieldName = 'refId';
-                            break;
-                        case 'active':
-                            type = 'boolean';
-                            break;
-                    }
-                    let field = new FieldGen(model.modelFile, fieldName);
-                    field.addProperty('type', type);
-                    model.fields[fieldName] = field;
-                }
-                let id = new FieldGen(model.modelFile, 'id');
-                id.addProperty('type', 'integer');
-                id.setAsPrimary();
-                model.fields['id'] = id;
-                model.write();
-                resolve(result)
-            });
-        })
+        });
     }
 
     // todo import from existing database
-    /*private importFromSQL() {
-     let SQLConnection = new Connection(<config>{
-     server: 'localhost',
-     port: 1433,
-     user: 'sa',
-     password: '',
-     database: 'TestDB',
-     pool: {
-     min: 5,
-     max: 100,
-     idleTimeoutMillis: 1000,
-     }
-     });
-     SQLConnection.connect((err)=> {
-     if (err) {
-     return Promise.reject(new DatabaseError(Err.Code.DBConnection, err.message));
-     }
-     (new Request(SQLConnection)).query('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', (err, result)=> {
-     let schema = {};
-     for (let i = 0; i < result.length; i++) {
-     schema[result[i]['TABLE_NAME']] = schema[result[i]['TABLE_NAME']] || {};
-     schema[result[i]['TABLE_NAME']][result[i]['COLUMN_NAME']] = result[i];
-     }
-
-     for (let modelName in schema) {
-     if (schema.hasOwnProperty(modelName)) {
-     let model = new ModelGen([modelName]);
-     let id = new FieldGen(this.modelFile, 'id');
-     id.addProperty('type', 'integer');
-     id.setAsPrimary();
-     model.fields['id'] = id;
-     for (let fieldName in schema[modelName]) {
-     if (schema[modelName].hasOwnProperty(fieldName)) {
-     let record = schema[modelName][fieldName];
-     let field = new FieldGen(this.modelFile, fieldName);
-     if (record['COLUMN_DEFAULT']) {
-     field.addProperty('default', record['COLUMN_DEFAULT']);
-     }
-     if (record['IS_NULLABLE'] == 'NO') {
-     field.addProperty('required', true);
-     }
-     switch (record['DATA_TYPE']) {
-     case 'decimal':
-     field.addProperty('type', 'number');
-     break;
-     case 'bigint':
-     case 'int':
-     field.addProperty('type', 'integer');
-     break;
-     case 'bit':
-     field.addProperty('type', 'boolean');
-     break;
-     case 'varbinary':
-     field.addProperty('type', 'object');
-     break;
-     default:
-     field.addProperty('type', 'string');
-     break;
-     }
-     model.fields[fieldName] = field;
-     }
-     }
-     model.write();
-     }
-     }
-     })
-     })
-     }*/
-
     public generate() {
-        // this.importFromSQL();
-        if (this.xml) {
-            this.readFields();
-        } else {
-            this.readField();
-        }
+        this.readField();
     }
 
     private write() {
@@ -249,14 +115,14 @@ export class ModelGen {
                 defaultValue: defaultValue,
             };
             this.modelClass.addProperty(property);
-            let iProperty: IStructureProperty = <IStructureProperty>_.assign({}, property, {
+            let iProperty: IStructureProperty = <IStructureProperty>Object.assign({}, property, {
                 isOptional: true,
                 type: interfaceFieldType
             });
             this.modelInterface.addProperty(iProperty);
         }
         this.modelFile.addMixin(`${this.modelFile.name}.schema.freeze();`, TsFileGen.CodeLocation.AfterClass);
-        FsUtil.writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
+        writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
     }
 
     static getModelsList(): any {
@@ -273,7 +139,7 @@ export class ModelGen {
                     let subModelDirectory = path.join(modelDirectory, modelFile);
                     let subModelFile = fs.readdirSync(subModelDirectory);
                     subModelFile.forEach(modelFile => {
-                        models[dir + '/' + modelFile.substr(0, modelFile.length - 3)] = FsUtil.unixPath(path.join(subModelDirectory, modelFile));
+                        models[dir + '/' + modelFile.substr(0, modelFile.length - 3)] = unixPath(path.join(subModelDirectory, modelFile));
                     })
 
                 }
@@ -340,5 +206,17 @@ export class ModelGen {
             }
         }
         return candidate;
+    }
+
+    public static init(arg: ArgParser): ModelGenConfig {
+        const config: ModelGenConfig = {
+            name: arg.get()
+        };
+        if (!config.name || !/^[a-z-]+/i.exec(config.name)) {
+            Log.error('Missing/Invalid model name');
+            return;
+        }
+        let model = new ModelGen(config);
+        model.generate();
     }
 }
