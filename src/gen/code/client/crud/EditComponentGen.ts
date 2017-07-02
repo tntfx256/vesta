@@ -20,12 +20,12 @@ export class EditComponentGen {
         // ts file
         let editFile = new TsFileGen(this.className);
         // imports
-        editFile.addImport('React', 'react', TsFileGen.ImportType.Module);
-        editFile.addImport('{IValidationError}', '@vesta/core-es5', TsFileGen.ImportType.Module);
-        editFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'), TsFileGen.ImportType.Module);
-        editFile.addImport(`{${formClassName}}`, `./${formClassName}`, TsFileGen.ImportType.Module);
-        editFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`), TsFileGen.ImportType.Module);
-        editFile.addImport(`{ChangeEventHandler, FormWrapper, SubmitEventHandler}`, genRelativePath(path, `src/client/app/components/general/form/FormWrapper`), TsFileGen.ImportType.Module);
+        editFile.addImport('React', 'react');
+        editFile.addImport('{IValidationError}', genRelativePath(path, 'src/client/app/medium'));
+        editFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
+        editFile.addImport(`{${formClassName}}`, `./${formClassName}`);
+        editFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        editFile.addImport(`{ChangeEventHandler, FormWrapper, SubmitEventHandler}`, genRelativePath(path, `src/client/app/components/general/form/FormWrapper`));
         // params
         editFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
         // props
@@ -43,7 +43,7 @@ export class EditComponentGen {
         let editClass = editFile.addClass(this.className);
         editClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
         // fetch
-        editClass.addMethod('componentWillMount').setContent(`this.props.fetch(+this.props.match.params.id);`);
+        editClass.addMethod('componentDidMount').setContent(`this.props.fetch(+this.props.match.params.id);`);
         // render method
         editClass.addMethod('render').setContent(`let ${model.instanceName} = this.props.${model.instanceName} || {};
         return (

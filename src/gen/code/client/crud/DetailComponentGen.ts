@@ -19,9 +19,9 @@ export class DetailComponentGen {
         // ts file
         let detailFile = new TsFileGen(this.className);
         // imports
-        detailFile.addImport('React', 'react', TsFileGen.ImportType.Module);
-        detailFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'), TsFileGen.ImportType.Module);
-        detailFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`), TsFileGen.ImportType.Module);
+        detailFile.addImport('React', 'react');
+        detailFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
+        detailFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         detailFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
         let detailProps = detailFile.addInterface(`${this.className}Props`);
@@ -34,7 +34,7 @@ export class DetailComponentGen {
         let detailClass = detailFile.addClass(this.className);
         detailClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
         // fetch
-        detailClass.addMethod('componentWillMount').setContent(`this.props.fetch(+this.props.match.params.id);`);
+        detailClass.addMethod('componentDidMount').setContent(`this.props.fetch(+this.props.match.params.id);`);
         // render method
         detailClass.addMethod('render').setContent(`let ${model.instanceName} = this.props.${model.instanceName};
         if (!${model.instanceName}) return null;

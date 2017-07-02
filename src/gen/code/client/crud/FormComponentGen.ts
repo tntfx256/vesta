@@ -17,12 +17,12 @@ export class FormComponentGen {
         // ts file
         let formFile = new TsFileGen(this.className);
         // imports
-        formFile.addImport('React', 'react', TsFileGen.ImportType.Module);
-        formFile.addImport('{PageComponentProps}', genRelativePath(path, 'src/client/app/components/PageComponent'), TsFileGen.ImportType.Module);
-        formFile.addImport('{IValidationError}', '@vesta/core-es5', TsFileGen.ImportType.Module);
-        formFile.addImport('{ModelValidationMessage, Util}', genRelativePath(path, 'src/client/app/util/Util'), TsFileGen.ImportType.Module);
-        formFile.addImport('{ChangeEventHandler}', genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'), TsFileGen.ImportType.Module);
-        formFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`), TsFileGen.ImportType.Module);
+        formFile.addImport('React', 'react');
+        formFile.addImport('{PageComponentProps}', genRelativePath(path, 'src/client/app/components/PageComponent'));
+        formFile.addImport('{IValidationError}', genRelativePath(path, 'src/client/app/medium'));
+        formFile.addImport('{ModelValidationMessage, Util}', genRelativePath(path, 'src/client/app/util/Util'));
+        formFile.addImport('{ChangeEventHandler}', genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
+        formFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         formFile.addInterface(`${this.className}Params`);
         // props

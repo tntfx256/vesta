@@ -13,17 +13,18 @@ export function ask<T>(questions: Question | Array<Question>): Promise<T> {
     })
 }
 
-export function findInFileAndReplace(filePath: string, patternReplacePair: any, preventIfExists: boolean = false) {
+export function findInFileAndReplace(filePath: string, patternReplacePair: any, shoulProceed?: (content: string) => boolean) {
     if (existsSync(filePath)) {
         let code = readFileSync(filePath, 'utf8');
-        for (let pattern in patternReplacePair) {
-            if (patternReplacePair.hasOwnProperty(pattern)) {
-                if (preventIfExists && code.indexOf(patternReplacePair[pattern]) >= 0) {
-                    continue;
-                }
-                let regex = new RegExp(pattern, 'g');
-                code = code.replace(regex, patternReplacePair[pattern]);
+        let tobeContinue = shoulProceed ? shoulProceed(code) : true;
+        for (let patterns = Object.keys(patternReplacePair), i = patterns.length; i--;) {
+            let pattern = patterns[i];
+            let replace = patternReplacePair[pattern];
+            let regex = new RegExp(pattern, 'g');
+            if (!tobeContinue) {
+                continue;
             }
+            code = code.replace(regex, replace);
         }
         writeFileSync(filePath, code);
         return;
