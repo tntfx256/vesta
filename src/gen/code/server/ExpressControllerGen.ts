@@ -201,7 +201,7 @@ export class ExpressControllerGen {
             }
             query.filter(filter);
         }
-        let result = ${modelName}.count(query);
+        let result = await ${modelName}.count(query);
         res.json(result);`
     }
 
