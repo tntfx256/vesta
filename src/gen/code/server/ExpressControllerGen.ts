@@ -231,7 +231,7 @@ export class ExpressControllerGen {
         }
         let result = await ${modelName}.find<I${modelName}>(${modelInstanceName}.id);
         if (result.items.length == 1){ 
-            let uResult = ${modelInstanceName}.update<I${modelName}>();
+            let uResult = await ${modelInstanceName}.update<I${modelName}>();
             res.json(uResult);
         }else{
             throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
