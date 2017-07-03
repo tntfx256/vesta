@@ -86,24 +86,24 @@ export const ${this.className} = (props: ${this.className}Props) => {
 
     private genComponentFile(): TsFileGen {
         let componentFile = new TsFileGen(this.className);
-        componentFile.addImport(this.config.model ? 'React' : 'React', 'react', TsFileGen.ImportType.Module);
+        componentFile.addImport(this.config.model ? 'React' : 'React', 'react');
         componentFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(this.path, 'src/client/app/components/PageComponent'));
-        // componentFile.addImport('{AuthService}', FsUtil.genRelativePath(this.path, 'src/client/app/service/AuthService'));
         if (this.config.model) {
+            let modelClassName = this.model.originalClassName;
             componentFile.addImport('{Route, Switch}', 'react-router');
-            componentFile.addImport('{IQueryResult, IUpsertResult, IValidationError}', '@vesta/core-es5');
+            componentFile.addImport('{IQueryResult, IUpsertResult, IValidationError}', genRelativePath(this.path, 'src/client/app/medium'));
             componentFile.addImport('{DynamicRouter}', genRelativePath(this.path, 'src/client/app/medium'));
             componentFile.addImport('{PageTitle}', genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
             componentFile.addImport('{Preloader}', genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
             componentFile.addImport('{CrudMenu}', genRelativePath(this.path, 'src/client/app/components/general/CrudMenu'));
-            let modelImportStatement = this.model.originalClassName == this.className ? `${this.model.originalClassName} as ${this.model.className}` : this.model.className;
-            componentFile.addImport(`{I${this.model.originalClassName}, ${modelImportStatement}}`, genRelativePath(this.path, this.model.file));
+            let modelImportStatement = modelClassName == this.className ? `${modelClassName} as ${this.model.className}` : this.model.className;
+            componentFile.addImport(`{I${modelClassName}, ${modelImportStatement}}`, genRelativePath(this.path, this.model.file));
             componentFile.addImport('{Util}', genRelativePath(this.path, 'src/client/app/util/Util'));
             let instanceName = camelCase(this.className);
-            componentFile.addImport(`{${this.className}Add}`, `./${instanceName}/${this.className}Add`);
-            componentFile.addImport(`{${this.className}Edit}`, `./${instanceName}/${this.className}Edit`);
-            componentFile.addImport(`{${this.className}Detail}`, `./${instanceName}/${this.className}Detail`);
-            componentFile.addImport(`{${this.className}List}`, `./${instanceName}/${this.className}List`);
+            componentFile.addImport(`{${modelClassName}Add}`, `./${instanceName}/${modelClassName}Add`);
+            componentFile.addImport(`{${modelClassName}Edit}`, `./${instanceName}/${modelClassName}Edit`);
+            componentFile.addImport(`{${modelClassName}Detail}`, `./${instanceName}/${modelClassName}Detail`);
+            componentFile.addImport(`{${modelClassName}List}`, `./${instanceName}/${modelClassName}List`);
         }
         return componentFile;
     }
@@ -208,6 +208,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
         ${model.instanceName}[name] = value;
         this.setState({${model.instanceName}});`);
         // render method
+        let modelClassName = this.model.originalClassName;
         (componentClass.addMethod('render')).setContent(`const ${model.instanceName}Id = this.state.${model.instanceName} ? this.state.${model.instanceName}.id : 0;
         return (
             <div className="page ${stateName}-component">
@@ -217,24 +218,24 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 <CrudMenu path="${stateName}" id={${model.instanceName}Id}/>
                 <DynamicRouter>
                     <Switch>
-                        <Route path="/${stateName}/add" render={this.tz.willTransitionTo(${this.className}Add, {${stateName}: ['add']},{
+                        <Route path="/${stateName}/add" render={this.tz.willTransitionTo(${modelClassName}Add, {${stateName}: ['add']},{
                             ${model.instanceName}: this.state.${model.instanceName},
                             save: this.save,
                             onChange: this.onChange,
                             validationErrors: this.state.validationErrors
                         })}/>
-                        <Route path="/${stateName}/edit/:id" render={this.tz.willTransitionTo(${this.className}Edit, {${stateName}: ['edit']}, {
+                        <Route path="/${stateName}/edit/:id" render={this.tz.willTransitionTo(${modelClassName}Edit, {${stateName}: ['edit']}, {
                             ${model.instanceName}: this.state.${model.instanceName},
                             save: this.save,
                             fetch: this.fetch,
                             onChange: this.onChange,
                             validationErrors: this.state.validationErrors
                         })}/>
-                        <Route path="/${stateName}/detail/:id" render={this.tz.willTransitionTo(${this.className}Detail, {${stateName}: ['read']}, {
+                        <Route path="/${stateName}/detail/:id" render={this.tz.willTransitionTo(${modelClassName}Detail, {${stateName}: ['read']}, {
                             ${model.instanceName}: this.state.${model.instanceName},
                             fetch: this.fetch
                         })}/>
-                        <Route render={this.tz.willTransitionTo(${this.className}List, {${stateName}: ['read']}, {fetch: this.fetchAll})}/>
+                        <Route render={this.tz.willTransitionTo(${modelClassName}List, {${stateName}: ['read']}, {fetch: this.fetchAll})}/>
                     </Switch>
                 </DynamicRouter>
             </div>
@@ -249,11 +250,14 @@ export const ${this.className} = (props: ${this.className}Props) => {
     }
 
     private createScss() {
-        if (this.config.hasStyle) {
-            let stateName = camelCase(this.className);
-            writeFileSync(`src/client/scss/components/_${stateName}.scss`, `.${stateName}-component {\n\n}`, {encoding: 'utf8'});
-            findInFileAndReplace('src/client/scss/_common.scss', {'///<vesta:scssComponent/>': `@import "components/${stateName}";\n///<vesta:scssComponent/>`}, true);
-        }
+        if (!this.config.hasStyle) return;
+        let relPath = `components/${this.config.path}`;
+        let path = `src/client/scss/${relPath}`;
+        mkdir(path);
+        let stateName = camelCase(this.className);
+        writeFileSync(`${path}/_${stateName}.scss`, `.${stateName}-component {\n\n}`, {encoding: 'utf8'});
+        const importStatement = `@import "${relPath}/${stateName}";`;
+        findInFileAndReplace('src/client/scss/_common.scss', {'///<vesta:scssComponent/>': `${importStatement}\n///<vesta:scssComponent/>`}, code => code.indexOf(importStatement) < 0);
     }
 
     public generate() {

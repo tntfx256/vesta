@@ -20,12 +20,12 @@ export class AddComponentGen {
         // ts file
         let addFile = new TsFileGen(this.className);
         // imports
-        addFile.addImport('React', 'react', TsFileGen.ImportType.Module);
-        addFile.addImport('{IValidationError}', '@vesta/core-es5', TsFileGen.ImportType.Module);
-        addFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'), TsFileGen.ImportType.Module);
-        addFile.addImport(`{${formClassName}}`, `./${formClassName}`, TsFileGen.ImportType.Module);
-        addFile.addImport(`{ChangeEventHandler, FormWrapper, SubmitEventHandler}`, genRelativePath(path, `src/client/app/components/general/form/FormWrapper`), TsFileGen.ImportType.Module);
-        addFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`), TsFileGen.ImportType.Module);
+        addFile.addImport('React', 'react');
+        addFile.addImport('{IValidationError}', genRelativePath(path, 'src/client/app/medium'));
+        addFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
+        addFile.addImport(`{${formClassName}}`, `./${formClassName}`);
+        addFile.addImport(`{ChangeEventHandler, FormWrapper, SubmitEventHandler}`, genRelativePath(path, `src/client/app/components/general/form/FormWrapper`));
+        addFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         addFile.addInterface(`${this.className}Params`);
         let addProps = addFile.addInterface(`${this.className}Props`);

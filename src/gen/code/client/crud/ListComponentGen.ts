@@ -20,20 +20,22 @@ export class ListComponentGen {
         // ts file
         let listFile = new TsFileGen(this.className);
         // imports
-        listFile.addImport('React', 'react', TsFileGen.ImportType.Module);
-        listFile.addImport('{Link}', 'react-router-dom', TsFileGen.ImportType.Module);
-        listFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'), TsFileGen.ImportType.Module);
-        listFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`), TsFileGen.ImportType.Module);
-        listFile.addImport('{Column, DataTable, DataTableOption}', genRelativePath(path, 'src/client/app/components/general/DataTable'), TsFileGen.ImportType.Module);
-        listFile.addImport('{FloatingBtn}', genRelativePath(path, 'src/client/app/components/general/FloatingBtn'), TsFileGen.ImportType.Module);
+        listFile.addImport('React', 'react');
+        listFile.addImport('{Link}', 'react-router-dom');
+        listFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
+        listFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        listFile.addImport('{Column, DataTable, DataTableOption}', genRelativePath(path, 'src/client/app/components/general/DataTable'));
+        listFile.addImport('{FloatingBtn}', genRelativePath(path, 'src/client/app/components/general/FloatingBtn'));
         // params
         listFile.addInterface(`${this.className}Params`);
         let listProps = listFile.addInterface(`${this.className}Props`);
+        // props
         listProps.setParentClass(`PageComponentProps<${this.className}Params>`);
         listProps.addProperty({name: 'fetch', type: `() => Promise<Array<I${model.originalClassName}>>`});
-        let detailState = listFile.addInterface(`${this.className}State`);
-        detailState.setParentClass('PageComponentState');
-        detailState.addProperty({name: pluralModel, type: `Array<I${model.originalClassName}>`});
+        // state
+        let listState = listFile.addInterface(`${this.className}State`);
+        listState.setParentClass('PageComponentState');
+        listState.addProperty({name: pluralModel, type: `Array<I${model.originalClassName}>`});
         // class
         let listClass = listFile.addClass(this.className);
         listClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
@@ -43,13 +45,13 @@ export class ListComponentGen {
         listClass.getConstructor().setContent(`super(props);
         this.state = {${pluralModel}: []};`);
         // fetch
-        listClass.addMethod('componentWillMount').setContent(`this.props.fetch().then(${pluralModel} => this.setState({${pluralModel}}));`);
+        listClass.addMethod('componentDidMount').setContent(`this.props.fetch().then(${pluralModel} => this.setState({${pluralModel}}));`);
         // render method
         listClass.addMethod('render').setContent(`const dtOptions: DataTableOption<I${model.originalClassName}> = {
             showIndex: true
         };
         const columns: Array<Column<I${model.originalClassName}>> = [
-            {name: 'id', title:'ID'},
+            {name: 'id', title: 'ID'},
             {
                 title: 'Operations', render: r => <span className="dt-operation-cell">
                 <Link to={\`/${stateName}/detail/\${r.id}\`}>View</Link>
@@ -63,6 +65,7 @@ export class ListComponentGen {
             </div>
         );`);
         return listFile.generate();
+        // <h1>${plural(model.originalClassName)}'s List</h1>
     }
 
     public generate() {
