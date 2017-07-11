@@ -242,7 +242,7 @@ export class ExpressControllerGen {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
         return `let ${modelInstanceName} = new ${modelName}({id: req.params.id});
-        let result = ${modelInstanceName}.remove();
+        let result = await ${modelInstanceName}.remove();
         res.json(result);`;
     }
 
