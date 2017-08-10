@@ -59,7 +59,7 @@ export class CommonGen {
      * so it's function addSubModule is called from ProjectGen
      */
     public generate() {
-        if (this.config.repository.common) {
+        if (this.config.repository && this.config.repository.common) {
             if (!GitGen.commonProjectExists) {
                 this.createCommonProject()
             }

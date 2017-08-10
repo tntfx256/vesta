@@ -10,7 +10,7 @@ import {execute, IExecOptions} from "../util/CmdUtil";
 import {mkdir} from "../util/FsUtil";
 import {finalizeClonedTemplate, findInFileAndReplace} from "../util/Util";
 
-export const enum ProjectType{ClientApplication = 1, ControlPanel, ApiServer}
+export const enum ProjectType {ClientApplication = 1, ControlPanel, ApiServer}
 
 export interface IProjectConfig {
     name: string;
@@ -58,15 +58,18 @@ export class ProjectGen {
         // having the client or server to generate it's projects
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
-        execute(`git init`, execOption);
         this.vesta.generate();
         finalizeClonedTemplate(dir, this.config.name);
         findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
+        if (!repoInfo || !repoInfo.main) {
+            this.commonApp.generate();
+            return;
+        }
         // Initiating the git repo
+        execute(`git init`, execOption);
         execute(`git add .`, execOption);
         execute(`git commit -m Vesta-init`, execOption);
         this.commonApp.generate();
-        if (!repoInfo.main) return;
         execute(`git add .`, execOption);
         execute(`git commit -m Vesta-common`, execOption);
         execute(`git remote add origin ${repoInfo.main}`, execOption);

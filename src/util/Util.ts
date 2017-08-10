@@ -5,9 +5,7 @@ import {remove} from "./FsUtil";
 
 export function ask<T>(questions: Question | Array<Question>): Promise<T> {
     return new Promise<T>(resolve => {
-        console.log(questions);
         iPrompt(questions).then(answer => {
-            console.log(answer);
             resolve(answer as any as T);
         })
     })
@@ -46,9 +44,9 @@ export function clone<T>(object: T) {
 
 export function finalizeClonedTemplate(root: string, newName: string = '') {
     let packageFile = `${root}/package.json`;
-    if (name) {
+    if (newName) {
         if (existsSync(packageFile)) {
-            let json: any = JSON.parse(readFileSync(root, 'utf8'));
+            let json: any = JSON.parse(readFileSync(packageFile, 'utf8'));
             json.private = true;
             json.license = 'UNLICENSED';
             json.version = '0.1.0';

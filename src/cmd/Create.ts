@@ -20,15 +20,15 @@ export class Create {
         let type: ProjectType = null;
         switch (argParser.get('--type')) {
             case 'api':
-                type = ProjectType.ApiServer;
+                projectConfig.type = ProjectType.ApiServer;
                 projectConfig.server = {};
                 break;
             case 'cpanel':
-                type = ProjectType.ControlPanel;
+                projectConfig.type = ProjectType.ControlPanel;
                 projectConfig.client = {};
                 break;
             case 'client':
-                type = ProjectType.ClientApplication;
+                projectConfig.type = ProjectType.ClientApplication;
                 projectConfig.client = {};
                 break;
             default:
