@@ -47,7 +47,7 @@ export class ComponentGen {
     private genStateless() {
         let cmpName = camelCase(this.className);
         const importPath = genRelativePath(this.path, 'src/client/app/components/PageComponent');
-        return `import React from "react";
+        return `import * as React from "react";
 import {PageComponentProps} from "${importPath}";
 
 export interface ${this.className}Params {
