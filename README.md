@@ -32,8 +32,8 @@ This command will create a project using below scaffolding templates and the opt
 * Server side
   * [Express REST Api](https://github.com/hbtb/vesta-template-api) RESTfull backend on Express framework
 * Client side
-  * [Client Application](https://github.com/hbtb/material-web-template) This project contains build process for any of Web, Cordova, Electron targets
-  * [Control Panel](https://github.com/hbtb/material-cpanel-template) Same as client project but specifically coded for control panels
+  * [Client Application](https://github.com/hbtb/material-template-client) This project contains build process for any of Web, Cordova, Electron targets
+  * [Control Panel](https://github.com/hbtb/material-template-cpanel) Same as client project but specifically coded for control panels
 
 All these project are common in some files which are exported to a new project ([commonCodeTemplate](https://github.com/hbtb/vesta-template-cmn)) 
 which will be copied/submoduled  into a sub directory of generated project.
