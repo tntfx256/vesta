@@ -4,7 +4,8 @@ import {ArgParser} from "../util/ArgParser";
 
 export class Docker {
 
-    static init(argParser: ArgParser) {
+    static init() {
+        const argParser = ArgParser.getInstance();
         if (argParser.hasHelp()) {
             return Docker.help();
         }

@@ -208,9 +208,10 @@ export class ModelGen {
         return candidate;
     }
 
-    public static init(arg: ArgParser): ModelGenConfig {
+    public static init(): ModelGenConfig {
+        const argParser = ArgParser.getInstance();
         const config: ModelGenConfig = {
-            name: arg.get()
+            name: argParser.get()
         };
         if (!config.name || !/^[a-z-]+/i.exec(config.name)) {
             Log.error('Missing/Invalid model name');

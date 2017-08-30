@@ -13,11 +13,7 @@ export class Create {
         if (!name || !name.match(/^[a-z][a-z0-9-]+/i)) {
             return Log.error('projectName may only contains [letters, numbers, dash]');
         }
-        const projectConfig: IProjectConfig = <IProjectConfig>{
-            name,
-            pkgManager: argParser.get('--pkg-manager', 'npm', ['npm', 'yarn'])
-        };
-        let type: ProjectType = null;
+        const projectConfig: IProjectConfig = <IProjectConfig>{name};
         switch (argParser.get('--type')) {
             case 'api':
                 projectConfig.type = ProjectType.ApiServer;
@@ -32,7 +28,7 @@ export class Create {
                 projectConfig.client = {};
                 break;
             default:
-                return Log.error("Invalid project type.\nSee 'vesta create --help'");
+                return Log.error("Invalid project type.\nSee 'vesta create --help'\n");
         }
         let mainRepo = argParser.get('--main-repo');
         if (mainRepo) {

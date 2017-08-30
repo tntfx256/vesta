@@ -49,13 +49,14 @@ export class SassGen {
         }
     }
 
-    public static init(arg: ArgParser): SassGenConfig {
+    public static init(): SassGenConfig {
+        const argParser = ArgParser.getInstance();
         const config: SassGenConfig = {
-            name: arg.get(),
-            type: arg.get('--type')
+            name: argParser.get(),
+            type: argParser.get('--type')
         };
         if (!name || !/^[a-z-0-9]+/i.exec(config.name)) {
-            Log.error("Missing/Invalid sass file name\nSee 'vesta gen sass --help' for more information");
+            Log.error("Missing/Invalid sass file name\nSee 'vesta gen sass --help' for more information\n");
             return;
         }
         let sass = new SassGen(config);

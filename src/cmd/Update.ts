@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import {Vesta} from "../gen/file/Vesta";
 import {Log} from "../util/Log";
 import {ArgParser} from "../util/ArgParser";
 import {readJsonFile} from "../util/FsUtil";
@@ -7,12 +6,12 @@ import {execute} from "../util/CmdUtil";
 
 export class Update {
 
-    static init(argParser: ArgParser) {
+    static init() {
+        const argParser = ArgParser.getInstance();
         if (argParser.hasHelp()) {
             return Update.help();
         }
         try {
-            let pkgManager = Vesta.getInstance().getConfig().pkgManager;
             let content = readJsonFile<any>(`package.json`);
             let isDev = argParser.has('--dev');
             let pkgKeyName = isDev ? 'devDependencies' : 'dependencies';
@@ -20,11 +19,7 @@ export class Update {
             let pkgs = isDev || argParser.has('--all') ? allPackages : allPackages.filter(pkg => pkg.search(/^vesta-/i) >= 0);
             pkgs.forEach(pkg => delete content[pkgKeyName][pkg]);
             fs.writeFileSync(`package.json`, JSON.stringify(content, null, 2), {encoding: 'utf8'});
-            if (pkgManager == "yarn") {
-                execute(`yarn add ${isDev ? '--dev' : ''} ${pkgs.join(' ')}`);
-            } else {
-                execute(`npm install --save${isDev ? '-dev' : ''} ${pkgs.join(' ')}`);
-            }
+            execute(`npm install --save${isDev ? '-dev' : ''} ${pkgs.join(' ')}`);
         } catch (err) {
             Log.error(err);
         }

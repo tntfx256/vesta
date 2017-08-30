@@ -15,7 +15,6 @@ export const enum ProjectType {ClientApplication = 1, ControlPanel, ApiServer}
 export interface IProjectConfig {
     name: string;
     type: ProjectType;
-    pkgManager: 'npm' | 'yarn';
     server?: IServerAppConfig;
     client?: IClientAppConfig;
     repository?: IRepositoryConfig;
@@ -24,7 +23,6 @@ export interface IProjectConfig {
 
 export class ProjectGen {
 
-    private static instance: ProjectGen;
     public vesta: Vesta;
     public serverApp: ServerAppGen;
     public clientApp: ClientAppGen;
@@ -32,7 +30,6 @@ export class ProjectGen {
     private docker: DockerGen;
 
     constructor(public config: IProjectConfig) {
-        //
         this.vesta = Vesta.getInstance(config);
         this.docker = new DockerGen(config);
         //
@@ -41,12 +38,13 @@ export class ProjectGen {
             this.clientApp = new ClientAppGen(config);
         } else if (config.type == ProjectType.ApiServer) {
             this.serverApp = new ServerAppGen(config);
+        } else if (config.type == ProjectType.ControlPanel) {
+            this.clientApp = new ClientAppGen(config);
         }
-        ProjectGen.instance = this;
     }
 
     public generate() {
-        let isClientSideProject = this.config.type == ProjectType.ClientApplication;
+        let isClientSideProject = this.config.type != ProjectType.ApiServer;
         let dir = this.config.name;
         let templateRepo = PlatformConfig.getRepository();
         let projectTemplateName = GitGen.getRepoName(templateRepo.api);

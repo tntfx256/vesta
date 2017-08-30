@@ -66,23 +66,23 @@ switch (command) {
         Create.init();
         break;
     case 'module':
-        Module.init(argParser);
+        Module.init();
         break;
     case 'deploy':
-        Deploy.init(argParser);
+        Deploy.init();
         break;
     case 'backup':
-        Backup.init(argParser);
+        Backup.init();
         break;
     case 'docker':
-        Docker.init(argParser);
+        Docker.init();
         break;
     case 'update':
-        Update.init(argParser);
+        Update.init();
         break;
     // vesta.json must exist
     case 'gen':
-        Gen.init(argParser);
+        Gen.init();
         break;
     default:
         let error = command ? `'${command}' is not a vesta command\n` : '';

@@ -9,7 +9,8 @@ export class Module {
         module.generate();
     }
 
-    static init(argParser: ArgParser) {
+    static init() {
+        const argParser = ArgParser.getInstance();
         if (argParser.hasHelp()) {
             return Module.help();
         }

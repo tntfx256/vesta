@@ -46,7 +46,9 @@ export class ExpressControllerGen {
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
-        if (this.config.model) this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        if (this.config.model) {
+            this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        }
         if (this.filesFields) {
             this.controllerFile.addImport('* as path', 'path');
         }
@@ -156,7 +158,7 @@ export class ExpressControllerGen {
             let fieldsToFetch = Object.keys(this.relationsFields);
             code = `let query = new Vql(${modelName}.schema.name);
         query.filter({id: req.params.id}).fetchRecordFor('${fieldsToFetch.join("', '")}');
-        let result = await ${modelName}.find<I${modelName}>(query)`;
+        let result = await ${modelName}.find<I${modelName}>(query);`;
         } else {
             code = `let result = await ${modelName}.find<I${modelName}>(req.params.id);`
         }
@@ -215,7 +217,7 @@ export class ExpressControllerGen {
         return `let ${modelInstanceName} = new ${modelName}(req.body),
             validationError = ${modelInstanceName}.validate();
         if (validationError) {
-            return next(new ValidationError(validationError));
+            throw new ValidationError(validationError);
         }
         let result = await ${modelInstanceName}.insert<I${modelName}>();
         res.json(result);`;
@@ -227,7 +229,7 @@ export class ExpressControllerGen {
         return `let ${modelInstanceName} = new ${modelName}(req.body),
             validationError = ${modelInstanceName}.validate();
         if (validationError) {
-            return next(new ValidationError(validationError));
+            throw new ValidationError(validationError);
         }
         let result = await ${modelName}.find<I${modelName}>(${modelInstanceName}.id);
         if (result.items.length == 1){ 
@@ -282,14 +284,15 @@ export class ExpressControllerGen {
         res.json(uResult);`;
     }
 
-    public static init(arg: ArgParser): IExpressControllerConfig {
+    public static init(): IExpressControllerConfig {
+        const argParser = ArgParser.getInstance();
         let config: IExpressControllerConfig = {
-            name: arg.get(),
-            model: arg.get('--model', null),
-            route: arg.get('--route', null)
+            name: argParser.get(),
+            model: argParser.get('--model', null),
+            route: argParser.get('--route', '/')
         };
         if (!config.name || !/^[a-z]+$/i.exec(config.name)) {
-            Log.error("Missing/Invalid controller name\nSee 'vesta gen controller --help' for more information");
+            Log.error("Missing/Invalid controller name\nSee 'vesta gen controller --help' for more information\n");
             return;
         }
         let controller = new ExpressControllerGen(config);

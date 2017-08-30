@@ -283,16 +283,17 @@ export const ${this.className} = (props: ${this.className}Props) => {
         }
     }
 
-    static init(arg: ArgParser) {
+    static init() {
+        const argParser = ArgParser.getInstance();
         let config: ComponentGenConfig = <ComponentGenConfig>{
-            name: arg.get(),
-            path: arg.get('--path', 'root'),
-            model: arg.get('--model'),
-            hasStyle: !arg.has('--no-style'),
-            stateless: arg.has('--stateless')
+            name: argParser.get(),
+            path: argParser.get('--path', 'root'),
+            model: argParser.get('--model'),
+            hasStyle: !argParser.has('--no-style'),
+            stateless: argParser.has('--stateless')
         };
         if (!config.name) {
-            Log.error("Missing/Invalid component name\nSee 'vesta gen component --help' for more information");
+            Log.error("Missing/Invalid component name\nSee 'vesta gen component --help' for more information\n");
             return;
         }
         (new ComponentGen(config)).generate();

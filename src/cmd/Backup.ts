@@ -8,7 +8,8 @@ import {readJsonFile, writeFile} from "../util/FsUtil";
 
 export class Backup {
 
-    static init(argParser: ArgParser) {
+    static init() {
+        const argParser = ArgParser.getInstance();
         if (argParser.hasHelp()) {
             return Backup.help();
         }

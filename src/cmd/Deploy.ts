@@ -12,7 +12,8 @@ export class Deploy {
         return `${group}-${project}`;
     }
 
-    static init(argParser: ArgParser) {
+    static init() {
+        const argParser = ArgParser.getInstance();
         if (argParser.hasHelp()) {
             return Deploy.help();
         }

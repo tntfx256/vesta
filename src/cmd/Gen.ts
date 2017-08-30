@@ -7,36 +7,38 @@ import {ArgParser} from "../util/ArgParser";
 
 export class Gen {
 
-    static init(argParser: ArgParser) {
+    static init() {
+        const argParser = ArgParser.getInstance();
         let type = argParser.get();
         if (argParser.hasHelp()) {
-            return Gen.showHelp(type);
+            return type ? Gen.showHelp(type) : Gen.help();
         }
-        Gen.generate(type, argParser);
+        Gen.generate(type);
     }
 
-    private static generate(type: string, argParser: ArgParser) {
+    private static generate(type: string) {
         switch (type) {
             case 'controller':
-                ExpressControllerGen.init(argParser);
+                ExpressControllerGen.init();
                 break;
             case 'model':
-                ModelGen.init(argParser);
+                ModelGen.init();
                 break;
             case 'sass':
-                SassGen.init(argParser);
+                SassGen.init();
                 break;
             case 'component':
-                ComponentGen.init(argParser);
+                ComponentGen.init();
                 break;
             default:
-                Log.error(`Invalid generator type ${type || ''}`);
+                Log.error(`Invalid generator type ${type || ''}\n`);
         }
     }
 
     private static showHelp(type) {
         switch (type) {
             case 'controller':
+                ExpressControllerGen.help();
                 break;
             case 'model':
                 break;
@@ -47,7 +49,7 @@ export class Gen {
                 ComponentGen.help();
                 break;
             default:
-                Log.error(`Invalid generator option ${type}`);
+                Log.error(`Invalid generator option ${type}\n`);
         }
     }
 
