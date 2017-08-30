@@ -47,7 +47,7 @@ export class Create {
         Log.write(`
 Usage: vesta create <PROJECT_NAME> [options...]
 
-Creating new project after asking a series of questions through interactive shell
+Creating new project based on the provided options
 
     PROJECT_NAME    The name of the project
 
