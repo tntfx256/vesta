@@ -19,9 +19,6 @@ export class DockerGen {
         }
         if (Vesta.getInstance().isApiServer) {
             findInFileAndReplace(`${this.config.name}/vesta/docker-compose.yml`, replace);
-        } else {
-            findInFileAndReplace(`${this.config.name}/vesta/server/docker-compose.yml`, replace);
         }
-        findInFileAndReplace(`${this.config.name}/resources/docker/docker-compose.yml`, replace);
     }
 }

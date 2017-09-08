@@ -29,8 +29,8 @@ export class ClientAppGen {
             templateProjectName = GitGen.getRepoName(this.vesta.isControlPanel ? templateRepo.cpanel : templateRepo.client),
             replacePattern = {};
         replacePattern[templateProjectName] = dir;
-        copy(`${dir}/resources/gitignore/setting.var.ts`, `${dir}/src/client/app/config/setting.var.ts`);
-        findInFileAndReplace(`${dir}/src/client/app/config/setting.ts`, replacePattern);
+        copy(`${dir}/resources/gitignore/config.var.ts`, `${dir}/src/client/app/config/config.var.ts`);
+        findInFileAndReplace(`${dir}/src/client/app/config/config.ts`, replacePattern);
         mkdir(`${dir}/vesta/client/cordova/www`); // for installing plugins this folder must exist
         findInFileAndReplace(`${dir}/vesta/client/cordova/config.xml`, replacePattern);
     }

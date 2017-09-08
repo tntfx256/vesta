@@ -53,7 +53,6 @@ Creating new project based on the provided options
 
 Options:
     --type          Type of project [client, cpanel, api]       {default: client}
-    --pkg-manager   Type of node package manager [npm, yarn]    {default: npm}
     --main-repo     Address of the main repository
     --cmn-repo      Address of the common repository
     -h,--help       Display this help

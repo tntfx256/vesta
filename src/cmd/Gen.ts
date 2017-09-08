@@ -4,6 +4,7 @@ import {SassGen} from "../gen/file/SassGen";
 import {ExpressControllerGen} from "../gen/code/server/ExpressControllerGen";
 import {ComponentGen} from "../gen/code/client/ComponentGen";
 import {ArgParser} from "../util/ArgParser";
+import {ServiceGen} from "../gen/code/client/ServiceGen";
 
 export class Gen {
 
@@ -29,6 +30,9 @@ export class Gen {
                 break;
             case 'component':
                 ComponentGen.init();
+                break;
+            case 'service':
+                ServiceGen.init();
                 break;
             default:
                 Log.error(`Invalid generator type ${type || ''}\n`);
@@ -65,6 +69,7 @@ Creating specified code snippet base on provided configuration
                     controller      Server             Creating a server side (Vesta API) controller                   
                     model           Client/Server      Creating a model                                                
                     component       Client             Creating a react component                                      
+                    service         Client             Creating a service provider                                      
                     sass            Client             Creating a sass file of specific type (component, page, font)   
                     
     NAME        The name of the snippet

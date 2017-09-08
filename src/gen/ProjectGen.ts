@@ -47,8 +47,7 @@ export class ProjectGen {
         let isClientSideProject = this.config.type != ProjectType.ApiServer;
         let dir = this.config.name;
         let templateRepo = PlatformConfig.getRepository();
-        let projectTemplateName = GitGen.getRepoName(templateRepo.api);
-        if (isClientSideProject) projectTemplateName = GitGen.getRepoName(this.vesta.isControlPanel ? templateRepo.cpanel : templateRepo.client);
+        let projectTemplateName = GitGen.getRepoName(isClientSideProject ? (this.vesta.isControlPanel ? templateRepo.cpanel : templateRepo.client) : templateRepo.api);
         let repoInfo = this.config.repository;
         let replacement = {[projectTemplateName]: this.config.name};
         let execOption: IExecOptions = {cwd: dir};
