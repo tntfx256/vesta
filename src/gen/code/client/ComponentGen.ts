@@ -16,6 +16,7 @@ import {clone, findInFileAndReplace} from "../../../util/Util";
 export interface ComponentGenConfig {
     name: string;
     path: string;
+    isPartial: boolean;
     stateless: boolean;
     hasStyle: boolean;
     model: string;
@@ -47,24 +48,53 @@ export class ComponentGen {
     private genStateless() {
         let cmpName = camelCase(this.className);
         const importPath = genRelativePath(this.path, 'src/client/app/components/PageComponent');
-        return `import * as React from "react";
+        let importStatement = this.config.isPartial ? '' : `
 import {PageComponentProps} from "${importPath}";
 
 export interface ${this.className}Params {
-}
+}`;
+        let extendsStatement = this.config.isPartial ? '' : `extends PageComponentProps<${this.className}Params> `;
+        return `import * as React from "react";${importStatement}
 
-export interface ${this.className}Props extends PageComponentProps<${this.className}Params> {
+export interface ${this.className}Props ${extendsStatement}{
 }
 
 export const ${this.className} = (props: ${this.className}Props) => {
     return (
         <div className="${cmpName}-component">
-            <h1>${this.className} Component</h1>
+            <h2>${this.className} Component</h2>
         </div>
     )
-
 };`;
     }
+
+    private genStatefulPartial() {
+        let cmpName = camelCase(this.className);
+        return `import React from "react";
+
+export interface ${this.className}Props {
+}
+
+export interface ${this.className}State {
+}
+
+export class ${this.className} extends React.Component<${this.className}Props, ${this.className}State> {
+
+    constructor(props: ${this.className}Props) {
+        super(props);
+        this.state = {};
+    }
+
+    public render() {
+        return (
+            <div className="page ${cmpName}-component">
+                <h2>${this.className} Component</h2>
+            </div>
+        );
+    }
+}`;
+    }
+
 
     private parseModel(): ModelConfig {
         let modelFilePath = `src/client/app/cmn/models/${this.config.model}.ts`;
@@ -86,7 +116,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
 
     private genComponentFile(): TsFileGen {
         let componentFile = new TsFileGen(this.className);
-        componentFile.addImport(this.config.model ? 'React' : 'React', 'react');
+        componentFile.addImport('React', 'react');
         componentFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(this.path, 'src/client/app/components/PageComponent'));
         if (this.config.model) {
             let modelClassName = this.model.originalClassName;
@@ -244,6 +274,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
     }
 
     private genStateful() {
+        if (this.config.isPartial) return this.genStatefulPartial();
         let componentFile = this.genComponentFile();
         this.genComponentClass(componentFile);
         return componentFile.generate();
@@ -290,10 +321,15 @@ export const ${this.className} = (props: ${this.className}Props) => {
             path: argParser.get('--path', 'root'),
             model: argParser.get('--model'),
             hasStyle: !argParser.has('--no-style'),
-            stateless: argParser.has('--stateless')
+            stateless: argParser.has('--stateless'),
+            isPartial: argParser.has('--partial')
         };
         if (!config.name) {
             Log.error("Missing/Invalid component name\nSee 'vesta gen component --help' for more information\n");
+            return;
+        }
+        if (config.model && config.isPartial) {
+            Log.error("--model and --partial can not be used together\nSee 'vesta gen component --help' for more information\n");
             return;
         }
         (new ComponentGen(config)).generate();
@@ -310,6 +346,7 @@ Creating React component
 Options:
     --stateless Generates a stateless component
     --path      Parent hierarchy
+    --partial   Partial component
     --no-style  Do not generate scss style file
     --model     Create CRUD component for specified model
 
