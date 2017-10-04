@@ -1,6 +1,6 @@
 import {Log} from "../util/Log";
 import {ModelGen} from "../gen/code/ModelGen";
-import {SassGen} from "../gen/file/SassGen";
+import {SassGen} from "../gen/code/client/SassGen";
 import {ExpressControllerGen} from "../gen/code/server/ExpressControllerGen";
 import {ComponentGen} from "../gen/code/client/ComponentGen";
 import {ArgParser} from "../util/ArgParser";

@@ -6,9 +6,23 @@ import {FieldType, FileMemeType, IFieldProperties, RelationType} from "@vesta/co
 import {fcUpper} from "../../util/StringUtil";
 import {ask} from "../../util/Util";
 
+export interface IFieldMeta {
+    enum?: {
+        options: Array<string>;
+        path: string;
+    },
+    relation?: {
+        model: string;
+        path?: string;
+    },
+    form?: boolean;
+    list?: boolean;
+}
+
 export class FieldGen {
     // private isMultilingual:boolean = false;
     private properties: IFieldProperties = <IFieldProperties>{};
+    private metaInfo: IFieldMeta = {};
     private enumName: string;
 
     constructor(private modelFile: TsFileGen, private name: string) {
@@ -100,16 +114,27 @@ export class FieldGen {
         for (let properties = Object.keys(answers), i = 0, il = properties.length; i < il; ++i) {
             let property = properties[i];
             if (['relatedModel'].indexOf(property) >= 0) continue;
-            if (property == 'enum') {
-                this.properties.enum = (answers.enum).split(',').map(item => item.trim());
-            } else if (property == 'fileType') {
-                this.properties.fileType = this.getFileTypes(answers.fileType);
-            } else if (property == 'relationType') {
-                this.properties.relation = {type: answers.relationType, model: answers.relatedModel};
-            } else if (property == 'list') {
-                this.properties.list = this.getFieldType(<string>answers.list);
-            } else {
-                this.properties[property] = answers[property];
+            switch (property) {
+                case 'enum':
+                    this.properties.enum = (answers.enum).split(',').map(item => item.trim());
+                    break;
+                case 'fileType':
+                    this.properties.fileType = this.getFileTypes(answers.fileType);
+                    break;
+                case 'relationType':
+                    this.properties.relation = {type: answers.relationType, model: answers.relatedModel};
+                    break;
+                case 'list':
+                    this.properties.list = this.getFieldType(<string>answers.list);
+                    break;
+                case 'showInList':
+                    if (!answers.showInList) this.metaInfo.list = false;
+                    break;
+                case 'showInForm':
+                    if (!answers.showInForm) this.metaInfo.form = false;
+                    break;
+                default:
+                    this.properties[property] = answers[property];
             }
         }
     }
@@ -170,8 +195,9 @@ export class FieldGen {
     }
 
     private getQuestionsBasedOnFieldType(type: FieldType, isListItem: boolean): Array<Question> {
-        let askForDefaultValue = false,
-            qs: Array<Question> = [];
+        let askForDefaultValue = false;
+        let qs: Array<Question> = [];
+        let askForListnForm = false;
         if (!isListItem) {
             qs.push(<Question>{name: 'required', type: 'confirm', message: 'Is Required: ', default: false});
         }
@@ -181,6 +207,7 @@ export class FieldGen {
                 qs.push(<Question>{name: 'minLength', type: 'input', message: 'Min Length: '});
                 qs.push(<Question>{name: 'maxLength', type: 'input', message: 'Max Length: '});
                 // qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
+                askForListnForm = true;
                 break;
             case FieldType.Text:
                 // qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
@@ -190,18 +217,21 @@ export class FieldGen {
                 break;
             case FieldType.Tel:
                 qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
+                askForListnForm = true;
                 break;
             case FieldType.EMail:
                 qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
+                askForListnForm = true;
                 break;
             case FieldType.URL:
                 break;
             case FieldType.Number:
             case FieldType.Integer:
             case FieldType.Float:
-                askForDefaultValue = true;
                 qs.push(<Question>{name: 'min', type: 'input', message: 'Min Value: '});
                 qs.push(<Question>{name: 'max', type: 'input', message: 'Max Value: '});
+                askForDefaultValue = true;
+                askForListnForm = true;
                 break;
             case FieldType.File:
                 qs.push(<Question>{name: 'maxSize', type: 'input', message: 'Max File Size (KB): '});
@@ -215,6 +245,7 @@ export class FieldGen {
             case FieldType.Enum:
                 // askForDefaultValue = true;
                 qs.push(<Question>{name: 'enum', type: 'input', message: 'Valid Options: '});
+                askForListnForm = true;
                 break;
             case FieldType.Relation:
                 let types = ['One2One', 'One2Many', 'Many2Many'];
@@ -233,6 +264,10 @@ export class FieldGen {
         }
         if (askForDefaultValue) {
             qs.push(<Question>{name: 'default', type: 'input', message: 'Default Value: '});
+        }
+        if (askForListnForm) {
+            qs.push(<Question>{name: 'showInList', type: 'confirm', message: 'Show in data table: ', default: true});
+            qs.push(<Question>{name: 'showInForm', type: 'confirm', message: 'Show in form: ', default: true});
         }
         return qs;
     }
@@ -258,7 +293,7 @@ export class FieldGen {
             case FieldType.Boolean:
                 return 'boolean';
             case FieldType.Relation:
-                let types = `number|I${this.properties.relation.model}|${this.properties.relation.model}`;
+                let types = `number | I${this.properties.relation.model} | ${this.properties.relation.model}`;
                 if (this.properties.relation.type == RelationType.Many2Many) {
                     return `Array<${types}>`;
                 }
@@ -317,6 +352,9 @@ export class FieldGen {
     }
 
     public generate(): string {
+        let meta: IFieldMeta = {};
+        if ('form' in this.metaInfo) meta.form = this.metaInfo.form;
+        if ('list' in this.metaInfo) meta.list = this.metaInfo.list;
         let code = `${this.modelFile.name}.schema.addField('${this.name}').type(${this.getCodeForFieldType(this.properties.type)})`;
         if (this.properties.type == FieldType.List) code += `.listOf(${this.getCodeForFieldType(this.properties.list)})`;
         if (this.properties.required) code += '.required()';
@@ -328,17 +366,22 @@ export class FieldGen {
         if (this.properties.max) code += `.max(${this.properties.max})`;
         if (this.properties.maxSize) code += `.maxSize(${this.properties.maxSize})`;
         if (this.properties.fileType.length) code += `.fileType('${this.properties.fileType.join("', '")}')`;
-        if (this.properties.enum.length) code += this.genCodeForEnumField();
+        if (this.properties.enum.length) code += this.genCodeForEnumField(meta);
         if (this.properties.default) code += this.getDefaultValueForSchemaCode();
         if (this.properties.relation) {
             let {type, model} = this.properties.relation;
-            this.modelFile.addImport(`{I${model}, ${model}}`, `./${model.toString()}`);
-            code += this.getRelationCodeFromNumber(type, model.toString());
+            let modelName = model.toString();
+            meta.relation = {model: modelName};
+            this.modelFile.addImport(`{I${modelName}, ${modelName}}`, `./${modelName}`);
+            code += this.getRelationCodeFromNumber(type, modelName);
+        }
+        if (Object.keys(meta).length) {
+            code = `///@${this.name}(${JSON.stringify(meta)})\n${code}`;
         }
         return code + ';';
     }
 
-    private genCodeForEnumField(): string {
+    private genCodeForEnumField(meta: IFieldMeta): string {
         let enumArray = [],
             firstEnum: string = this.properties.enum[0];
         if (firstEnum.indexOf('.') > 0) {
@@ -360,6 +403,7 @@ export class FieldGen {
             }
         }
         this.properties.default = enumArray[0];
+        meta.enum = {options: enumArray, path: ''};
         return `.enum(${enumArray.join(", ")})`;
     }
 

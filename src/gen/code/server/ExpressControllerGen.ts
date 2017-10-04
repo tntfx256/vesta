@@ -57,7 +57,7 @@ export class ExpressControllerGen {
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({name: 'router', type: 'Router'});
-        this.controllerClass.addMethod('init', ClassGen.Access.Protected);
+        // this.controllerClass.addMethod('init', ClassGen.Access.Protected);
         try {
             fs.mkdirpSync(this.path);
         } catch (e) {
@@ -80,20 +80,18 @@ export class ExpressControllerGen {
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         this.controllerFile.addImport(`{Err, DatabaseError, ValidationError, Vql}`, '@vesta/core');
         this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
-        if (modelClassName != 'Permission') {
-            this.controllerFile.addImport(`{Permission}`, genRelativePath(this.path, `src/cmn/models/Permission`));
-        }
+        this.controllerFile.addImport(`{AclAction}`, genRelativePath(this.path, `src/cmn/enum/Acl`));
         let acl = this.routingPath.replace(/\/+/g, '.');
         acl = acl[0] == '.' ? acl.slice(1) : acl;
         let middleWares = ` this.checkAcl('${acl}', __ACTION__),`;
         // count operation
         let methodName = `get${modelClassName}Count`;
-        let methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Read');
+        let methodBasedMiddleWares = middleWares.replace('__ACTION__', 'AclAction.Read');
         this.addResponseMethod(methodName).setContent(this.getCountCode());
         this.routeMethod.appendContent(`router.get('${this.routingPath}/count',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'get' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Read');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'AclAction.Read');
         this.addResponseMethod(methodName).setContent(this.getQueryCode(true));
         this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
@@ -102,23 +100,23 @@ export class ExpressControllerGen {
         this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'add' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Add');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'AclAction.Add');
         this.addResponseMethod(methodName).setContent(this.getInsertCode());
         this.routeMethod.appendContent(`router.post('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'update' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Edit');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'AclAction.Edit');
         this.addResponseMethod(methodName).setContent(this.getUpdateCode());
         this.routeMethod.appendContent(`router.put('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = 'remove' + modelClassName;
-        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Delete');
+        methodBasedMiddleWares = middleWares.replace('__ACTION__', 'AclAction.Delete');
         this.addResponseMethod(methodName).setContent(this.getDeleteCode());
         this.routeMethod.appendContent(`router.delete('${this.routingPath}/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         // file upload
         if (this.filesFields) {
             methodName = 'upload';
-            methodBasedMiddleWares = middleWares.replace('__ACTION__', 'Permission.Action.Edit');
+            methodBasedMiddleWares = middleWares.replace('__ACTION__', 'AclAction.Edit');
             this.addResponseMethod(methodName).setContent(this.getUploadCode());
             this.routeMethod.appendContent(`router.post('${this.routingPath}/file/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         }
@@ -128,7 +126,7 @@ export class ExpressControllerGen {
         if (this.config.model) {
             this.addCRUDOperations();
         }
-        writeFile(path.join(this.path, this.controllerClass.name + '.ts'), this.controllerFile.generate());
+        writeFile(path.join(this.path, `${this.controllerClass.name}.ts`), this.controllerFile.generate());
         let apiVersion = this.vesta.getVersion().api;
         let filePath = `src/api/${apiVersion}/import.ts`;
         let code = fs.readFileSync(filePath, {encoding: 'utf8'});
@@ -153,56 +151,30 @@ export class ExpressControllerGen {
 
     private getQueryCodeForSingleInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let code = '';
-        if (this.relationsFields) {
-            let fieldsToFetch = Object.keys(this.relationsFields);
-            code = `let query = new Vql(${modelName}.schema.name);
-        query.filter({id: req.params.id}).fetchRecordFor('${fieldsToFetch.join("', '")}');
-        let result = await ${modelName}.find<I${modelName}>(query);`;
-        } else {
-            code = `let result = await ${modelName}.find<I${modelName}>(req.params.id);`
+        let relationFields = this.relationsFields ? `, ['${Object.keys(this.relationsFields).join(', ')}']` : '';
+        return `let id = +req.params.id;
+        if (isNaN(id)) {
+            throw new ValidationError({id: 'number'});
         }
-        return `${code}
-        if (result.items.length > 1) throw new DatabaseError(Err.Code.DBRecordCount, null);
+        let result = await ${modelName}.find<I${modelName}>(id${relationFields});
+        if (result.items.length != 1) {
+            throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
+        }
         res.json(result);`;
     }
 
     private getQueryCodeForMultiInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = camelCase(modelName);
-        return `let query = new Vql(${modelName}.schema.name);
-        let filter = req.query.query;
-        if (filter) {
-            let ${modelInstanceName} = new ${modelName}(filter);
-            let validationError = ${modelInstanceName}.validate(...Object.keys(filter));
-            if (validationError) {
-                throw new ValidationError(validationError);
-            }
-            query.filter(filter);
-        }
-        query.limitTo(Math.min(+req.query.limit || this.MAX_FETCH_COUNT, this.MAX_FETCH_COUNT))
-            .fromPage(+req.query.page || 1);
-        if (req.query.orderBy) {
-            let orderBy = req.query.orderBy[0];
-            query.sortBy(orderBy.field, orderBy.ascending == 'true');
-        }
+        // let modelInstanceName = camelCase(modelName);
+        return `let query = this.query2vql(${modelName}, req.query);
         let result = await ${modelName}.find(query);
         res.json(result);`;
     }
 
     private getCountCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let modelInstanceName = camelCase(modelName);
-        return `let query = new Vql(${modelName}.schema.name);
-        let filter = req.query.query;
-        if (filter) {
-            let ${modelInstanceName} = new ${modelName}(filter);
-            let validationError = ${modelInstanceName}.validate(...Object.keys(filter));
-            if (validationError) {
-                throw new ValidationError(validationError);
-            }
-            query.filter(filter);
-        }
+        // let modelInstanceName = camelCase(modelName);
+        return `let query = this.query2vql(${modelName}, req.query, true);
         let result = await ${modelName}.count(query);
         res.json(result);`
     }
@@ -214,8 +186,8 @@ export class ExpressControllerGen {
     private getInsertCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
-        return `let ${modelInstanceName} = new ${modelName}(req.body),
-            validationError = ${modelInstanceName}.validate();
+        return `let ${modelInstanceName} = new ${modelName}(req.body);
+        let validationError = ${modelInstanceName}.validate();
         if (validationError) {
             throw new ValidationError(validationError);
         }
@@ -226,24 +198,27 @@ export class ExpressControllerGen {
     private getUpdateCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
-        return `let ${modelInstanceName} = new ${modelName}(req.body),
-            validationError = ${modelInstanceName}.validate();
+        return `let ${modelInstanceName} = new ${modelName}(req.body);
+        let validationError = ${modelInstanceName}.validate();
         if (validationError) {
             throw new ValidationError(validationError);
         }
         let result = await ${modelName}.find<I${modelName}>(${modelInstanceName}.id);
-        if (result.items.length == 1){ 
-            let uResult = await ${modelInstanceName}.update<I${modelName}>();
-            res.json(uResult);
-        }else{
+        if (result.items.length != 1) {
             throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
-        }`;
+        }
+        let uResult = await ${modelInstanceName}.update<I${modelName}>();
+        res.json(uResult);`;
     }
 
     private getDeleteCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
-        return `let ${modelInstanceName} = new ${modelName}({id: req.params.id});
+        return `let id = +req.params.id;
+        if (isNaN(id)) {
+            throw new ValidationError({id: 'number'});
+        }
+        let ${modelInstanceName} = new ${modelName}({id});
         let result = await ${modelInstanceName}.remove();
         res.json(result);`;
     }
@@ -256,7 +231,7 @@ export class ExpressControllerGen {
         let fileNames = Object.keys(this.filesFields);
         if (fileNames.length == 1) {
             code = `let oldFileName = ${modelInstanceName}.${fileNames[0]};
-            ${modelInstanceName}.${fileNames[0]} = upl.${fileNames[0]};
+        ${modelInstanceName}.${fileNames[0]} = upl.${fileNames[0]};
         await FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
         } else {
             code = `let delList:Array<Promise<string>> = [];`;
@@ -272,9 +247,13 @@ export class ExpressControllerGen {
             code += `
         await Promise.all(delList);`;
         }
-        return `let ${modelInstanceName}: ${modelName};
+        return `let id = +req.params.id;
+        if (isNaN(id)) {
+            throw new ValidationError({id: 'number'});
+        }
+        let ${modelInstanceName}: ${modelName};
         let destDirectory = path.join(this.setting.dir.upload, '${modelInstanceName}');
-        let result = await ${modelName}.find<I${modelName}>(+req.params.id);
+        let result = await ${modelName}.find<I${modelName}>(id);
         if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
         ${modelInstanceName} = new ${modelName}(result.items[0]);
         let uploader = new FileUploader<I${modelName}>(destDirectory);

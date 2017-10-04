@@ -9,9 +9,12 @@ import {ListComponentGen} from "./crud/ListComponentGen";
 import {DetailComponentGen} from "./crud/DetailComponentGen";
 import {AddComponentGen} from "./crud/AddComponentGen";
 import {EditComponentGen} from "./crud/EditComponentGen";
-import {camelCase, fcUpper} from "../../../util/StringUtil";
+import {camelCase, fcUpper, pascalCase, plural} from "../../../util/StringUtil";
 import {genRelativePath, mkdir} from "../../../util/FsUtil";
 import {clone, findInFileAndReplace} from "../../../util/Util";
+import {ModelGen} from "../ModelGen";
+import {FieldType, IModelFields} from "@vesta/core";
+import {IFieldMeta} from "../FieldGen";
 
 export interface ComponentGenConfig {
     name: string;
@@ -38,6 +41,7 @@ export class ComponentGen {
     private className: string;
     private model: ModelConfig;
     private path = 'src/client/app/components/';
+    private relationalFields: IModelFields;
 
     constructor(private config: ComponentGenConfig) {
         this.path += config.path;
@@ -121,14 +125,13 @@ export class ${this.className} extends React.Component<${this.className}Props, $
         if (this.config.model) {
             let modelClassName = this.model.originalClassName;
             componentFile.addImport('{Route, Switch}', 'react-router');
-            componentFile.addImport('{IQueryResult, IUpsertResult, IValidationError}', genRelativePath(this.path, 'src/client/app/medium'));
+            componentFile.addImport('{IValidationError}', genRelativePath(this.path, 'src/client/app/medium'));
             componentFile.addImport('{DynamicRouter}', genRelativePath(this.path, 'src/client/app/medium'));
             componentFile.addImport('{PageTitle}', genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
             componentFile.addImport('{Preloader}', genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
             componentFile.addImport('{CrudMenu}', genRelativePath(this.path, 'src/client/app/components/general/CrudMenu'));
             let modelImportStatement = modelClassName == this.className ? `${modelClassName} as ${this.model.className}` : this.model.className;
             componentFile.addImport(`{I${modelClassName}, ${modelImportStatement}}`, genRelativePath(this.path, this.model.file));
-            componentFile.addImport('{Util}', genRelativePath(this.path, 'src/client/app/util/Util'));
             let instanceName = camelCase(this.className);
             componentFile.addImport(`{${modelClassName}Add}`, `./${instanceName}/${modelClassName}Add`);
             componentFile.addImport(`{${modelClassName}Edit}`, `./${instanceName}/${modelClassName}Edit`);
@@ -146,9 +149,14 @@ export class ${this.className} extends React.Component<${this.className}Props, $
         let stateInterface = componentFile.addInterface(`${this.className}State`);
         stateInterface.setParentClass(`PageComponentState`);
         if (this.config.model) {
-            stateInterface.addProperty({name: this.model.instanceName, type: this.model.interfaceName});
             stateInterface.addProperty({name: 'showLoader', type: 'boolean'});
             stateInterface.addProperty({name: 'validationErrors', type: 'IValidationError'});
+        }
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                let metaInfo = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                stateInterface.addProperty({name: plural(fieldNames[i]), type: `Array<I${metaInfo.relation.model}>`});
+            }
         }
         // component class
         let componentClass = componentFile.addClass(this.className);
@@ -179,97 +187,126 @@ export class ${this.className} extends React.Component<${this.className}Props, $
     private addCrudParentComponentMethods(componentFile: TsFileGen, componentClass: ClassGen) {
         let stateName = camelCase(this.className);
         // constructor method
+        let extStates = [];
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                extStates.push(`${plural(fieldNames[i])}: []`);
+            }
+        }
+        let extStatesCode = extStates.length ? `, ${extStates.join(', ')}` : '';
         componentClass.getConstructor().setContent(`super(props);
-        this.state = {validationErrors: null, showLoader: false, ${this.model.instanceName}: {}};`);
+        this.state = {validationErrors: null, showLoader: false${extStatesCode}};`);
+        // fetching relation on component did mount
+        let extraProps = [];
+        let fetchCallers = [];
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                fetchCallers.push(`this.fetch${pascalCase(plural(fieldNames[i]))}();`);
+                extraProps.push(`${fieldNames[i]}: this.state.${plural(fieldNames[i])}`);
+                componentFile.addImport(`{I${pascalCase(fieldNames[i])}}`, genRelativePath(this.path, `src/client/app/cmn/models/${pascalCase(fieldNames[i])}`));
+            }
+            componentClass.addMethod('componentDidMount').setContent(`this.setState({showLoader: true});
+        ${fetchCallers.join(';\n\t\t')}`);
+        }
+        let extraPropsCode = `,\n\t\t\t\t\t\t\t${extraProps.join('\n\t\t\t\t\t\t\t')}`;
         // fetch method
         let fetchMethod = componentClass.addMethod(`fetch`);
         fetchMethod.setAsArrowFunction(true);
         fetchMethod.addParameter({name: 'id', type: 'number'});
         let model = this.model;
         fetchMethod.setContent(`this.setState({showLoader: true});
-        return this.api.get<IQueryResult<${model.interfaceName}>>(\`${stateName}/\${id}\`)
+        return this.api.get<${model.interfaceName}>(\`${stateName}/\${id}\`)
             .then(response => {
-                this.setState({showLoader: false, ${this.model.instanceName}: response.items[0]});
+                this.setState({showLoader: false});
                 return response.items[0];
             })
             .catch(error => {
-                this.notification.error(error.message);
                 this.setState({showLoader: false});
+                this.notif.error(error.message);
             })`);
         // fetchAll method
         let fetchAllMethod = componentClass.addMethod(`fetchAll`);
         fetchAllMethod.setAsArrowFunction(true);
         fetchAllMethod.setContent(`this.setState({showLoader: true});
-        return this.api.get<IQueryResult<${model.interfaceName}>>('${stateName}')
+        return this.api.get<${model.interfaceName}>('${stateName}')
             .then(response => {
                 this.setState({showLoader: false});
                 return response.items;
             })
             .catch(error => {
-                this.notification.error(error.message);
                 this.setState({showLoader: false});
+                this.notif.error(error.message);
             })`);
         // save method
         let saveMethod = componentClass.addMethod(`save`);
-        saveMethod.addParameter({name: 'isUpdate', type: 'boolean', isOptional: true});
         saveMethod.setAsArrowFunction(true);
-        saveMethod.setContent(`let ${model.instanceName} = new ${model.className}(this.state.${model.instanceName});
+        saveMethod.addParameter({name: 'model', type: model.interfaceName});
+        saveMethod.setContent(`let ${model.instanceName} = new ${model.className}(model);
+        const saveType = ${model.instanceName}.id ? 'update' : 'add';
         let validationResult = ${model.instanceName}.validate();
         if (validationResult) {
             return this.setState({validationErrors: validationResult});
         }
         this.setState({showLoader: true});
-        this.api.post<IUpsertResult<${model.interfaceName}>>('${model.instanceName}', JSON.stringify(${model.instanceName}.getValues<${model.interfaceName}>()))
+        let data = ${model.instanceName}.getValues<${model.interfaceName}>();
+        (model.id ? this.api.put<${model.interfaceName}>('${model.instanceName}', data) : this.api.post<${model.interfaceName}>('${model.instanceName}', data))
             .then(response => {
-                this.notification.success(\`Record #\${response.items[0].id} has been added successfully\`);
-                this.props.history.goBack();
                 this.setState({showLoader: false});
+                this.notif.success(this.tr.translate(\`info_\${saveType}_record\`, \`\${response.items[0].id}\`));
+                this.props.history.goBack();
             })
             .catch(error => {
-                this.notification.error(error.message);
-                this.setState({validationErrors: error.validation, showLoader: false});
+                this.setState({showLoader: false, validationErrors: error.validation});
+                this.notif.error(error.message);
             });`);
-        // onChange method
-        let onChange = componentClass.addMethod('onChange');
-        onChange.setAsArrowFunction(true);
-        onChange.addParameter({name: 'name', type: 'string'});
-        onChange.addParameter({name: 'value', type: 'any'});
-        onChange.setContent(`let ${model.instanceName} = Util.shallowClone(this.state.${model.instanceName});
-        ${model.instanceName}[name] = value;
-        this.setState({${model.instanceName}});`);
+        // fetch functions for relations
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                let method = componentClass.addMethod(`fetch${pascalCase(plural(fieldNames[i]))}`);
+                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                let modelName = meta.relation.model;
+                let instanceName = camelCase(modelName);
+                method.setAsArrowFunction(true);
+                method.setContent(`this.setState({showLoader: true});
+        this.api.get<I${this.className}>('${instanceName}')
+            .then(response => {
+                this.setState({showLoader: false, ${plural(instanceName)}: response.items});
+            })
+            .catch(error => {
+                this.setState({showLoader: false});
+                this.notif.error(error.message);
+            })`);
+            }
+        }
         // render method
         let modelClassName = this.model.originalClassName;
-        (componentClass.addMethod('render')).setContent(`const ${model.instanceName}Id = this.state.${model.instanceName} ? this.state.${model.instanceName}.id : 0;
+        (componentClass.addMethod('render')).setContent(`const tr = this.tr.translate;
         return (
             <div className="page ${stateName}-component">
-                <PageTitle title="${this.className}"/>
-                <h1>${this.className}</h1>
+                <PageTitle title={tr('mdl_${this.className.toLowerCase()}')}/>
+                <h1>{tr('mdl_${this.className.toLowerCase()}')}</h1>
                 <Preloader options={{show: this.state.showLoader}}/>
-                <CrudMenu path="${stateName}" id={${model.instanceName}Id}/>
+                <CrudMenu path="${stateName}"/>
                 <DynamicRouter>
                     <Switch>
                         <Route path="/${stateName}/add" render={this.tz.willTransitionTo(${modelClassName}Add, {${stateName}: ['add']},{
-                            ${model.instanceName}: this.state.${model.instanceName},
                             save: this.save,
-                            onChange: this.onChange,
-                            validationErrors: this.state.validationErrors
+                            validationErrors: this.state.validationErrors${extraPropsCode}
                         })}/>
                         <Route path="/${stateName}/edit/:id" render={this.tz.willTransitionTo(${modelClassName}Edit, {${stateName}: ['edit']}, {
-                            ${model.instanceName}: this.state.${model.instanceName},
                             save: this.save,
                             fetch: this.fetch,
-                            onChange: this.onChange,
-                            validationErrors: this.state.validationErrors
+                            validationErrors: this.state.validationErrors${extraPropsCode}
                         })}/>
                         <Route path="/${stateName}/detail/:id" render={this.tz.willTransitionTo(${modelClassName}Detail, {${stateName}: ['read']}, {
-                            ${model.instanceName}: this.state.${model.instanceName},
-                            fetch: this.fetch
+                            fetch: this.fetch${extraPropsCode}
                         })}/>
-                        <Route render={this.tz.willTransitionTo(${modelClassName}List, {${stateName}: ['read']}, {fetch: this.fetchAll})}/>
+                        <Route render={this.tz.willTransitionTo(${modelClassName}List, {${stateName}: ['read']}, {
+                            fetch: this.fetchAll
+                        })}/>
                     </Switch>
                 </DynamicRouter>
-            </div>
-        );`);
+            </div>);`);
         writeFileSync(`${this.path}/${this.className}.tsx`, componentFile.generate());
     }
 
@@ -294,6 +331,7 @@ export class ${this.className} extends React.Component<${this.className}Props, $
     public generate() {
         if (this.config.model) {
             this.model = this.parseModel();
+            this.relationalFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
             if (!this.model) return;
         }
         let code = this.config.stateless ? this.genStateless() : this.genStateful();

@@ -91,4 +91,5 @@ switch (command) {
 
 process.on('unhandledRejection', err => {
     Log.error(`\nAn unhandledRejection occurred:\n ${err.message}`);
+    // console.error(err);
 });

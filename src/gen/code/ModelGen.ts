@@ -3,7 +3,7 @@ import * as path from "path";
 import {Question} from "inquirer";
 import {ClassGen} from "../core/ClassGen";
 import {Vesta} from "../file/Vesta";
-import {FieldGen as FieldGen} from "./FieldGen";
+import {FieldGen as FieldGen, IFieldMeta} from "./FieldGen";
 import {TsFileGen} from "../core/TSFileGen";
 import {InterfaceGen} from "../core/InterfaceGen";
 import {Log} from "../../util/Log";
@@ -13,6 +13,7 @@ import {ArgParser} from "../../util/ArgParser";
 import {camelCase, pascalCase} from "../../util/StringUtil";
 import {mkdir, unixPath, writeFile} from "../../util/FsUtil";
 import {ask} from "../../util/Util";
+import {execSync} from "child_process";
 
 export interface ModelGenConfig {
     name: string;
@@ -30,6 +31,9 @@ export class ModelGen {
     private path: string = 'src/cmn/models';
     private vesta: Vesta;
     private fields: IFields = {};
+    private static modelStorage: Array<IModel> = [];
+    private static isModelGenerated = false;
+    private static modelsMeta: { [name: string]: IFieldMeta } = {};
 
     constructor(private config: ModelGenConfig) {
         this.vesta = Vesta.getInstance();
@@ -122,7 +126,7 @@ export class ModelGen {
             this.modelInterface.addProperty(iProperty);
         }
         this.modelFile.addMixin(`${this.modelFile.name}.schema.freeze();`, TsFileGen.CodeLocation.AfterClass);
-        writeFile(path.join(this.path, this.modelFile.name + '.ts'), this.modelFile.generate());
+        writeFile(path.join(this.path, `${this.modelFile.name}.ts`), this.modelFile.generate());
     }
 
     static getModelsList(): any {
@@ -149,25 +153,40 @@ export class ModelGen {
         return models;
     }
 
+    private static compileModelAndGetPath() {
+        if (Vesta.getInstance().isApiServer) {
+            return 'vesta/server/cmn/models/';
+        }
+        // running gulp model:ts to compile model files
+        if (!ModelGen.isModelGenerated) {
+            execSync(`node_modules/.bin/gulp model:ts`, {stdio: 'inherit'});
+            ModelGen.isModelGenerated = true;
+        }
+        return 'vesta/tmp/cmn/model/models';
+    }
+
     /**
      *
      * @param modelName this might also contains the path to the model
      * @returns {Model}
      */
     static getModel(modelName: string): IModel {
-        let possiblePath = ['vesta/server/cmn/models/', 'vesta/tmp/client/app/cmn/models/'];
+        let possiblePath = ModelGen.compileModelAndGetPath();
+        if (ModelGen.modelStorage[modelName]) {
+            return ModelGen.modelStorage[modelName];
+        }
         let pathToModel = `${modelName}.js`;
         let className = ModelGen.extractModelName(pathToModel);
-        for (let i = possiblePath.length; i--;) {
-            let modelFile = path.join(process.cwd(), possiblePath[i], pathToModel);
-            if (fs.existsSync(modelFile)) {
-                let module = require(modelFile);
-                if (module[className]) {
-                    return module[className];
-                }
+        let modelFile = path.join(process.cwd(), possiblePath, pathToModel);
+        if (fs.existsSync(modelFile)) {
+            let module = require(modelFile);
+            if (module[className]) {
+                // caching model
+                ModelGen.modelStorage[modelName] = module[className];
+                return module[className];
             }
         }
-        console.error(`${modelName} was not found. Please make sure your Gulp task is running!`);
+        Log.error(`${modelName} was not found. Please make sure your Gulp task is running!`);
         return null;
     }
 
@@ -206,6 +225,27 @@ export class ModelGen {
             }
         }
         return candidate;
+    }
+
+    static getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
+        let key = `${modelName}-${fieldName}`;
+        if (!ModelGen.modelsMeta[key]) {
+            let tsModelFile = `src${Vesta.getInstance().isApiServer ? '' : '/client/app'}/cmn/models/${modelName}.ts`;
+            const content = fs.readFileSync(tsModelFile, 'utf8');
+            let regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, 'i');
+            const json = content.match(regExp);
+            if (json) {
+                try {
+                    ModelGen.modelsMeta[key] = JSON.parse(json[1]);
+                } catch (e) {
+                    Log.error(`Error parsing model meta for '${modelName}'\n${json[1]}\n`);
+                    ModelGen.modelsMeta[key] = {};
+                }
+            } else {
+                ModelGen.modelsMeta[key] = {};
+            }
+        }
+        return ModelGen.modelsMeta[key];
     }
 
     public static init(): ModelGenConfig {

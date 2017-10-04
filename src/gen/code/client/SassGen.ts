@@ -1,10 +1,10 @@
 import * as path from "path";
-import {Placeholder} from "../core/Placeholder";
-import {Log} from "../../util/Log";
-import {ArgParser} from "../../util/ArgParser";
-import {camelCase} from "../../util/StringUtil";
-import {mkdir, writeFile} from "../../util/FsUtil";
-import {findInFileAndReplace} from "../../util/Util";
+import {Placeholder} from "../../core/Placeholder";
+import {Log} from "../../../util/Log";
+import {ArgParser} from "../../../util/ArgParser";
+import {camelCase} from "../../../util/StringUtil";
+import {mkdir, writeFile} from "../../../util/FsUtil";
+import {findInFileAndReplace} from "../../../util/Util";
 
 export interface SassGenConfig {
     name: string;
