@@ -159,7 +159,7 @@ export class ModelGen {
         }
         // running gulp model:ts to compile model files
         if (!ModelGen.isModelGenerated) {
-            execSync(`node_modules/.bin/gulp model:ts`, {stdio: 'inherit'});
+            execSync(`"node_modules/.bin/gulp" model:ts`, {stdio: 'inherit'});
             ModelGen.isModelGenerated = true;
         }
         return 'vesta/tmp/cmn/model/models';

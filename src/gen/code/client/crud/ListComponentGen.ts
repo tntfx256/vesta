@@ -36,16 +36,24 @@ export class ListComponentGen {
         listFile.addImport('{Link}', 'react-router-dom');
         listFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
         listFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
-        listFile.addImport('{Column, DataTable, DataTableOption}', genRelativePath(path, 'src/client/app/components/general/DataTable'));
+        listFile.addImport('{Column, DataTable, IDataTableQueryOption}', genRelativePath(path, 'src/client/app/components/general/DataTable'));
         listFile.addImport('{IDeleteResult}', genRelativePath(path, 'src/client/app/medium'));
-        listFile.addImport('{AuthService}', genRelativePath(path, 'src/client/app/service/AuthService'));
-        listFile.addImport('{AclAction}', genRelativePath(path, 'src/client/app/cmn/enum/Acl'));
+        listFile.addImport('{IAccess}', genRelativePath(path, 'src/client/app/service/AuthService'));
         // params
         listFile.addInterface(`${this.className}Params`);
         let listProps = listFile.addInterface(`${this.className}Props`);
         // props
         listProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        listProps.addProperty({name: 'fetch', type: `() => Promise<Array<I${model.originalClassName}>>`});
+        listProps.addProperty({name: pluralModel, type: `Array<${model.interfaceName}>`});
+        listProps.addProperty({name: 'access', type: 'IAccess'});
+        listProps.addProperty({
+            name: 'fetch',
+            type: `(queryOption: IDataTableQueryOption<${model.interfaceName}>) => void`
+        });
+        listProps.addProperty({
+            name: 'queryOption',
+            type: `IDataTableQueryOption<${model.interfaceName}>`
+        });
         // state
         let listState = listFile.addInterface(`${this.className}State`);
         listState.setParentClass('PageComponentState');
@@ -53,45 +61,45 @@ export class ListComponentGen {
         // class
         let listClass = listFile.addClass(this.className);
         listClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
-        listClass.addProperty({name: 'delAccess', type: 'boolean', access: 'private', defaultValue: 'false'});
         // constructor
         listClass.setConstructor();
         listClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
         listClass.getConstructor().setContent(`super(props);
-        this.state = {${pluralModel}: []};
-        this.delAccess = AuthService.getInstance().isAllowed('${model.instanceName}', AclAction.Delete);`);
+        this.state = {${pluralModel}: []};`);
         // fetch
-        listClass.addMethod('componentDidMount').setContent(`this.props.fetch().then(${pluralModel} => this.setState({${pluralModel}}));`);
+        listClass.addMethod('componentDidMount').setContent(`this.props.fetch(this.props.queryOption);`);
         // delete action
         let delMethod = listClass.addMethod('del');
         delMethod.addParameter({name: 'e'});
         delMethod.setAsArrowFunction(true);
         delMethod.setContent(`e.preventDefault();
         let match = e.target.href.match(/(\\d+)$/);
-        if (match) {
-            this.api.del<IDeleteResult>('${model.instanceName}', +match[0])
-                .then(response => {
-                    this.notif.success(this.tr.translate('info_delete_record', response.items[0]));
-                    this.props.fetch().then(${plural(model.instanceName)} => this.setState({${plural(model.instanceName)}}))
-                })
-        }`);
+        if (!match) return;
+        this.api.del<IDeleteResult>('${model.instanceName}', +match[0])
+            .then(response => {
+                this.notif.success(this.tr('info_delete_record', response.items[0]));
+                this.props.fetch(this.props.queryOption);
+            })
+            .catch(error => {
+                this.notif.error(this.tr(error.message));
+            })`);
         // render method
         let {column, code} = this.getColumnsData(listFile);
-        listClass.addMethod('render').setContent(`const tr = this.tr.translate;${code}
-        const dtOptions: DataTableOption<I${model.originalClassName}> = {
-            showIndex: true
-        };
+        listClass.addMethod('render').setContent(`const access = this.props.access;${code}
         const columns: Array<Column<I${model.originalClassName}>> = [${column}
             {
                 title: 'Operations', render: r => <span className="dt-operation-cell">
                 <Link to={\`/${stateName}/detail/\${r.id}\`}>View</Link>
-                <Link to={\`/${stateName}/edit/\${r.id}\`}>Edit</Link>
-                {this.delAccess ? <Link to={\`/${model.instanceName}/del/\${r.id}\`} onClick={this.del}>Del</Link> : null}</span>
+                {access.edit ? <Link to={\`/${stateName}/edit/\${r.id}\`}>Edit</Link> : null}
+                {access.del ? <Link to={\`/${model.instanceName}/del/\${r.id}\`} onClick={this.del}>Del</Link> : null}</span>
             }
         ];
-        return <div className="page commandList-component">
-            <DataTable option={dtOptions} columns={columns} records={this.state.${pluralModel}}/>
-        </div>`);
+        return (
+            <div className="crud-page">
+                <DataTable queryOption={this.props.queryOption} columns={columns} records={this.props.${pluralModel}}
+                           fetch={this.props.fetch} pagination={true}/>
+            </div>
+        )`);
         return listFile.generate();
         // <h1>${plural(model.originalClassName)}'s List</h1>
     }
@@ -144,20 +152,20 @@ export class ListComponentGen {
             case FieldType.Timestamp:
                 break;
             case FieldType.Boolean:
-                render = `tr(r.${fieldName} ? 'yes' : 'no')`;
+                render = `this.tr(r.${fieldName} ? 'yes' : 'no')`;
                 break;
             case FieldType.Enum:
                 if (modelMeta.enum) {
                     let enumName = camelCase(modelMeta.enum.options[0].split('.')[0]) + 'Options';
-                    let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: tr('enum_${option.split('.')[1].toLowerCase()}')`);
+                    let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split('.')[1].toLowerCase()}')`);
                     code = `const ${enumName} = {${options.join(', ')}};`;
-                    render = `tr(\`enum_\${${enumName}[r.${fieldName}]}\`)`;
+                    render = `this.tr(\`\${${enumName}[r.${fieldName}]}\`)`;
                 }
                 break;
         }
         if (hasValue) {
             render = render ? `, render: r => ${render}` : '';
-            column += `{name: '${fieldName}', title: tr('fld_${fieldName}')${render}}`;
+            column += `{name: '${fieldName}', title: this.tr('fld_${fieldName}')${render}}`;
         }
         return {column, code};
     }

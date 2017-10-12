@@ -5,6 +5,9 @@ import {ExpressControllerGen} from "../gen/code/server/ExpressControllerGen";
 import {ComponentGen} from "../gen/code/client/ComponentGen";
 import {ArgParser} from "../util/ArgParser";
 import {ServiceGen} from "../gen/code/client/ServiceGen";
+import {Vesta} from "../gen/file/Vesta";
+import {pascalCase} from "../util/StringUtil";
+import {FormGen} from "../gen/code/client/FormGen";
 
 export class Gen {
 
@@ -18,6 +21,14 @@ export class Gen {
     }
 
     private static generate(type: string) {
+        if (['controller'].indexOf(type) >= 0 && !Vesta.getInstance().isApiServer) {
+            Log.error('Controller generator is not supported on Client side applications');
+            return;
+        }
+        if (['sass', 'component', 'service', 'form'].indexOf(type) >= 0 && Vesta.getInstance().isApiServer) {
+            Log.error(`${pascalCase(type)} generator is not supported on Api applications`);
+            return;
+        }
         switch (type) {
             case 'controller':
                 ExpressControllerGen.init();
@@ -30,6 +41,9 @@ export class Gen {
                 break;
             case 'component':
                 ComponentGen.init();
+                break;
+            case 'form':
+                FormGen.init();
                 break;
             case 'service':
                 ServiceGen.init();
@@ -51,6 +65,9 @@ export class Gen {
                 break;
             case 'component':
                 ComponentGen.help();
+                break;
+            case 'form':
+                FormGen.help();
                 break;
             default:
                 Log.error(`Invalid generator option ${type}\n`);

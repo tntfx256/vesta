@@ -164,16 +164,16 @@ export class MethodGen {
         }
         // not a constructor
         let st = this.isStaticMethod ? ' static' : '';
-        st = this.isAsync ? `${st} async` : st;
+        let async = this.isAsync ? ` async` : '';
         if (this.isAbstract) {
             return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};\n`;
         }
         let content = this.content ? `
         ${this.content}` : '';
         return this.isArrow ?
-            `    ${this.accessType}${st} ${this.name} = (${parametersCode})${this.returnType} => {${content}
+            `    ${this.accessType}${st} ${this.name} =${async} (${parametersCode})${this.returnType} => {${content}
     }\n` :
-            `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType} {${content}
+            `    ${this.accessType}${async}${st} ${this.name}(${parametersCode})${this.returnType} {${content}
     }\n`;
     }
 

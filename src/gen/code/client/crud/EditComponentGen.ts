@@ -2,7 +2,9 @@ import * as fs from "fs";
 import {CrudComponentGenConfig} from "../ComponentGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {camelCase} from "../../../../util/StringUtil";
+import {camelCase, strRepeat} from "../../../../util/StringUtil";
+import {ModelGen} from "../../ModelGen";
+import {FieldType} from "@vesta/core";
 
 export class EditComponentGen {
     private className: string;
@@ -41,9 +43,25 @@ export class EditComponentGen {
         // class
         let editClass = editFile.addClass(this.className);
         editClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        editClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
+        editClass.getConstructor().setContent(`super(props);
+        this.state = {${model.instanceName}: {}};`);
         // fetch
+        // files
+        let files = Object.keys(ModelGen.getFieldsByType(this.config.model, FieldType.File));
+        let finalCode = `this.setState({${model.instanceName}});`;
+        let filesCode = [];
+        for (let i = files.length; i--;) {
+            filesCode.push(`${model.instanceName}.${files[i]} = this.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);`);
+        }
+        if (filesCode) {
+            finalCode = `{
+                ${filesCode.join('\n\t\t\t\t')}
+                ${finalCode}
+            }`;
+        }
         editClass.addMethod('componentDidMount').setContent(`this.props.fetch(+this.props.match.params.id)
-            .then(${model.instanceName} => this.setState({${model.instanceName}}));`);
+            .then(${model.instanceName} => ${finalCode});`);
         // onChange method
         let onChange = editClass.addMethod('onChange');
         onChange.setAsArrowFunction(true);
@@ -51,21 +69,28 @@ export class EditComponentGen {
         onChange.addParameter({name: 'value', type: 'any'});
         onChange.setContent(`this.state.${model.instanceName}[name] = value;
         this.setState({${model.instanceName}: this.state.${model.instanceName}});`);
+        // onSubmit method
+        let onSubmit = editClass.addMethod('onSubmit');
+        onSubmit.setAsArrowFunction(true);
+        onSubmit.addParameter({name: 'e', type: 'Event'});
+        onSubmit.setContent(`this.props.save(this.state.${model.instanceName});`);
         // render method
         editClass.addMethod('render').setContent(`let ${model.instanceName} = this.state.${model.instanceName} || {};
-        return <div className="page ${model.instanceName}Form-component">
-            <h1>Editing ${model.originalClassName} #{this.props.match.params.id}</h1>
-            <div className="form-wrapper">
-                <FormWrapper name="${model.instanceName}EditForm" onSubmit={this.props.save}>
-                    <${formClassName} validationErrors={this.props.validationErrors} ${model.instanceName}={${model.instanceName}}
-                               onChange={this.onChange}/>
-                    <div className="btn-group">
-                        <button className="btn btn-primary" type="submit">Save ${model.originalClassName}</button>
-                        <button className="btn" type="button" onClick={this.props.history.goBack}>Cancel</button>
-                    </div>
-                </FormWrapper>
+        return (
+            <div className="crud-page">
+                <h1>{this.tr('title_record_edit', this.tr('mdl_${model.originalClassName.toLowerCase()}'), \`\${this.props.match.params.id}\`)}</h1>
+                <div className="form-wrapper">
+                    <FormWrapper onSubmit={this.onSubmit}>
+                        <${formClassName} ${model.instanceName}={${model.instanceName}} onChange={this.onChange}
+                         ${strRepeat(' ', formClassName.length)} errors={this.props.validationErrors}/>
+                        <div className="btn-group">
+                            <button className="btn btn-primary" type="submit">Save ${model.originalClassName}</button>
+                            <button className="btn" type="button" onClick={this.props.history.goBack}>Cancel</button>
+                        </div>
+                    </FormWrapper>
+                </div>
             </div>
-        </div>`);
+        )`);
         return editFile.generate();
     }
 

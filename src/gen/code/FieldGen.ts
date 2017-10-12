@@ -125,7 +125,7 @@ export class FieldGen {
                     this.properties.relation = {type: answers.relationType, model: answers.relatedModel};
                     break;
                 case 'list':
-                    this.properties.list = this.getFieldType(<string>answers.list);
+                    this.properties.list = this.getFieldType(answers.list);
                     break;
                 case 'showInList':
                     if (!answers.showInList) this.metaInfo.list = false;

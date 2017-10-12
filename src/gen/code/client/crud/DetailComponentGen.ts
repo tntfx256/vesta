@@ -2,7 +2,7 @@ import * as fs from "fs";
 import {CrudComponentGenConfig} from "../ComponentGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {camelCase, fcUpper} from "../../../../util/StringUtil";
+import {camelCase, fcUpper, pascalCase} from "../../../../util/StringUtil";
 import {Field, FieldType, IFieldProperties, RelationType, Schema} from "@vesta/core";
 import {Log} from "../../../../util/Log";
 import {ModelGen} from "../../ModelGen";
@@ -45,27 +45,30 @@ export class DetailComponentGen {
         // class
         let detailClass = detailFile.addClass(this.className);
         detailClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        detailClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
+        detailClass.getConstructor().setContent(`super(props);
+        this.state = {${model.instanceName}: {}};`);
         // fetch
         detailClass.addMethod('componentDidMount').setContent(`this.props.fetch(+this.props.match.params.id)
             .then(${model.instanceName} => this.setState({${model.instanceName}}));`);
         const {field, code} = this.getDetailsData(detailFile);
         // render method
-        detailClass.addMethod('render').setContent(`let ${model.instanceName} = this.props.${model.instanceName};
-        if (!${model.instanceName}) return null;
-        const tr = this.tr.translate;${code}
+        detailClass.addMethod('render').setContent(`const ${model.instanceName} = this.props.${model.instanceName};
+        if (!${model.instanceName}) return null;${code}
         return (
-            <div className="page ${model.instanceName}Detail-component">
-                <table className="spec-table">
+            <div className="crud-page">
+                <table className="details-table">
                     <thead>
                     <tr>
-                        <th colSpan={2}>${model.originalClassName} #{${model.instanceName}.id}</th>
+                        <th colSpan={2}>{this.tr('title_record_detail', this.tr('mdl_${model.originalClassName.toLowerCase()}'), ${model.instanceName}.id)}</th>
                     </tr>
                     </thead>
                     <tbody>
                     ${field}
                     </tbody>
                 </table>
-            </div>);`);
+            </div>
+        )`);
         return detailFile.generate();
     }
 
@@ -85,7 +88,7 @@ export class DetailComponentGen {
             }
         }
         return {
-            field: columns.length ? columns.join('\n\t\t\t\t') : '',
+            field: columns.length ? columns.join('\n\t\t\t\t\t') : '',
             code: codes.length ? `\n\t\t${codes.join('\n\t\t')}` : ''
         };
     }
@@ -104,7 +107,6 @@ export class DetailComponentGen {
         switch (props.type) {
             case FieldType.String:
             case FieldType.Text:
-            case FieldType.Password:
             case FieldType.Tel:
             case FieldType.EMail:
             case FieldType.URL:
@@ -113,19 +115,22 @@ export class DetailComponentGen {
             case FieldType.Float:
                 value = `${instanceName}.${fieldName}`;
                 break;
+            case FieldType.Password:
+                break;
             case FieldType.File:
+                code = `const ${instanceName}${pascalCase(fieldName)} = this.getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
+                value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
                 break;
             case FieldType.Timestamp:
                 break;
             case FieldType.Boolean:
-                value = `tr(r.${fieldName} ? 'yes' : 'no')`;
+                value = `this.tr(${instanceName}.${fieldName} ? 'yes' : 'no')`;
                 break;
             case FieldType.Enum:
-                imports.push('FormSelect');
                 if (modelMeta.enum) {
                     if (modelMeta.enum) {
                         let enumName = camelCase(modelMeta.enum.options[0].split('.')[0]) + 'Options';
-                        let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: tr('enum_${option.split('.')[1].toLowerCase()}')`);
+                        let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split('.')[1].toLowerCase()}')`);
                         code = `const ${enumName} = {${options.join(', ')}};`;
                         value = `${enumName}[${instanceName}.${fieldName}]`;
                     }
@@ -151,7 +156,7 @@ export class DetailComponentGen {
                 Log.error(`Unknown field type for ${fieldName} of type ${props.type}`)
         }
         if (value) {
-            details = `<tr>\n\t\t\t\t\t\t<td>{tr('fld_${fieldName.toLowerCase()}')}</td>\n\t\t\t\t\t\t<td>{${value}}</td>\n\t\t\t\t\t</tr>`;
+            details = `<tr>\n\t\t\t\t\t\t<td>{this.tr('fld_${fieldName.toLowerCase()}')}</td>\n\t\t\t\t\t\t<td>{${value}}</td>\n\t\t\t\t\t</tr>`;
         }
         return {field: details, code}
     }

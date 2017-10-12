@@ -53,3 +53,11 @@ export function plural(name: string): string {
     }
     return name + 's';
 }
+
+export function strRepeat(str: string, times: number): string {
+    let v = "";
+    for (let i = 0; i < times; i++) {
+        v += str;
+    }
+    return v;
+}

@@ -52,7 +52,7 @@ export class ExpressControllerGen {
         if (this.filesFields) {
             this.controllerFile.addImport('* as path', 'path');
         }
-        this.controllerFile.addImport('{Response, Router, NextFunction}', 'express');
+        this.controllerFile.addImport('{NextFunction, Response, Router}', 'express');
         this.controllerFile.addImport('{BaseController, IExtRequest}', genRelativePath(this.path, 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
@@ -151,7 +151,7 @@ export class ExpressControllerGen {
 
     private getQueryCodeForSingleInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let relationFields = this.relationsFields ? `, ['${Object.keys(this.relationsFields).join(', ')}']` : '';
+        let relationFields = this.relationsFields ? `, {relations: ['${Object.keys(this.relationsFields).join(', ')}']}` : '';
         return `let id = +req.params.id;
         if (isNaN(id)) {
             throw new ValidationError({id: 'number'});
@@ -252,7 +252,7 @@ export class ExpressControllerGen {
             throw new ValidationError({id: 'number'});
         }
         let ${modelInstanceName}: ${modelName};
-        let destDirectory = path.join(this.setting.dir.upload, '${modelInstanceName}');
+        let destDirectory = path.join(this.config.dir.upload, '${modelInstanceName}');
         let result = await ${modelName}.find<I${modelName}>(id);
         if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
         ${modelInstanceName} = new ${modelName}(result.items[0]);

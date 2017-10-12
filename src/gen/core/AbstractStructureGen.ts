@@ -33,6 +33,9 @@ export abstract class AbstractStructureGen {
     }
 
     public getConstructor(): MethodGen {
+        if (!this.constructorMethod) {
+            this.setConstructor();
+        }
         return this.constructorMethod;
     }
 
