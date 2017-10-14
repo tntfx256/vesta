@@ -29,7 +29,7 @@ export class EditComponentGen {
         editFile.addImport(`{${formClassName}}`, `./${formClassName}`);
         editFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
-        editFile.addInterface(`${this.className}Params`);
+        editFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
         // props
         let editProps = editFile.addInterface(`${this.className}Props`);
         editProps.setParentClass(`PageComponentProps<${this.className}Params>`);
@@ -60,11 +60,12 @@ export class EditComponentGen {
         let editClass = editFile.addClass(this.className);
         editClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
         // render method
-        editClass.addMethod('render').setContent(`let {save, validationErrors${extPropsCode}} = this.props;
+        editClass.addMethod('render').setContent(`let {save, fetch, validationErrors${extPropsCode}} = this.props;
+        const id = +this.props.match.params.id;
         return (
             <div className="crud-page">
                 <h1>{this.tr('title_record_edit', this.tr('mdl_${model.originalClassName.toLowerCase()}'))}</h1>
-                <${formClassName} save={save} validationErrors={validationErrors}${extPassedPropsCode}>
+                <${formClassName} id={id} fetch={fetch} save={save} validationErrors={validationErrors}${extPassedPropsCode}>
                     <div className="btn-group">
                         <button className="btn btn-primary" type="submit">{this.tr('save')}</button>
                         <button className="btn" type="button" onClick={this.props.history.goBack}>{this.tr('cancel')}</button>

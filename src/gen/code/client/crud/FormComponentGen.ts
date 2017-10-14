@@ -42,11 +42,11 @@ export class FormComponentGen {
         formFile.addImport(`{FormWrapper${otherImports}}`, genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
         formFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
-        formFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
+        formFile.addInterface(`${this.className}Params`);
         // props
         let formProps = formFile.addInterface(`${this.className}Props`);
         formProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        formProps.addProperty({name: model.instanceName, type: model.interfaceName, isOptional: true});
+        formProps.addProperty({name: 'id', type: 'number', isOptional: true});
         formProps.addProperty({name: 'fetch', type: `FetchById<${model.interfaceName}>`, isOptional: true});
         formProps.addProperty({name: 'save', type: `Save<${model.interfaceName}>`});
         formProps.addProperty({name: 'validationErrors', type: 'IValidationError'});
@@ -71,11 +71,14 @@ export class FormComponentGen {
         formClass.getConstructor().setContent(`super(props);
         this.state = {${model.instanceName}: {}};`);
         // fetch [componentDidMount]
-        let files = Object.keys(ModelGen.getFieldsByType(this.config.model, FieldType.File));
+        let fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        let files = fileFields ? Object.keys(fileFields) : [];
         let finalCode = `this.setState({${model.instanceName}});`;
         let filesCode = [];
         for (let i = files.length; i--;) {
-            filesCode.push(`${model.instanceName}.${files[i]} = this.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);`);
+            filesCode.push(`if (${model.instanceName}.${files[i]}) {
+                    ${model.instanceName}.${files[i]} = this.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);
+                }`);
         }
         if (filesCode) {
             finalCode = `{
@@ -83,8 +86,7 @@ export class FormComponentGen {
                 ${finalCode}
             }`;
         }
-        formClass.addMethod('componentDidMount').setContent(`const id = +this.props.match.params.id;
-        if (isNaN(id)) return;
+        formClass.addMethod('componentDidMount').setContent(`const id = +this.props.id;
         this.props.fetch(id)
             .then(${model.instanceName} => ${finalCode});`);
         // onChange method
@@ -110,6 +112,7 @@ export class FormComponentGen {
         let ${model.instanceName} = this.state.${model.instanceName};
         return (
             <FormWrapper name="${model.instanceName}Form" onSubmit={this.onSubmit}>${formData.form}
+                {this.props.children}
             </FormWrapper>
         )`);
         return formFile.generate();

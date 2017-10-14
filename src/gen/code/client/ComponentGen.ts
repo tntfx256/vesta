@@ -286,7 +286,7 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         let fetchAllMethod = componentClass.addMethod(`fetchAll`);
         fetchAllMethod.setAsArrowFunction(true);
         fetchAllMethod.addParameter({name: 'queryOption', type: `IDataTableQueryOption<${this.model.interfaceName}>`});
-        fetchAllMethod.setContent(`this.setState({showLoader: true});
+        fetchAllMethod.setContent(`this.setState({showLoader: true, queryOption});
         this.fetchCount(queryOption);
         this.api.get<${model.interfaceName}>('${stateName}', queryOption)
             .then(response => {
@@ -298,7 +298,8 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
             })`);
         // save method
         // files
-        let files = Object.keys(ModelGen.getFieldsByType(this.config.model, FieldType.File));
+        let fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        let files = fileFields ? Object.keys(fileFields) : [];
         let resultCode = `this.setState({showLoader: false});
                 this.notif.success(this.tr(\`info_\${saveType}_record\`, \`\${response.items[0].id}\`));
                 this.props.history.goBack();`;
@@ -306,13 +307,17 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         let uploadCode = '';
         let uploadResultCode = '';
         if (files.length) {
-            deleteCode = `\n\t\tlet ${model.instanceName}Files: ${model.interfaceName} = {};`;
+            deleteCode = `\n\t\tlet hasFile = false;
+        let ${model.instanceName}Files: ${model.interfaceName} = {};`;
             for (let i = files.length; i--;) {
                 let fieldName = files[0];
-                deleteCode += `\n\t\t${model.instanceName}Files.${fieldName} = model.${fieldName};
-        delete model.${fieldName};`;
+                deleteCode += `\n\t\tif (${model.instanceName}.${fieldName}) {
+            ${model.instanceName}Files.${fieldName} = ${model.instanceName}.${fieldName};
+            delete ${model.instanceName}.${fieldName};
+            hasFile = true;
+        }`;
             }
-            uploadCode = `this.api.upload<${model.interfaceName}>('${model.instanceName}/file', response.items[0].id, ${model.instanceName}Files)`;
+            uploadCode = `hasFile ? this.api.upload<${model.interfaceName}>('${model.instanceName}/file', response.items[0].id, ${model.instanceName}Files): response`;
             uploadResultCode = `\n\t\t\t.then(response => {
                 ${resultCode}
             })`;
@@ -361,7 +366,7 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         }
         // render method
         let modelClassName = this.model.originalClassName;
-        (componentClass.addMethod('render')).setContent(`let {showLoader, mechanicShops, queryOption, validationErrors${extraPropsCode}} = this.state;
+        (componentClass.addMethod('render')).setContent(`let {showLoader, ${plural(model.instanceName)}, queryOption, validationErrors${extraPropsCode}} = this.state;
         return (
             <div className="page ${stateName}-page has-navbar">
                 <PageTitle title={this.tr('mdl_${this.className.toLowerCase()}')}/>

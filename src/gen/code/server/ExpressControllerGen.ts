@@ -151,7 +151,7 @@ export class ExpressControllerGen {
 
     private getQueryCodeForSingleInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        let relationFields = this.relationsFields ? `, {relations: ['${Object.keys(this.relationsFields).join(', ')}']}` : '';
+        let relationFields = this.relationsFields ? `, {relations: ['${Object.keys(this.relationsFields).join("', '")}']}` : '';
         return `let id = +req.params.id;
         if (isNaN(id)) {
             throw new ValidationError({id: 'number'});
