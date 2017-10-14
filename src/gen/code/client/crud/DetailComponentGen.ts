@@ -2,8 +2,8 @@ import * as fs from "fs";
 import {CrudComponentGenConfig} from "../ComponentGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {camelCase, fcUpper, pascalCase} from "../../../../util/StringUtil";
-import {Field, FieldType, IFieldProperties, RelationType, Schema} from "@vesta/core";
+import {camelCase, fcUpper, pascalCase, plural} from "../../../../util/StringUtil";
+import {Field, FieldType, IFieldProperties, IModelFields, RelationType, Schema} from "@vesta/core";
 import {Log} from "../../../../util/Log";
 import {ModelGen} from "../../ModelGen";
 import {IFieldMeta} from "../../FieldGen";
@@ -16,6 +16,7 @@ interface IDetailFieldData {
 export class DetailComponentGen {
     private className: string;
     private schema: Schema;
+    private relationalFields: IModelFields;
 
     constructor(private config: CrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}Detail`;
@@ -36,12 +37,24 @@ export class DetailComponentGen {
         detailFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         detailFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
+        // props
         let detailProps = detailFile.addInterface(`${this.className}Props`);
         detailProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        detailProps.addProperty({name: model.instanceName, type: model.interfaceName});
         detailProps.addProperty({name: 'fetch', type: `FetchById<${model.interfaceName}>`});
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                detailFile.addImport(`{I${meta.relation.model}}`, genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                detailProps.addProperty({
+                    name: `${plural(fieldNames[i])}`,
+                    type: `Array<I${meta.relation.model}>`
+                });
+            }
+        }
+        // state
         let detailState = detailFile.addInterface(`${this.className}State`);
         detailState.setParentClass('PageComponentState');
+        detailState.addProperty({name: model.instanceName, type: model.interfaceName});
         // class
         let detailClass = detailFile.addClass(this.className);
         detailClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
@@ -53,7 +66,7 @@ export class DetailComponentGen {
             .then(${model.instanceName} => this.setState({${model.instanceName}}));`);
         const {field, code} = this.getDetailsData(detailFile);
         // render method
-        detailClass.addMethod('render').setContent(`const ${model.instanceName} = this.props.${model.instanceName};
+        detailClass.addMethod('render').setContent(`const ${model.instanceName} = this.state.${model.instanceName};
         if (!${model.instanceName}) return null;${code}
         return (
             <div className="crud-page">
@@ -162,6 +175,7 @@ export class DetailComponentGen {
     }
 
     public generate() {
+        this.relationalFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         let code = this.genCrudDetailComponent();
         // generate file
         fs.writeFileSync(`${this.config.path}/${this.className}.tsx`, code);

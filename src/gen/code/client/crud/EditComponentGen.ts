@@ -2,12 +2,14 @@ import * as fs from "fs";
 import {CrudComponentGenConfig} from "../ComponentGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {camelCase, strRepeat} from "../../../../util/StringUtil";
+import {FieldType, IModelFields} from "@vesta/core";
+import {IFieldMeta} from "../../FieldGen";
 import {ModelGen} from "../../ModelGen";
-import {FieldType} from "@vesta/core";
+import {plural} from "../../../../util/StringUtil";
 
 export class EditComponentGen {
     private className: string;
+    private relationalFields: IModelFields;
 
     constructor(private config: CrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}Edit`;
@@ -17,84 +19,64 @@ export class EditComponentGen {
     private genCrudEditComponent() {
         let model = this.config.modelConfig;
         let path = this.config.path;
-        let stateName = camelCase(this.config.name);
         let formClassName = `${this.config.modelConfig.originalClassName}Form`;
         // ts file
         let editFile = new TsFileGen(this.className);
         // imports
         editFile.addImport('React', 'react');
         editFile.addImport('{IValidationError}', genRelativePath(path, 'src/client/app/medium'));
-        editFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
+        editFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState, Save}', genRelativePath(path, 'src/client/app/components/PageComponent'));
         editFile.addImport(`{${formClassName}}`, `./${formClassName}`);
         editFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
-        editFile.addImport(`{FormWrapper, SubmitEventHandler}`, genRelativePath(path, `src/client/app/components/general/form/FormWrapper`));
         // params
-        editFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
+        editFile.addInterface(`${this.className}Params`);
         // props
         let editProps = editFile.addInterface(`${this.className}Props`);
         editProps.setParentClass(`PageComponentProps<${this.className}Params>`);
         editProps.addProperty({name: 'fetch', type: `FetchById<${model.interfaceName}>`});
-        editProps.addProperty({name: 'save', type: 'SubmitEventHandler'});
+        editProps.addProperty({name: 'save', type: `Save<${model.interfaceName}>`});
         editProps.addProperty({name: 'validationErrors', type: 'IValidationError'});
+        let extProps = [];
+        let extPassedProps = [];
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                editFile.addImport(`{I${meta.relation.model}}`, genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                let pluralName = plural(fieldNames[i]);
+                editProps.addProperty({
+                    name: `${pluralName}`,
+                    type: `Array<I${meta.relation.model}>`
+                });
+                extProps.push(pluralName);
+                extPassedProps.push(`${pluralName}={${pluralName}}`);
+            }
+        }
+        let extPropsCode = extProps.length ? `, ${extProps.join(', ')}` : '';
+        let extPassedPropsCode = extPassedProps.length ? ` ${extPassedProps.join(' ')}` : '';
         // state
         let editState = editFile.addInterface(`${this.className}State`);
         editState.setParentClass('PageComponentState');
-        editState.addProperty({name: model.instanceName, type: model.interfaceName});
         // class
         let editClass = editFile.addClass(this.className);
         editClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
-        editClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
-        editClass.getConstructor().setContent(`super(props);
-        this.state = {${model.instanceName}: {}};`);
-        // fetch
-        // files
-        let files = Object.keys(ModelGen.getFieldsByType(this.config.model, FieldType.File));
-        let finalCode = `this.setState({${model.instanceName}});`;
-        let filesCode = [];
-        for (let i = files.length; i--;) {
-            filesCode.push(`${model.instanceName}.${files[i]} = this.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);`);
-        }
-        if (filesCode) {
-            finalCode = `{
-                ${filesCode.join('\n\t\t\t\t')}
-                ${finalCode}
-            }`;
-        }
-        editClass.addMethod('componentDidMount').setContent(`this.props.fetch(+this.props.match.params.id)
-            .then(${model.instanceName} => ${finalCode});`);
-        // onChange method
-        let onChange = editClass.addMethod('onChange');
-        onChange.setAsArrowFunction(true);
-        onChange.addParameter({name: 'name', type: 'string'});
-        onChange.addParameter({name: 'value', type: 'any'});
-        onChange.setContent(`this.state.${model.instanceName}[name] = value;
-        this.setState({${model.instanceName}: this.state.${model.instanceName}});`);
-        // onSubmit method
-        let onSubmit = editClass.addMethod('onSubmit');
-        onSubmit.setAsArrowFunction(true);
-        onSubmit.addParameter({name: 'e', type: 'Event'});
-        onSubmit.setContent(`this.props.save(this.state.${model.instanceName});`);
         // render method
-        editClass.addMethod('render').setContent(`let ${model.instanceName} = this.state.${model.instanceName} || {};
+        editClass.addMethod('render').setContent(`let {save, validationErrors${extPropsCode}} = this.props;
         return (
             <div className="crud-page">
-                <h1>{this.tr('title_record_edit', this.tr('mdl_${model.originalClassName.toLowerCase()}'), \`\${this.props.match.params.id}\`)}</h1>
-                <div className="form-wrapper">
-                    <FormWrapper onSubmit={this.onSubmit}>
-                        <${formClassName} ${model.instanceName}={${model.instanceName}} onChange={this.onChange}
-                         ${strRepeat(' ', formClassName.length)} errors={this.props.validationErrors}/>
-                        <div className="btn-group">
-                            <button className="btn btn-primary" type="submit">Save ${model.originalClassName}</button>
-                            <button className="btn" type="button" onClick={this.props.history.goBack}>Cancel</button>
-                        </div>
-                    </FormWrapper>
-                </div>
+                <h1>{this.tr('title_record_edit', this.tr('mdl_${model.originalClassName.toLowerCase()}'))}</h1>
+                <${formClassName} save={save} validationErrors={validationErrors}${extPassedPropsCode}>
+                    <div className="btn-group">
+                        <button className="btn btn-primary" type="submit">{this.tr('save')}</button>
+                        <button className="btn" type="button" onClick={this.props.history.goBack}>{this.tr('cancel')}</button>
+                    </div>
+                </${formClassName}>
             </div>
         )`);
         return editFile.generate();
     }
 
     public generate() {
+        this.relationalFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         let code = this.genCrudEditComponent();
         // generate file
         fs.writeFileSync(`${this.config.path}/${this.className}.tsx`, code);

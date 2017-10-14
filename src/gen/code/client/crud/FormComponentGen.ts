@@ -2,9 +2,9 @@ import * as fs from "fs";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
 import {ModelGen} from "../../ModelGen";
-import {Field, FieldType, IFieldProperties, RelationType, Schema} from "@vesta/core";
+import {Field, FieldType, IFieldProperties, IModelFields, RelationType, Schema} from "@vesta/core";
 import {Log} from "../../../../util/Log";
-import {camelCase, strRepeat} from "../../../../util/StringUtil";
+import {camelCase, plural, strRepeat} from "../../../../util/StringUtil";
 import {IFieldMeta} from "../../FieldGen";
 import {FormGenConfig} from "../FormGen";
 
@@ -18,6 +18,7 @@ export class FormComponentGen {
     private className: string;
     private schema: Schema;
     private writtenOnce: any = {};
+    private relationalFields: IModelFields;
 
     constructor(private config: FormGenConfig) {
         this.className = `${config.modelConfig.originalClassName}Form`;
@@ -34,37 +35,83 @@ export class FormComponentGen {
         let formFile = new TsFileGen(this.className);
         // imports
         formFile.addImport('React', 'react');
-        formFile.addImport('{PageComponentProps}', genRelativePath(path, 'src/client/app/components/PageComponent'));
+        formFile.addImport('{FetchById, PageComponent, PageComponentProps, Save}', genRelativePath(path, 'src/client/app/components/PageComponent'));
         formFile.addImport('{IValidationError}', genRelativePath(path, 'src/client/app/medium'));
         formFile.addImport('{FieldValidationMessage, ModelValidationMessage, Util}', genRelativePath(path, 'src/client/app/util/Util'));
-        formFile.addImport('{TranslateService}', genRelativePath(path, 'src/client/app/service/TranslateService'));
         let otherImports = this.hasFieldOfType(FieldType.Enum) ? ', FormOption' : '';
-        formFile.addImport(`{ChangeEventHandler${otherImports}}`, genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
+        formFile.addImport(`{FormWrapper${otherImports}}`, genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
         formFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
-        formFile.addInterface(`${this.className}Params`);
+        formFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
         // props
         let formProps = formFile.addInterface(`${this.className}Props`);
         formProps.setParentClass(`PageComponentProps<${this.className}Params>`);
         formProps.addProperty({name: model.instanceName, type: model.interfaceName, isOptional: true});
-        formProps.addProperty({name: 'onChange', type: 'ChangeEventHandler'});
-        formProps.addProperty({name: 'errors', type: 'IValidationError'});
-        // form components
+        formProps.addProperty({name: 'fetch', type: `FetchById<${model.interfaceName}>`, isOptional: true});
+        formProps.addProperty({name: 'save', type: `Save<${model.interfaceName}>`});
+        formProps.addProperty({name: 'validationErrors', type: 'IValidationError'});
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                formFile.addImport(`{I${meta.relation.model}}`, genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                formProps.addProperty({
+                    name: `${plural(fieldNames[i])}`,
+                    type: `Array<I${meta.relation.model}>`
+                });
+            }
+        }
+        // state
+        let formState = formFile.addInterface(`${this.className}State`);
+        formState.addProperty({name: model.instanceName, type: model.interfaceName});
+        // class
+        let formClass = formFile.addClass(this.className);
+        formClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        // constructor
+        formClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
+        formClass.getConstructor().setContent(`super(props);
+        this.state = {${model.instanceName}: {}};`);
+        // fetch [componentDidMount]
+        let files = Object.keys(ModelGen.getFieldsByType(this.config.model, FieldType.File));
+        let finalCode = `this.setState({${model.instanceName}});`;
+        let filesCode = [];
+        for (let i = files.length; i--;) {
+            filesCode.push(`${model.instanceName}.${files[i]} = this.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);`);
+        }
+        if (filesCode) {
+            finalCode = `{
+                ${filesCode.join('\n\t\t\t\t')}
+                ${finalCode}
+            }`;
+        }
+        formClass.addMethod('componentDidMount').setContent(`const id = +this.props.match.params.id;
+        if (isNaN(id)) return;
+        this.props.fetch(id)
+            .then(${model.instanceName} => ${finalCode});`);
+        // onChange method
+        let onChange = formClass.addMethod('onChange');
+        onChange.setAsArrowFunction(true);
+        onChange.addParameter({name: 'name', type: 'string'});
+        onChange.addParameter({name: 'value', type: 'any'});
+        onChange.setContent(`this.state.${model.instanceName}[name] = value;
+        this.setState({${model.instanceName}: this.state.${model.instanceName}});`);
+        // onSubmit method
+        let onSubmit = formClass.addMethod('onSubmit');
+        onSubmit.setAsArrowFunction(true);
+        onSubmit.addParameter({name: 'e', type: 'Event'});
+        onSubmit.setContent(`this.props.save(this.state.${model.instanceName});`);
+        // render
         let formData = this.getFormData(formFile);
         let messages = this.getValidationErrorMessages();
-        // stateless component
-        formFile.addMixin(`
-export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
-    const tr = TranslateService.getInstance().translate;
-    const formErrorsMessages: ModelValidationMessage = {${messages}};
-    const errors: FieldValidationMessage = props.errors ? Util.validationMessage(formErrorsMessages, props.errors) : {};
-    ${formData.code}
-    let ${model.instanceName} = props.${model.instanceName} || {};
-    return (
-        <div>${formData.form}
-        </div>
-    )
-}`, TsFileGen.CodeLocation.AfterClass);
+        formClass.addMethod('render').setContent(`const requiredErrorMessage = this.tr('err_required');
+        const formErrorsMessages: ModelValidationMessage = {${messages}};
+        const {validationErrors} = this.props;
+        const errors: FieldValidationMessage = validationErrors ? Util.validationMessage(formErrorsMessages, validationErrors) : {};
+        ${formData.code}
+        let ${model.instanceName} = this.state.${model.instanceName};
+        return (
+            <FormWrapper name="${model.instanceName}Form" onSubmit={this.onSubmit}>${formData.form}
+            </FormWrapper>
+        )`);
         return formFile.generate();
     }
 
@@ -88,7 +135,7 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
             if (importedComponents.indexOf(component) >= 0) return;
             formFile.addImport(`{${component}}`, genRelativePath(this.config.path, `src/client/app/components/general/form/${component}`));
         });
-        return {form: formComponents, code: codes.join('\n\t')};
+        return {form: formComponents, code: codes.join('\n\t\t')};
     }
 
     private getFieldData(formFile: TsFileGen, modelName: string, field: Field): IFormFieldData {
@@ -102,8 +149,8 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
         let code = '';
         let imports = [];
         let component = '';
-        let properties = [`name="${fieldName}" label={tr('fld_${fieldName}')} value={${instanceName}.${fieldName}}`,
-            `error={errors.${fieldName}} onChange={props.onChange}`];
+        let properties = [`name="${fieldName}" label={this.tr('fld_${fieldName}')} value={${instanceName}.${fieldName}}`,
+            `error={errors.${fieldName}} onChange={this.onChange}`];
         switch (props.type) {
             case FieldType.Text:
                 component = 'FormTextArea';
@@ -150,13 +197,13 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
                 break;
             case FieldType.Boolean:
                 component = 'FormSelect';
-                let options = [`{value: 0, title: tr('no')}`, `{value: 1, title: tr('yes')}`];
+                let options = [`{value: 0, title: this.tr('no')}`, `{value: 1, title: this.tr('yes')}`];
                 let optionName = `booleanOptions`;
                 if (!this.writtenOnce.boolean) {
                     this.writtenOnce.boolean = true;
                     code += `const ${optionName}: Array<FormOption> = [\n\t\t${options.join(',\n\t\t')}];`;
                 }
-                properties.push(`options={${optionName}} nullable={true}`);
+                properties.push(`options={${optionName}}`);
                 break;
             case FieldType.Enum:
                 component = 'FormSelect';
@@ -167,10 +214,10 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
                     } else {
                         formFile.addImport(`{${enumName}}`, genRelativePath(this.config.path, `src/client/app/cmn/models/${modelName}`));
                     }
-                    let options = modelMeta.enum.options.map((option, index) => `{value: ${option}, title: tr('enum_${option.split('.')[1].toLowerCase()}')}`);
+                    let options = modelMeta.enum.options.map((option, index) => `{value: ${option}, title: this.tr('enum_${option.split('.')[1].toLowerCase()}')}`);
                     let optionName = `${fieldName}Options`;
                     code += `const ${optionName}: Array<FormOption> = [\n\t\t${options.join(',\n\t\t')}];`;
-                    properties.push(`options={${optionName}} nullable={true}`);
+                    properties.push(`options={${optionName}}`);
                 }
                 break;
             case FieldType.Relation:
@@ -194,7 +241,7 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
         }
         if (component) {
             imports.push(component);
-            form = `\n\t\t\t<${component} ${properties[0]}\n\t\t\t${strRepeat(' ', component.length + 2)}`;
+            form = `\n\t\t\t\t<${component} ${properties[0]}\n\t\t\t\t${strRepeat(' ', component.length + 2)}`;
             properties.shift();
             form += `${properties.join(' ')}/>`;
         }
@@ -211,7 +258,7 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
             for (let rules = Object.keys(messages), j = 0, jl = rules.length; j < jl; ++j) {
                 code.push(`${rules[j]}: ${messages[rules[j]]}`);
             }
-            codes.push(`\n\t\t${fieldsName[i]}: {\n\t\t\t` + code.join(',\n\t\t\t') + '\n\t\t}');
+            codes.push(`\n\t\t\t${fieldsName[i]}: {\n\t\t\t\t${code.join(',\n\t\t\t\t')}\n\t\t\t}`);
         }
         return codes.length ? (codes.join(',') + '\n\t') : '';
     }
@@ -221,28 +268,28 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
         let messages: any = {};
         let props: IFieldProperties = field.properties;
         if (props.required) {
-            messages.required = `tr('err_required')`;
+            messages.required = `requiredErrorMessage`;
         }
         if (props.min) {
-            messages.min = `tr('err_min_value', ${field.properties.min})`;
+            messages.min = `this.tr('err_min_value', ${field.properties.min})`;
         }
         if (props.max) {
-            messages.max = `tr('err_max_value', ${field.properties.max})`;
+            messages.max = `this.tr('err_max_value', ${field.properties.max})`;
         }
         if (props.minLength) {
-            messages.minLength = `tr('err_min_length', ${field.properties.minLength})`;
+            messages.minLength = `this.tr('err_min_length', ${field.properties.minLength})`;
         }
         if (props.maxLength) {
-            messages.maxLength = `tr('err_max_length', ${field.properties.maxLength})`;
+            messages.maxLength = `this.tr('err_max_length', ${field.properties.maxLength})`;
         }
         if (props.maxSize) {
-            messages.maxSize = `tr('err_file_size', ${field.properties.maxSize})`;
+            messages.maxSize = `this.tr('err_file_size', ${field.properties.maxSize})`;
         }
         if (props.fileType.length) {
-            messages.fileType = `tr('err_file_type')`;
+            messages.fileType = `this.tr('err_file_type')`;
         }
         if (props.enum.length) {
-            messages.enum = `tr('err_enum')`;
+            messages.enum = `this.tr('err_enum')`;
         }
         switch (props.type) {
             case FieldType.Text:
@@ -252,27 +299,27 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
             case FieldType.Password:
                 break;
             case FieldType.Tel:
-                messages.tel = `tr('err_phone')`;
+                messages.tel = `this.tr('err_phone')`;
                 break;
             case FieldType.EMail:
-                messages.email = `tr('err_email')`;
+                messages.email = `this.tr('err_email')`;
                 break;
             case FieldType.URL:
-                messages.url = `tr('err_url')`;
+                messages.url = `this.tr('err_url')`;
                 break;
             case FieldType.Number:
-                messages.number = `tr('err_number')`;
+                messages.number = `this.tr('err_number')`;
                 break;
             case FieldType.Integer:
-                messages.integer = `tr('err_number')`;
+                messages.integer = `this.tr('err_number')`;
                 break;
             case FieldType.Float:
-                messages.float = `tr('err_number')`;
+                messages.float = `this.tr('err_number')`;
                 break;
             case FieldType.File:
                 break;
             case FieldType.Timestamp:
-                messages.timestamp = `tr('err_date')`;
+                messages.timestamp = `this.tr('err_date')`;
                 break;
             case FieldType.Boolean:
                 break;
@@ -297,6 +344,7 @@ export const ${model.originalClassName}Form = (props: ${formProps.name}) => {
     }
 
     public generate() {
+        this.relationalFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         let code = this.genCrudFormComponent();
         // generate file
         fs.writeFileSync(`${this.config.path}/${this.className}.tsx`, code);

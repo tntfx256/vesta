@@ -159,7 +159,7 @@ export class ListComponentGen {
                     let enumName = camelCase(modelMeta.enum.options[0].split('.')[0]) + 'Options';
                     let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split('.')[1].toLowerCase()}')`);
                     code = `const ${enumName} = {${options.join(', ')}};`;
-                    render = `this.tr(\`\${${enumName}[r.${fieldName}]}\`)`;
+                    render = `this.tr(${enumName}[r.${fieldName}])`;
                 }
                 break;
         }

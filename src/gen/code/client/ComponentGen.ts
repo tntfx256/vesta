@@ -127,8 +127,7 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         if (this.config.model) {
             let modelClassName = this.model.originalClassName;
             componentFile.addImport('{Route, Switch}', 'react-router');
-            componentFile.addImport('{IValidationError}', genRelativePath(this.path, 'src/client/app/medium'));
-            componentFile.addImport('{DynamicRouter}', genRelativePath(this.path, 'src/client/app/medium'));
+            componentFile.addImport('{DynamicRouter, IValidationError}', genRelativePath(this.path, 'src/client/app/medium'));
             componentFile.addImport('{IDataTableQueryOption}', genRelativePath(this.path, 'src/client/app/components/general/DataTable'));
             componentFile.addImport('{PageTitle}', genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
             componentFile.addImport('{Preloader}', genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
@@ -241,16 +240,17 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 fetchCallers.push(`this.fetch${pascalCase(plural(fieldNames[i]))}();`);
-                extraProps.push(`${fieldNames[i]}: this.state.${plural(fieldNames[i])}`);
+                extraProps.push(`${plural(fieldNames[i])}`);
                 componentFile.addImport(`{I${meta.relation.model}}`, genRelativePath(this.path, `src/client/app/cmn/models/${meta.relation.model}`));
             }
             componentClass.addMethod('componentDidMount').setContent(`this.setState({showLoader: true});
         ${fetchCallers.join('\n\t\t')}`);
         }
-        let indent = `${strRepeat('\t', 10)}${strRepeat(' ', 3)}`;
-        let extraPropsCode = `,\n${indent}${extraProps.join(`,\n${indent}`)}`;
-        indent = `${strRepeat('\t', 9)}${strRepeat(' ', 3)}`;
-        let detailsExtraPropsCode = `,\n${indent}${extraProps.join(`,\n${indent}`)}`;
+        // let indent = `${strRepeat('\t', 10)}${strRepeat(' ', 3)}`;
+        // let extraPropsCode = `,\n${indent}${extraProps.join(`,\n${indent}`)}`;
+        let extraPropsCode = `, ${extraProps.join(', ')}`;
+        // indent = `${strRepeat('\t', 9)}${strRepeat(' ', 3)}`;
+        // let detailsExtraPropsCode = `,\n${indent}${extraProps.join(`,\n${indent}`)}`;
         // fetch method
         let fetchMethod = componentClass.addMethod(`fetch`);
         fetchMethod.setAsArrowFunction(true);
@@ -298,29 +298,28 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
             })`);
         // save method
         // files
-        let files = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        let files = Object.keys(ModelGen.getFieldsByType(this.config.model, FieldType.File));
         let resultCode = `this.setState({showLoader: false});
                 this.notif.success(this.tr(\`info_\${saveType}_record\`, \`\${response.items[0].id}\`));
                 this.props.history.goBack();`;
         let deleteCode = '';
-        let uploadCode = resultCode;
+        let uploadCode = '';
         let uploadResultCode = '';
-        let fileFieldNames = Object.keys(files);
-        if (fileFieldNames.length) {
+        if (files.length) {
             deleteCode = `\n\t\tlet ${model.instanceName}Files: ${model.interfaceName} = {};`;
-            for (let i = fileFieldNames.length; i--;) {
-                let fieldName = fileFieldNames[0];
+            for (let i = files.length; i--;) {
+                let fieldName = files[0];
                 deleteCode += `\n\t\t${model.instanceName}Files.${fieldName} = model.${fieldName};
         delete model.${fieldName};`;
             }
-        }
-        if (fileFieldNames.length == 1) {
-            uploadCode = `return this.api.upload<${model.interfaceName}>('${model.instanceName}/file', response.items[0].id, ${model.instanceName}Files);`;
+            uploadCode = `this.api.upload<${model.interfaceName}>('${model.instanceName}/file', response.items[0].id, ${model.instanceName}Files)`;
             uploadResultCode = `\n\t\t\t.then(response => {
                 ${resultCode}
             })`;
         } else {
-            // more than one field
+            uploadCode = `{
+                ${resultCode}
+            }`;
         }
         let saveMethod = componentClass.addMethod(`save`);
         saveMethod.setAsArrowFunction(true);
@@ -334,9 +333,7 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         this.setState({showLoader: true});
         let data = ${model.instanceName}.getValues<${model.interfaceName}>();
         (model.id ? this.api.put<${model.interfaceName}>('${model.instanceName}', data) : this.api.post<${model.interfaceName}>('${model.instanceName}', data))
-            .then(response => {
-                ${uploadCode}
-            })${uploadResultCode}
+            .then(response => ${uploadCode})${uploadResultCode}
             .catch(error => {
                 this.setState({showLoader: false, validationErrors: error.validation});
                 this.notif.error(this.tr(error.message));
@@ -364,34 +361,32 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         }
         // render method
         let modelClassName = this.model.originalClassName;
-        (componentClass.addMethod('render')).setContent(`return (
+        (componentClass.addMethod('render')).setContent(`let {showLoader, mechanicShops, queryOption, validationErrors${extraPropsCode}} = this.state;
+        return (
             <div className="page ${stateName}-page has-navbar">
                 <PageTitle title={this.tr('mdl_${this.className.toLowerCase()}')}/>
-                <Navbar title={this.tr('mdl_${this.className.toLowerCase()}')}/>
+                <Navbar title={this.tr('mdl_${this.className.toLowerCase()}')} showBurger={true}/>
                 <h1>{this.tr('mdl_${this.className.toLowerCase()}')}</h1>
-                <Preloader show={this.state.showLoader}/>
+                <Preloader show={showLoader}/>
                 <CrudMenu path="${stateName}" access={this.access}/>
                 <div className="crud-wrapper">
-                    <MechanicShopList ${plural(this.model.instanceName)}={this.state.${plural(this.model.instanceName)}} 
-                                      access={this.access} fetch={this.fetchAll} queryOption={this.state.queryOption}/>
+                    <${modelClassName}List access={this.access} fetch={this.fetchAll} queryOption={queryOption}
+                     ${strRepeat(' ', modelClassName.length)}     ${plural(this.model.instanceName)}={${plural(this.model.instanceName)}}/>
                     <DynamicRouter>
                         <Switch>
                             {this.access.add ?
                                 <Route path="/${stateName}/add" 
-                                       render={this.tz(${modelClassName}Add, {${stateName}: ['add']},{
-                                           save: this.save,
-                                           validationErrors: this.state.validationErrors${extraPropsCode}
+                                       render={this.tz(${modelClassName}Add, {${stateName}: ['add']}, {
+                                           save: this.save, validationErrors${extraPropsCode}
                                        })}/> : null}
                             {this.access.edit ? 
                                 <Route path="/${stateName}/edit/:id" 
                                        render={this.tz(${modelClassName}Edit, {${stateName}: ['edit']}, {
-                                           save: this.save,
-                                           fetch: this.fetch,
-                                           validationErrors: this.state.validationErrors${extraPropsCode}
+                                           save: this.save, fetch: this.fetch, validationErrors${extraPropsCode}
                                        })}/> : null}
                             <Route path="/${stateName}/detail/:id" 
                                    render={this.tz(${modelClassName}Detail, {${stateName}: ['read']}, {
-                                       fetch: this.fetch${detailsExtraPropsCode}
+                                       fetch: this.fetch
                                    })}/>
                         </Switch>
                     </DynamicRouter>
@@ -451,7 +446,7 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
             path: argParser.get('--path', 'root'),
             model: argParser.get('--model'),
             hasStyle: !argParser.has('--no-style'),
-            isPage: argParser.has('--is-page'),
+            isPage: argParser.has('--page'),
             stateless: argParser.has('--stateless'),
             noParams: argParser.has('--no-params')
         };
@@ -476,11 +471,11 @@ Creating React component
     
 Options:
     --stateless Generates a stateless component
-    --path      Where to save component [default: src/client/component/root]
     --no-params Create component with no params
     --no-style  Do not generate scss style file
-    --is-page   Adds navbar to component and also change className for page component
+    --page      Adds navbar to component and also change className for page component
     --model     Create CRUD component for specified model
+    --path      Where to save component [default: src/client/component/root]
 
 Example:
     vesta gen component test --stateless --no-style --path=general/form

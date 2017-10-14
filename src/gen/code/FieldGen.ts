@@ -293,7 +293,7 @@ export class FieldGen {
             case FieldType.Boolean:
                 return 'boolean';
             case FieldType.Relation:
-                let types = `number | I${this.properties.relation.model} | ${this.properties.relation.model}`;
+                let types = `number | I${this.properties.relation.model}`;
                 if (this.properties.relation.type == RelationType.Many2Many) {
                     return `Array<${types}>`;
                 }
