@@ -302,6 +302,7 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         let files = fileFields ? Object.keys(fileFields) : [];
         let resultCode = `this.setState({showLoader: false});
                 this.notif.success(this.tr(\`info_\${saveType}_record\`, \`\${response.items[0].id}\`));
+                this.fetchAll(this.state.queryOption);
                 this.props.history.goBack();`;
         let deleteCode = '';
         let uploadCode = '';
