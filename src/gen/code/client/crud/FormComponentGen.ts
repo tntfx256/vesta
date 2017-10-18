@@ -87,6 +87,7 @@ export class FormComponentGen {
             }`;
         }
         formClass.addMethod('componentDidMount').setContent(`const id = +this.props.id;
+        if (isNaN(id)) return;
         this.props.fetch(id)
             .then(${model.instanceName} => ${finalCode});`);
         // onChange method

@@ -88,7 +88,7 @@ export class ListComponentGen {
         listClass.addMethod('render').setContent(`const access = this.props.access;${code}
         const columns: Array<Column<I${model.originalClassName}>> = [${column}
             {
-                title: 'Operations', render: r => <span className="dt-operation-cell">
+                title: this.tr('operations'), render: r => <span className="dt-operation-cell">
                 <Link to={\`/${stateName}/detail/\${r.id}\`}>View</Link>
                 {access.edit ? <Link to={\`/${stateName}/edit/\${r.id}\`}>Edit</Link> : null}
                 {access.del ? <Link to={\`/${model.instanceName}/del/\${r.id}\`} onClick={this.del}>Del</Link> : null}</span>

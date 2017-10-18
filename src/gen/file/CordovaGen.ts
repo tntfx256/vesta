@@ -1,6 +1,6 @@
 import * as fs from "fs-extra";
 import {Log} from "../../util/Log";
-import {CmdUtil} from "../../util/CmdUtil";
+import {execute} from "../../util/CmdUtil";
 
 export interface ICordova {
     plugins: Array<string>;
@@ -42,14 +42,14 @@ export class CordovaGen {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        CmdUtil.execSync(`cordova plugin add ${plugins.join(' ')}`);
+        execute(`cordova plugin add ${plugins.join(' ')}`);
     }
 
     public uninstall(...plugins: Array<string>) {
         if (!plugins.length) {
             plugins = this.json.plugins;
         }
-        CmdUtil.execSync(`cordova plugin rm ${plugins.join(' ')}`);
+        execute(`cordova plugin rm ${plugins.join(' ')}`);
     }
 
     public static getPlugins(...serviceNames: Array<string>): Array<string> {

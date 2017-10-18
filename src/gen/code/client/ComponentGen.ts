@@ -69,36 +69,6 @@ export const ${this.className} = (props: ${this.className}Props) => {
 };`;
     }
 
-    private genStatefulPartial() {
-        let cmpName = camelCase(this.className);
-        const importPath = genRelativePath(this.path, 'src/client/app/components/BaseComponent');
-        let params = this.config.noParams ? '' : `\n\nexport interface ${this.className}Params {\n}`;
-        return `import React, {Component} from "react";
-import {BaseComponentProps} from "${importPath}";${params}
-
-export interface ${this.className}Props extends BaseComponentProps${params ? `<${this.className}Params>` : ''} {
-}
-
-export interface ${this.className}State {
-}
-
-export class ${this.className} extends Component<${this.className}Props, ${this.className}State> {
-
-    constructor(props: ${this.className}Props) {
-        super(props);
-        this.state = {};
-    }
-
-    public render() {
-        return (
-            <div className="${cmpName}-component">
-                <h2>${this.className} Component</h2>
-            </div>
-        )
-    }
-}`;
-    }
-
     private parseModel(): ModelConfig {
         let modelFilePath = `src/client/app/cmn/models/${this.config.model}.ts`;
         if (!fs.existsSync(modelFilePath)) {
@@ -119,8 +89,13 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
 
     private genComponentFile(): TsFileGen {
         let componentFile = new TsFileGen(this.className);
-        componentFile.addImport('React', 'react');
-        componentFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(this.path, 'src/client/app/components/PageComponent'));
+        if (this.config.isPage) {
+            componentFile.addImport('React', 'react');
+            componentFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(this.path, 'src/client/app/components/PageComponent'));
+        } else {
+            componentFile.addImport('React, {Component}', 'react');
+            componentFile.addImport('{BaseComponentProps}', genRelativePath(this.path, 'src/client/app/components/BaseComponent'));
+        }
         if (this.config.model || this.config.isPage) {
             componentFile.addImport('Navbar', genRelativePath(this.path, 'src/client/app/components/general/Navbar'));
         }
@@ -146,13 +121,19 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
 
     private genComponentClass(componentFile: TsFileGen): ClassGen {
         // params interface
-        let paramInterface = componentFile.addInterface(`${this.className}Params`);
+        let params = '';
+        if (!this.config.noParams) {
+            let paramInterface = componentFile.addInterface(`${this.className}Params`);
+            params = `<${paramInterface.name}>`;
+        }
         // props
         let propsInterface = componentFile.addInterface(`${this.className}Props`);
-        propsInterface.setParentClass(`PageComponentProps<${paramInterface.name}>`);
+        propsInterface.setParentClass(this.config.isPage ? `PageComponentProps${params}` : `BaseComponentProps${params}`);
         // state
         let stateInterface = componentFile.addInterface(`${this.className}State`);
-        stateInterface.setParentClass(`PageComponentState`);
+        if (this.config.isPage) {
+            stateInterface.setParentClass(`PageComponentState`);
+        }
         if (this.config.model) {
             stateInterface.addProperty({name: 'showLoader', type: 'boolean'});
             stateInterface.addProperty({name: 'validationErrors', type: 'IValidationError'});
@@ -187,8 +168,10 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         }
         // component class
         let componentClass = componentFile.addClass(this.className);
-        componentClass.setParentClass(`PageComponent<${propsInterface.name}, ${stateInterface.name}>`);
-        componentClass.addProperty({name: 'access', type: 'IAccess', access: 'private'});
+        componentClass.setParentClass(`${this.config.isPage ? 'PageComponent' : 'Component'}<${propsInterface.name}, ${stateInterface.name}>`);
+        if (this.config.model) {
+            componentClass.addProperty({name: 'access', type: 'IAccess', access: 'private'});
+        }
         componentClass.setConstructor();
         componentClass.getConstructor().addParameter({name: 'props', type: propsInterface.name});
         if (this.config.model) {
@@ -376,8 +359,6 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
                 <Preloader show={showLoader}/>
                 <CrudMenu path="${stateName}" access={this.access}/>
                 <div className="crud-wrapper">
-                    <${modelClassName}List access={this.access} fetch={this.fetchAll} queryOption={queryOption}
-                     ${strRepeat(' ', modelClassName.length)}     ${plural(this.model.instanceName)}={${plural(this.model.instanceName)}}/>
                     <DynamicRouter>
                         <Switch>
                             {this.access.add ?
@@ -396,6 +377,8 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
                                    })}/>
                         </Switch>
                     </DynamicRouter>
+                    <${modelClassName}List access={this.access} fetch={this.fetchAll} queryOption={queryOption}
+                     ${strRepeat(' ', modelClassName.length)}     ${plural(this.model.instanceName)}={${plural(this.model.instanceName)}}/>
                 </div>
             </div>
         )`);
@@ -403,7 +386,6 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
     }
 
     private genStateful() {
-        if (this.config.noParams) return this.genStatefulPartial();
         let componentFile = this.genComponentFile();
         this.genComponentClass(componentFile);
         return componentFile.generate();
@@ -459,6 +441,9 @@ export class ${this.className} extends Component<${this.className}Props, ${this.
         if (!config.name) {
             Log.error("Missing/Invalid component name\nSee 'vesta gen component --help' for more information\n");
             return;
+        }
+        if (config.model) {
+            config.isPage = true;
         }
         // if (config.model && config.noParams) {
         //     Log.error("--model and --partial can not be used together\nSee 'vesta gen component --help' for more information\n");
