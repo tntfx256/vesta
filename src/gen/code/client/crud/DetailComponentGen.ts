@@ -85,12 +85,12 @@ export class DetailComponentGen {
         return detailFile.generate();
     }
 
-    private getDetailsData(listFile: TsFileGen): IDetailFieldData {
+    private getDetailsData(detailsFile: TsFileGen): IDetailFieldData {
         const fields = this.schema.getFields();
         let columns = [];
         let codes = [];
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
-            let fieldData = this.getFieldData(listFile, this.schema.name, fields[fieldsName[i]]);
+            let fieldData = this.getFieldData(detailsFile, this.schema.name, fields[fieldsName[i]]);
             if (fieldData) {
                 if (fieldData.field) {
                     columns.push(fieldData.field);
@@ -106,7 +106,7 @@ export class DetailComponentGen {
         };
     }
 
-    private getFieldData(formFile: TsFileGen, modelName: string, field: Field): IDetailFieldData {
+    private getFieldData(detailsFile: TsFileGen, modelName: string, field: Field): IDetailFieldData {
         let fieldName = field.fieldName;
         if (fieldName == 'id') return <IDetailFieldData>null;
         const props: IFieldProperties = field.properties;
@@ -131,7 +131,8 @@ export class DetailComponentGen {
             case FieldType.Password:
                 break;
             case FieldType.File:
-                code = `const ${instanceName}${pascalCase(fieldName)} = this.getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
+                detailsFile.addImport('{Util}', genRelativePath(this.config.path, 'src/client/app/util/Util'));
+                code = `const ${instanceName}${pascalCase(fieldName)} = Util.getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
                 value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
                 break;
             case FieldType.Timestamp:

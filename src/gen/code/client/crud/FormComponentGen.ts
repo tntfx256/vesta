@@ -77,10 +77,11 @@ export class FormComponentGen {
         let filesCode = [];
         for (let i = files.length; i--;) {
             filesCode.push(`if (${model.instanceName}.${files[i]}) {
-                    ${model.instanceName}.${files[i]} = this.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);
+                    ${model.instanceName}.${files[i]} = Util.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);
                 }`);
         }
-        if (filesCode) {
+        if (filesCode.length) {
+            formFile.addImport('{Util}', genRelativePath(path, 'src/client/app/util/Util'));
             finalCode = `{
                 ${filesCode.join('\n\t\t\t\t')}
                 ${finalCode}
