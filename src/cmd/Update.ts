@@ -16,7 +16,8 @@ export class Update {
             let isDev = argParser.has('--dev');
             let pkgKeyName = isDev ? 'devDependencies' : 'dependencies';
             let allPackages = Object.keys(content[pkgKeyName]);
-            let pkgs = isDev || argParser.has('--all') ? allPackages : allPackages.filter(pkg => pkg.search(/^vesta-/i) >= 0);
+            let pkgs = isDev || argParser.has('--all') ? allPackages : allPackages.filter(pkg => pkg.search(/^@?vesta/i) >= 0);
+            console.log(pkgs);
             pkgs.forEach(pkg => delete content[pkgKeyName][pkg]);
             fs.writeFileSync(`package.json`, JSON.stringify(content, null, 2), {encoding: 'utf8'});
             execute(`npm install --save${isDev ? '-dev' : ''} ${pkgs.join(' ')}`);

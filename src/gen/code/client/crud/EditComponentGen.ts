@@ -23,11 +23,11 @@ export class EditComponentGen {
         // ts file
         let editFile = new TsFileGen(this.className);
         // imports
-        editFile.addImport('React', 'react');
-        editFile.addImport('{IValidationError}', genRelativePath(path, 'src/client/app/medium'));
-        editFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState, Save}', genRelativePath(path, 'src/client/app/components/PageComponent'));
-        editFile.addImport(`{${formClassName}}`, `./${formClassName}`);
-        editFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        editFile.addImport(['React'], 'react', true);
+        editFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/medium'));
+        editFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'PageComponentState', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        editFile.addImport([formClassName], `./${formClassName}`);
+        editFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         editFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
         // props
@@ -41,7 +41,7 @@ export class EditComponentGen {
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                editFile.addImport(`{I${meta.relation.model}}`, genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                editFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
                 let pluralName = plural(fieldNames[i]);
                 editProps.addProperty({
                     name: `${pluralName}`,

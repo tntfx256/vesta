@@ -29,6 +29,8 @@ export class ExpressControllerGen {
     private apiVersion: string;
     private filesFields: IModelFields = null;
     private relationsFields: IModelFields = null;
+    private ownerVerifiedFields: Array<string> = [];
+    private confidentialFields: Array<string> = [];
 
     constructor(private config: IExpressControllerConfig) {
         this.vesta = Vesta.getInstance();
@@ -50,10 +52,10 @@ export class ExpressControllerGen {
             this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
         }
         if (this.filesFields) {
-            this.controllerFile.addImport('* as path', 'path');
+            this.controllerFile.addImport(['join'], 'path');
         }
-        this.controllerFile.addImport('{NextFunction, Response, Router}', 'express');
-        this.controllerFile.addImport('{BaseController, IExtRequest}', genRelativePath(this.path, 'src/api/BaseController'));
+        this.controllerFile.addImport(['NextFunction', 'Response', 'Router'], 'express');
+        this.controllerFile.addImport(['BaseController', 'IExtRequest'], genRelativePath(this.path, 'src/api/BaseController'));
         this.controllerClass.setParentClass('BaseController');
         this.routeMethod = this.controllerClass.addMethod('route');
         this.routeMethod.addParameter({name: 'router', type: 'Router'});
@@ -78,9 +80,11 @@ export class ExpressControllerGen {
         let modelInstanceName = camelCase(modelName),
             modelClassName = fcUpper(modelInstanceName);
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
-        this.controllerFile.addImport(`{Err, DatabaseError, ValidationError, Vql}`, '@vesta/core');
-        this.controllerFile.addImport(`{${modelClassName}, I${modelClassName}}`, genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
-        this.controllerFile.addImport(`{AclAction}`, genRelativePath(this.path, `src/cmn/enum/Acl`));
+        this.ownerVerifiedFields = ModelGen.getOwnerVerifiedFields(this.config.model);
+        this.confidentialFields = ModelGen.getConfidentialFields(this.config.model);
+        this.controllerFile.addImport(['Err', 'DatabaseError', 'ValidationError'], '@vesta/core');
+        this.controllerFile.addImport([modelClassName, `I${modelClassName}`], genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
+        this.controllerFile.addImport(['AclAction'], genRelativePath(this.path, `src/cmn/enum/Acl`));
         let acl = this.routingPath.replace(/\/+/g, '.');
         acl = acl[0] == '.' ? acl.slice(1) : acl;
         let middleWares = ` this.checkAcl('${acl}', __ACTION__),`;
@@ -149,25 +153,84 @@ export class ExpressControllerGen {
         this.routingPath = this.routingPath.replace(/\/{2,}/g, '/');
     }
 
+    private getAuthUserCode(): string {
+        return this.ownerVerifiedFields.length ? `const authUser = this.getUserFromSession(req);
+        const isAdmin = this.isAdmin(authUser);\n\t\t` : '';
+    }
+
+    private getConfFieldRemovingCode(singleRecord?: boolean): string {
+        let confRemovers = [];
+        let index = singleRecord ? '0' : 'i';
+        if (!this.confidentialFields.length) {
+            for (let i = this.confidentialFields.length; i--;) {
+                confRemovers.push(`delete result.items[${index}].${this.confidentialFields[i]};`);
+            }
+        }
+        // checking confidentiality of relations
+        if (this.relationsFields) {
+            let relationFieldsNames = Object.keys(this.relationsFields);
+            for (let i = relationFieldsNames.length; i--;) {
+                let meta = ModelGen.getFieldMeta(this.config.model, relationFieldsNames[i]);
+                let extPath = meta.relation.path ? `/${meta.relation.path}` : '';
+                let relConfFields = ModelGen.getConfidentialFields(meta.relation.model);
+                if (relConfFields.length) {
+                    this.controllerFile.addImport([`I${meta.relation.model}`], genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`));
+                    for (let j = relConfFields.length; j--;) {
+                        confRemovers.push(`delete (<I${meta.relation.model}>result.items[${index}].${relationFieldsNames[i]}).${relConfFields[j]};`);
+                    }
+                }
+            }
+        }
+        let code = '';
+        if (confRemovers.length) {
+            if (singleRecord) {
+                code = `\n\t\t${confRemovers.join('\n\t\t')}`;
+            } else {
+                code = `\n\t\tfor (let i = result.items.length; i--;) {
+            ${confRemovers.join('\n\t\t\t')}
+        }`
+            }
+        }
+        return code;
+    }
+
     private getQueryCodeForSingleInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
+        let ownerChecks = [];
+        for (let i = this.ownerVerifiedFields.length; i--;) {
+            let meta = ModelGen.getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
+            if (meta.relation) {
+                let extPath = meta.relation.path ? `/${meta.relation.path}` : '';
+                this.controllerFile.addImport([`I${meta.relation.model}`], genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`));
+                ownerChecks.push(`(<I${meta.relation.model}>result.items[0].${this.ownerVerifiedFields}).id != authUser.id`);
+            } else {
+                ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} != authUser.id`);
+            }
+        }
+        let ownerCheckCode = ownerChecks.length ? ` || (!isAdmin && (${ownerChecks.join(' || ')}))` : '';
         let relationFields = this.relationsFields ? `, {relations: ['${Object.keys(this.relationsFields).join("', '")}']}` : '';
-        return `let id = +req.params.id;
+        return `${this.getAuthUserCode()}let id = +req.params.id;
         if (isNaN(id)) {
             throw new ValidationError({id: 'number'});
         }
         let result = await ${modelName}.find<I${modelName}>(id${relationFields});
-        if (result.items.length != 1) {
+        if (result.items.length != 1${ownerCheckCode}) {
             throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
-        }
+        }${this.getConfFieldRemovingCode(true)}
         res.json(result);`;
     }
 
     private getQueryCodeForMultiInstance(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
-        // let modelInstanceName = camelCase(modelName);
-        return `let query = this.query2vql(${modelName}, req.query);
-        let result = await ${modelName}.find(query);
+        let ownerQueries = [];
+        for (let i = this.ownerVerifiedFields.length; i--;) {
+            ownerQueries.push(`${this.ownerVerifiedFields[i]}: authUser.id`);
+        }
+        let ownerQueriesCode = ownerQueries.length ? `\n\t\tif (!isAdmin) {
+            query.filter({${ownerQueries.join(', ')}});
+        }` : '';
+        return `${this.getAuthUserCode()}let query = this.query2vql(${modelName}, req.query);${ownerQueriesCode}
+        let result = await ${modelName}.find<I${modelName}>(query);${this.getConfFieldRemovingCode()}
         res.json(result);`;
     }
 
@@ -175,7 +238,7 @@ export class ExpressControllerGen {
         let modelName = ModelGen.extractModelName(this.config.model);
         // let modelInstanceName = camelCase(modelName);
         return `let query = this.query2vql(${modelName}, req.query, true);
-        let result = await ${modelName}.count(query);
+        let result = await ${modelName}.count<I${modelName}>(query);
         res.json(result);`
     }
 
@@ -186,19 +249,31 @@ export class ExpressControllerGen {
     private getInsertCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
-        return `let ${modelInstanceName} = new ${modelName}(req.body);
+        let ownerAssigns = [];
+        for (let i = this.ownerVerifiedFields.length; i--;) {
+            ownerAssigns.push(`${modelInstanceName}.${this.ownerVerifiedFields[i]} = authUser.id;`);
+        }
+        let ownerAssignCode = ownerAssigns.length ? `\n\t\tif (!isAdmin) {
+            ${ownerAssigns.join('\n\t\t')}
+        }` : '';
+        return `${this.getAuthUserCode()}let ${modelInstanceName} = new ${modelName}(req.body);${ownerAssignCode}
         let validationError = ${modelInstanceName}.validate();
         if (validationError) {
             throw new ValidationError(validationError);
         }
-        let result = await ${modelInstanceName}.insert<I${modelName}>();
+        let result = await ${modelInstanceName}.insert<I${modelName}>();${this.getConfFieldRemovingCode(true)}
         res.json(result);`;
     }
 
     private getUpdateCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
-        return `let ${modelInstanceName} = new ${modelName}(req.body);
+        let ownerChecks = [];
+        for (let i = this.ownerVerifiedFields.length; i--;) {
+            ownerChecks.push(`${modelInstanceName}.${this.ownerVerifiedFields} = authUser.id;`);
+        }
+        let ownerCheckCode = ownerChecks.length ? `\n\t\tif (!isAdmin) {\n\t\t\t${ownerChecks.join('\n\t\t\t')}\n\t\t}` : '';
+        return `${this.getAuthUserCode()}let ${modelInstanceName} = new ${modelName}(req.body);${ownerCheckCode}
         let validationError = ${modelInstanceName}.validate();
         if (validationError) {
             throw new ValidationError(validationError);
@@ -207,24 +282,37 @@ export class ExpressControllerGen {
         if (result.items.length != 1) {
             throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
         }
-        let uResult = await ${modelInstanceName}.update<I${modelName}>();
+        let uResult = await ${modelInstanceName}.update<I${modelName}>();${this.getConfFieldRemovingCode(true)}
         res.json(uResult);`;
     }
 
     private getDeleteCode(): string {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
-        return `let id = +req.params.id;
+        let ownerChecks = [];
+        if (this.ownerVerifiedFields.length) {
+            for (let i = this.ownerVerifiedFields.length; i--;) {
+                ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} != authUser.id`);
+            }
+        }
+        let ownerCheckCode = ownerChecks.length ? `\n\t\tlet result = null;
+        if (!isAdmin) {
+            result = await ${modelName}.find<I${modelName}>({id});
+            if (result.items.length != 1 || ${ownerChecks.join(' || ')}) {
+                throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
+            }
+        }` : '';
+        return `${this.getAuthUserCode()}let id = +req.params.id;
         if (isNaN(id)) {
             throw new ValidationError({id: 'number'});
-        }
-        let ${modelInstanceName} = new ${modelName}({id});
-        let result = await ${modelInstanceName}.remove();
-        res.json(result);`;
+        }${ownerCheckCode}
+        let ${modelInstanceName} = result ? result.items[0] : new ${modelName}({id});
+        let dResult = await ${modelInstanceName}.remove();
+        res.json(dResult);`;
     }
 
     private getUploadCode(): string {
-        this.controllerFile.addImport('{FileUploader}', genRelativePath(this.path, 'src/helpers/FileUploader'));
+        this.controllerFile.addImport(['FileUploader'], genRelativePath(this.path, 'src/helpers/FileUploader'));
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
         let code = '';
@@ -252,7 +340,7 @@ export class ExpressControllerGen {
             throw new ValidationError({id: 'number'});
         }
         let ${modelInstanceName}: ${modelName};
-        let destDirectory = path.join(this.config.dir.upload, '${modelInstanceName}');
+        let destDirectory = join(this.config.dir.upload, '${modelInstanceName}');
         let result = await ${modelName}.find<I${modelName}>(id);
         if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
         ${modelInstanceName} = new ${modelName}(result.items[0]);

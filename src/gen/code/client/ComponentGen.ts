@@ -89,32 +89,32 @@ export const ${this.className} = (props: ${this.className}Props) => {
 
     private genComponentFile(): TsFileGen {
         let componentFile = new TsFileGen(this.className);
+        componentFile.addImport(['React'], 'react', true);
         if (this.config.isPage) {
-            componentFile.addImport('React', 'react');
-            componentFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(this.path, 'src/client/app/components/PageComponent'));
+            componentFile.addImport(['PageComponent', 'PageComponentProps', 'PageComponentState'], genRelativePath(this.path, 'src/client/app/components/PageComponent'));
         } else {
-            componentFile.addImport('React, {Component}', 'react');
-            componentFile.addImport('{BaseComponentProps}', genRelativePath(this.path, 'src/client/app/components/BaseComponent'));
+            componentFile.addImport(['Component'], 'react');
+            componentFile.addImport(['BaseComponentProps'], genRelativePath(this.path, 'src/client/app/components/BaseComponent'));
         }
         if (this.config.model || this.config.isPage) {
-            componentFile.addImport('Navbar', genRelativePath(this.path, 'src/client/app/components/general/Navbar'));
+            componentFile.addImport(['Navbar'], genRelativePath(this.path, 'src/client/app/components/general/Navbar'), true);
         }
         if (this.config.model) {
             let modelClassName = this.model.originalClassName;
-            componentFile.addImport('{Route, Switch}', 'react-router');
-            componentFile.addImport('{DynamicRouter, IValidationError}', genRelativePath(this.path, 'src/client/app/medium'));
-            componentFile.addImport('{IDataTableQueryOption}', genRelativePath(this.path, 'src/client/app/components/general/DataTable'));
-            componentFile.addImport('{PageTitle}', genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
-            componentFile.addImport('{Preloader}', genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
-            componentFile.addImport('{CrudMenu}', genRelativePath(this.path, 'src/client/app/components/general/CrudMenu'));
-            componentFile.addImport('{IAccess}', genRelativePath(this.path, 'src/client/app/service/AuthService'));
+            componentFile.addImport(['Route', 'Switch'], 'react-router');
+            componentFile.addImport(['DynamicRouter', 'IValidationError'], genRelativePath(this.path, 'src/client/app/medium'));
+            componentFile.addImport(['IDataTableQueryOption'], genRelativePath(this.path, 'src/client/app/components/general/DataTable'));
+            componentFile.addImport(['PageTitle'], genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
+            componentFile.addImport(['Preloader'], genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
+            componentFile.addImport(['CrudMenu'], genRelativePath(this.path, 'src/client/app/components/general/CrudMenu'));
+            componentFile.addImport(['IAccess'], genRelativePath(this.path, 'src/client/app/service/AuthService'));
             let modelImportStatement = modelClassName == this.className ? `${modelClassName} as ${this.model.className}` : this.model.className;
-            componentFile.addImport(`{I${modelClassName}, ${modelImportStatement}}`, genRelativePath(this.path, this.model.file));
+            componentFile.addImport([`I${modelClassName}`, modelImportStatement], genRelativePath(this.path, this.model.file));
             let instanceName = camelCase(this.className);
-            componentFile.addImport(`{${modelClassName}Add}`, `./${instanceName}/${modelClassName}Add`);
-            componentFile.addImport(`{${modelClassName}Edit}`, `./${instanceName}/${modelClassName}Edit`);
-            componentFile.addImport(`{${modelClassName}Detail}`, `./${instanceName}/${modelClassName}Detail`);
-            componentFile.addImport(`{${modelClassName}List}`, `./${instanceName}/${modelClassName}List`);
+            componentFile.addImport([`${modelClassName}Add`], `./${instanceName}/${modelClassName}Add`);
+            componentFile.addImport([`${modelClassName}Edit`], `./${instanceName}/${modelClassName}Edit`);
+            componentFile.addImport([`${modelClassName}Detail`], `./${instanceName}/${modelClassName}Detail`);
+            componentFile.addImport([`${modelClassName}List`], `./${instanceName}/${modelClassName}List`);
         }
         return componentFile;
     }
@@ -224,7 +224,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 fetchCallers.push(`this.fetch${pascalCase(plural(fieldNames[i]))}();`);
                 extraProps.push(`${plural(fieldNames[i])}`);
-                componentFile.addImport(`{I${meta.relation.model}}`, genRelativePath(this.path, `src/client/app/cmn/models/${meta.relation.model}`));
+                componentFile.addImport([`I${meta.relation.model}`], genRelativePath(this.path, `src/client/app/cmn/models/${meta.relation.model}`));
             }
             componentClass.addMethod('componentDidMount').setContent(`this.setState({showLoader: true});
         ${fetchCallers.join('\n\t\t')}`);
@@ -276,7 +276,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 this.setState({showLoader: false, ${plural(this.model.instanceName)}: response.items});
             })
             .catch(error => {
-                this.setState({showLoader: false});
+                this.setState({showLoader: false, validationErrors: error.violations});
                 this.notif.error(this.tr(error.message));
             })`);
         // save method
@@ -315,16 +315,16 @@ export const ${this.className} = (props: ${this.className}Props) => {
         saveMethod.addParameter({name: 'model', type: model.interfaceName});
         saveMethod.setContent(`let ${model.instanceName} = new ${model.className}(model);
         const saveType = ${model.instanceName}.id ? 'update' : 'add';${deleteCode}
-        let validationResult = ${model.instanceName}.validate();
-        if (validationResult) {
-            return this.setState({validationErrors: validationResult});
+        let validationErrors = ${model.instanceName}.validate();
+        if (validationErrors) {
+            return this.setState({validationErrors});
         }
-        this.setState({showLoader: true});
+        this.setState({showLoader: true, validationErrors: null});
         let data = ${model.instanceName}.getValues<${model.interfaceName}>();
         (model.id ? this.api.put<${model.interfaceName}>('${model.instanceName}', data) : this.api.post<${model.interfaceName}>('${model.instanceName}', data))
             .then(response => ${uploadCode})${uploadResultCode}
             .catch(error => {
-                this.setState({showLoader: false, validationErrors: error.validation});
+                this.setState({showLoader: false, validationErrors: error.violations});
                 this.notif.error(this.tr(error.message));
             })`);
         // fetch functions for relations
@@ -342,7 +342,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 this.setState({showLoader: false, ${plural(fieldNames[i])}: response.items});
             })
             .catch(error => {
-                this.setState({showLoader: false});
+                this.setState({showLoader: false, validationErrors: error.violations});
                 this.notif.error(this.tr(error.message));
             })`);
                 }

@@ -32,9 +32,9 @@ export class DetailComponentGen {
         // ts file
         let detailFile = new TsFileGen(this.className);
         // imports
-        detailFile.addImport('React', 'react');
-        detailFile.addImport('{FetchById, PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
-        detailFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        detailFile.addImport(['React'], 'react', true);
+        detailFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'PageComponentState'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        detailFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         detailFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
         // props
@@ -44,7 +44,7 @@ export class DetailComponentGen {
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                detailFile.addImport(`{I${meta.relation.model}}`, genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                detailFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
                 detailProps.addProperty({
                     name: `${plural(fieldNames[i])}`,
                     type: `Array<I${meta.relation.model}>`
@@ -131,7 +131,7 @@ export class DetailComponentGen {
             case FieldType.Password:
                 break;
             case FieldType.File:
-                detailsFile.addImport('{Util}', genRelativePath(this.config.path, 'src/client/app/util/Util'));
+                detailsFile.addImport(['Util'], genRelativePath(this.config.path, 'src/client/app/util/Util'));
                 code = `const ${instanceName}${pascalCase(fieldName)} = Util.getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
                 value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
                 break;

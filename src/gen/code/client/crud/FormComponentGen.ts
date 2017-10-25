@@ -34,13 +34,12 @@ export class FormComponentGen {
         // ts file
         let formFile = new TsFileGen(this.className);
         // imports
-        formFile.addImport('React', 'react');
-        formFile.addImport('{FetchById, PageComponent, PageComponentProps, Save}', genRelativePath(path, 'src/client/app/components/PageComponent'));
-        formFile.addImport('{IValidationError}', genRelativePath(path, 'src/client/app/medium'));
-        formFile.addImport('{FieldValidationMessage, ModelValidationMessage, Util}', genRelativePath(path, 'src/client/app/util/Util'));
-        let otherImports = this.hasFieldOfType(FieldType.Enum) ? ', FormOption' : '';
-        formFile.addImport(`{FormWrapper${otherImports}}`, genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
-        formFile.addImport(`{${model.interfaceName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        formFile.addImport(['React'], 'react', true);
+        formFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/medium'));
+        formFile.addImport(['FieldValidationMessage', 'ModelValidationMessage', 'Util'], genRelativePath(path, 'src/client/app/util/Util'));
+        formFile.addImport(['FormWrapper', this.hasFieldOfType(FieldType.Enum) ? 'FormOption' : null], genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
+        formFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         formFile.addInterface(`${this.className}Params`);
         // props
@@ -53,7 +52,7 @@ export class FormComponentGen {
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                formFile.addImport(`{I${meta.relation.model}}`, genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                formFile.addImport([`{I${meta.relation.model}}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
                 formProps.addProperty({
                     name: `${plural(fieldNames[i])}`,
                     type: `Array<I${meta.relation.model}>`
@@ -73,7 +72,7 @@ export class FormComponentGen {
         // fetch [componentDidMount]
         let fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
         let files = fileFields ? Object.keys(fileFields) : [];
-        let finalCode = `this.setState({${model.instanceName}});`;
+        let finalCode = `this.setState({${model.instanceName}})`;
         let filesCode = [];
         for (let i = files.length; i--;) {
             filesCode.push(`if (${model.instanceName}.${files[i]}) {
@@ -81,10 +80,10 @@ export class FormComponentGen {
                 }`);
         }
         if (filesCode.length) {
-            formFile.addImport('{Util}', genRelativePath(path, 'src/client/app/util/Util'));
+            formFile.addImport(['Util'], genRelativePath(path, 'src/client/app/util/Util'));
             finalCode = `{
                 ${filesCode.join('\n\t\t\t\t')}
-                ${finalCode}
+                ${finalCode};
             }`;
         }
         formClass.addMethod('componentDidMount').setContent(`const id = +this.props.id;
@@ -138,7 +137,7 @@ export class FormComponentGen {
         let importedComponents = [];
         formComponentsToImport.forEach(component => {
             if (importedComponents.indexOf(component) >= 0) return;
-            formFile.addImport(`{${component}}`, genRelativePath(this.config.path, `src/client/app/components/general/form/${component}`));
+            formFile.addImport([component], genRelativePath(this.config.path, `src/client/app/components/general/form/${component}`));
         });
         return {form: formComponents, code: codes.join('\n\t\t')};
     }
@@ -194,8 +193,8 @@ export class FormComponentGen {
                 component = 'FormDateTimeInput';
                 properties.push(`dateTime={dateTime}`);
                 if (!this.writtenOnce.dateTime) {
-                    formFile.addImport('{DateTimeFactory}', genRelativePath(this.config.path, 'src/client/app/medium'));
-                    formFile.addImport('{ConfigService}', genRelativePath(this.config.path, 'src/client/app/service/ConfigService'));
+                    formFile.addImport(['DateTimeFactory'], genRelativePath(this.config.path, 'src/client/app/medium'));
+                    formFile.addImport(['ConfigService'], genRelativePath(this.config.path, 'src/client/app/service/ConfigService'));
                     this.writtenOnce.dateTime = true;
                     code += `const dateTime = DateTimeFactory.create(ConfigService.getConfig().locale)`;
                 }
@@ -215,9 +214,9 @@ export class FormComponentGen {
                 if (modelMeta.enum) {
                     let enumName = modelMeta.enum.options[0].split('.')[0];
                     if (modelMeta.enum.path) {
-                        formFile.addImport(`{${enumName}}`, genRelativePath(this.config.path, `src/client/app/cmn/${modelMeta.enum.path}`));
+                        formFile.addImport([enumName], genRelativePath(this.config.path, `src/client/app/cmn/${modelMeta.enum.path}`));
                     } else {
-                        formFile.addImport(`{${enumName}}`, genRelativePath(this.config.path, `src/client/app/cmn/models/${modelName}`));
+                        formFile.addImport([enumName], genRelativePath(this.config.path, `src/client/app/cmn/models/${modelName}`));
                     }
                     let options = modelMeta.enum.options.map((option, index) => `{value: ${option}, title: this.tr('enum_${option.split('.')[1].toLowerCase()}')}`);
                     let optionName = `${fieldName}Options`;
@@ -265,7 +264,7 @@ export class FormComponentGen {
             }
             codes.push(`\n\t\t\t${fieldsName[i]}: {\n\t\t\t\t${code.join(',\n\t\t\t\t')}\n\t\t\t}`);
         }
-        return codes.length ? (codes.join(',') + '\n\t') : '';
+        return codes.length ? `${codes.join(',')}\n\t\t` : '';
     }
 
     private getFieldErrorMessages(field: Field) {

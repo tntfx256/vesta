@@ -17,6 +17,8 @@ export interface IFieldMeta {
     },
     form?: boolean;
     list?: boolean;
+    confidential?: boolean;
+    verifyOwner?: boolean;
 }
 
 export class FieldGen {
@@ -372,7 +374,7 @@ export class FieldGen {
             let {type, model} = this.properties.relation;
             let modelName = model.toString();
             meta.relation = {model: modelName};
-            this.modelFile.addImport(`{I${modelName}, ${modelName}}`, `./${modelName}`);
+            this.modelFile.addImport([`I${modelName}`, modelName], `./${modelName}`);
             code += this.getRelationCodeFromNumber(type, modelName);
         }
         if (Object.keys(meta).length) {

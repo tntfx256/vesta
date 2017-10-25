@@ -32,13 +32,13 @@ export class ListComponentGen {
         // ts file
         let listFile = new TsFileGen(this.className);
         // imports
-        listFile.addImport('React', 'react');
-        listFile.addImport('{Link}', 'react-router-dom');
-        listFile.addImport('{PageComponent, PageComponentProps, PageComponentState}', genRelativePath(path, 'src/client/app/components/PageComponent'));
-        listFile.addImport(`{I${model.originalClassName}}`, genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
-        listFile.addImport('{Column, DataTable, IDataTableQueryOption}', genRelativePath(path, 'src/client/app/components/general/DataTable'));
-        listFile.addImport('{IDeleteResult}', genRelativePath(path, 'src/client/app/medium'));
-        listFile.addImport('{IAccess}', genRelativePath(path, 'src/client/app/service/AuthService'));
+        listFile.addImport(['React'], 'react', true);
+        listFile.addImport(['Link'], 'react-router-dom');
+        listFile.addImport(['PageComponent', 'PageComponentProps', 'PageComponentState'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        listFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        listFile.addImport(['Column', 'DataTable', 'IDataTableQueryOption'], genRelativePath(path, 'src/client/app/components/general/DataTable'));
+        listFile.addImport(['IDeleteResult'], genRelativePath(path, 'src/client/app/medium'));
+        listFile.addImport(['IAccess'], genRelativePath(path, 'src/client/app/service/AuthService'));
         // params
         listFile.addInterface(`${this.className}Params`);
         let listProps = listFile.addInterface(`${this.className}Props`);

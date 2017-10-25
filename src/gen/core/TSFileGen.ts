@@ -7,10 +7,15 @@ import {Log} from "../../util/Log";
 import {camelCase, pascalCase} from "../../util/StringUtil";
 import {writeFile} from "../../util/FsUtil";
 
-export interface IImportStatement {
+export interface ImportStatement {
     name: string;
     from: string;
     type?: number;
+    isDefault?: boolean;
+}
+
+export interface ImportStorage {
+    [from: string]: Array<ImportStatement>
 }
 
 export interface IMixin {
@@ -21,15 +26,13 @@ export interface IMixin {
 
 export class TsFileGen {
     static CodeLocation = {AfterImport: 1, AfterEnum: 2, AfterInterface: 3, AfterClass: 4, AfterMethod: 5};
-    static ImportType = {Module: 1, Require: 2, Legacy: 3, Namespace: 4};
     private refs: Array<string> = [];
     private mixins: Array<IMixin> = [];
     private methods: Array<MethodGen> = [];
     private enums: Array<EnumGen> = [];
     private classes: Array<ClassGen> = [];
     private interfaces: Array<InterfaceGen> = [];
-    private importStatements: Array<string> = [];
-    private importCache: Array<{ name: string; path: string }> = [];
+    private importStatements: ImportStorage = {};
 
     constructor(public name: string) {
     }
@@ -42,37 +45,23 @@ export class TsFileGen {
         });
     }
 
-    /**
-     * Module:      <code>import nameParameter from 'fromParameter'</code>
-     * Require:     <code>import nameParameter = require('fromParameter')</code>
-     * Legacy:      <code>let nameParameter = require('fromParameter')</code>
-     * Namespace:   <code>import nameParameter = fromParameter</code>
-     */
-    public addImport(name: string, from: string, type: number = TsFileGen.ImportType.Module) {
-        // let names = name.split(/\s*,\s*/);
-        // let realNames = [];
-        // for (let i = names.length; i--;) {
-        //     realNames.push(names[i].replace(/\{}/g, ''));
-        // }
-        // for (let i = this.importCache.length; i--;) {
-        //     if (this.importCache[i].name == name && this.importCache[i].path == from) return;
-        // }
-        let statement = `import ${name} `;
-        switch (type) {
-            case TsFileGen.ImportType.Require:
-                statement += `= require("${from}");`;
-                break;
-            case TsFileGen.ImportType.Namespace:
-                statement += `= ${from};`;
-                break;
-            case TsFileGen.ImportType.Legacy:
-                statement = `let ${name} = require("${from}");`;
-                break;
-            default:
-                statement += `from "${from}";`;
+    public addImport(modules: Array<string>, from: string, isDefault?: boolean) {
+        if (!this.importStatements[from]) {
+            this.importStatements[from] = [];
         }
-        if (this.importStatements.indexOf(statement) < 0) {
-            this.importStatements.push(statement);
+        for (let i = 0, il = modules.length; i < il; ++i) {
+            if (!modules[i]) continue;
+            let found = false;
+            for (let j = this.importStatements[from].length; j--;) {
+                let st: ImportStatement = this.importStatements[from][j];
+                if (st.name == modules[i]) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                this.importStatements[from].push({name: modules[i], from, isDefault});
+            }
         }
     }
 
@@ -170,10 +159,32 @@ export class TsFileGen {
         return code.length ? `${code.join('\n')}\n` : '';
     }
 
+    private getImportStatements(): string {
+        let codes = [];
+        let stPath = Object.keys(this.importStatements);
+        for (let i = 0, il = stPath.length; i < il; ++i) {
+            let defaults = [];
+            let modulars = [];
+            for (let j = 0, jl = this.importStatements[stPath[i]].length; j < jl; ++j) {
+                let st = this.importStatements[stPath[i]][j];
+                if (st.isDefault) {
+                    defaults.push(st.name);
+                } else {
+                    modulars.push(st.name);
+                }
+            }
+            let code = '';
+            if (defaults.length) code = defaults.join(', ');
+            if (modulars.length) code += `${code ? ', ' : ''}{${modulars.join(', ')}}`;
+            codes.push(`import ${code} from "${stPath[i]}";`);
+        }
+        return codes.length ? `${codes.join('\n')}\n` : '';
+    }
+
     public generate(): string {
         let code = '';
         code += this.refs.length ? `${this.refs.join('\n')}` : '';
-        code += this.importStatements.length ? `${this.importStatements.join('\n')}\n` : '';
+        code += this.getImportStatements();
         code += this.getMixin(TsFileGen.CodeLocation.AfterImport);
         // enum
         for (let i = 0, il = this.enums.length; i < il; ++i) {

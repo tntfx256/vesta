@@ -48,7 +48,7 @@ export class ModelGen {
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
-        this.modelFile.addImport('{Model, Schema, Database, FieldType}', '../../medium');
+        this.modelFile.addImport(['Model', 'Schema', 'Database', 'FieldType'], '../../medium');
 
         let cm = this.modelClass.setConstructor();
         cm.addParameter({name: 'values', type: `I${modelName}`, isOptional: true});
@@ -246,6 +246,36 @@ export class ModelGen {
             }
         }
         return ModelGen.modelsMeta[key];
+    }
+
+    static getConfidentialFields(modelName: string): Array<string> {
+        let model = ModelGen.getModel(modelName);
+        if (!model) return [];
+        let confidentials = [];
+        let fields = model.schema.getFields();
+        let fieldsNames = Object.keys(fields);
+        for (let i = fieldsNames.length; i--;) {
+            let meta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldsNames[i]);
+            if (meta.confidential) {
+                confidentials.push(fieldsNames[i]);
+            }
+        }
+        return confidentials;
+    }
+
+    static getOwnerVerifiedFields(modelName: string): Array<string> {
+        let model = ModelGen.getModel(modelName);
+        if (!model) return [];
+        let confidentials = [];
+        let fields = model.schema.getFields();
+        let fieldsNames = Object.keys(fields);
+        for (let i = fieldsNames.length; i--;) {
+            let meta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldsNames[i]);
+            if (meta.verifyOwner) {
+                confidentials.push(fieldsNames[i]);
+            }
+        }
+        return confidentials;
     }
 
     public static init(): ModelGenConfig {
