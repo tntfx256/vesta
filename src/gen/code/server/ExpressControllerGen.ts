@@ -209,10 +209,7 @@ export class ExpressControllerGen {
         }
         let ownerCheckCode = ownerChecks.length ? ` || (!isAdmin && (${ownerChecks.join(' || ')}))` : '';
         let relationFields = this.relationsFields ? `, {relations: ['${Object.keys(this.relationsFields).join("', '")}']}` : '';
-        return `${this.getAuthUserCode()}let id = +req.params.id;
-        if (isNaN(id)) {
-            throw new ValidationError({id: 'number'});
-        }
+        return `${this.getAuthUserCode()}const id = this.retrieveId(req);
         let result = await ${modelName}.find<I${modelName}>(id${relationFields});
         if (result.items.length != 1${ownerCheckCode}) {
             throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
@@ -302,10 +299,7 @@ export class ExpressControllerGen {
                 throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
             }
         }` : '';
-        return `${this.getAuthUserCode()}let id = +req.params.id;
-        if (isNaN(id)) {
-            throw new ValidationError({id: 'number'});
-        }${ownerCheckCode}
+        return `${this.getAuthUserCode()}const id = this.retrieveId(req);${ownerCheckCode}
         let ${modelInstanceName} = result ? result.items[0] : new ${modelName}({id});
         let dResult = await ${modelInstanceName}.remove();
         res.json(dResult);`;
@@ -335,10 +329,7 @@ export class ExpressControllerGen {
             code += `
         await Promise.all(delList);`;
         }
-        return `let id = +req.params.id;
-        if (isNaN(id)) {
-            throw new ValidationError({id: 'number'});
-        }
+        return `const id = this.retrieveId(req);
         let ${modelInstanceName}: ${modelName};
         let destDirectory = join(this.config.dir.upload, '${modelInstanceName}');
         let result = await ${modelName}.find<I${modelName}>(id);

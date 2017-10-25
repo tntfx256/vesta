@@ -41,7 +41,7 @@ export class AddComponentGen {
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                addFile.addImport([`{I${meta.relation.model}}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                addFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
                 let pluralName = plural(fieldNames[i]);
                 addProps.addProperty({
                     name: `${plural(fieldNames[i])}`,

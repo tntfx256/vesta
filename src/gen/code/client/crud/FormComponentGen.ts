@@ -52,7 +52,7 @@ export class FormComponentGen {
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                formFile.addImport([`{I${meta.relation.model}}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                formFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
                 formProps.addProperty({
                     name: `${plural(fieldNames[i])}`,
                     type: `Array<I${meta.relation.model}>`
