@@ -102,7 +102,8 @@ export const ${this.className} = (props: ${this.className}Props) => {
         if (this.config.model) {
             let modelClassName = this.model.originalClassName;
             componentFile.addImport(['Route', 'Switch'], 'react-router');
-            componentFile.addImport(['DynamicRouter', 'IValidationError'], genRelativePath(this.path, 'src/client/app/medium'));
+            componentFile.addImport(['IValidationError'], genRelativePath(this.path, 'src/client/app/cmn/core/error/ValidationError'));
+            componentFile.addImport(['DynamicRouter'], genRelativePath(this.path, 'src/client/app/components/general/DynamicRouter'));
             componentFile.addImport(['IDataTableQueryOption'], genRelativePath(this.path, 'src/client/app/components/general/DataTable'));
             componentFile.addImport(['PageTitle'], genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
             componentFile.addImport(['Preloader'], genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
@@ -400,7 +401,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
         writeFileSync(`${path}/_${stateName}.scss`, `.${stateName}-${this.config.isPage ? 'page' : 'component'} {\n\n}`, {encoding: 'utf8'});
         const importStatement = `@import "${relPath}/${stateName}";`;
         let replace = this.config.isPage ? '///<vesta:scssPageComponent/>' : '///<vesta:scssComponent/>';
-        findInFileAndReplace('src/client/scss/_common.scss', {[replace]: `${importStatement}\n///<vesta:scssComponent/>`}, code => code.indexOf(importStatement) < 0);
+        findInFileAndReplace('src/client/scss/_common.scss', {[replace]: `${importStatement}\n${replace}`}, code => code.indexOf(importStatement) < 0);
     }
 
     public generate() {

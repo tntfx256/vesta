@@ -82,7 +82,9 @@ export class ExpressControllerGen {
         this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         this.ownerVerifiedFields = ModelGen.getOwnerVerifiedFields(this.config.model);
         this.confidentialFields = ModelGen.getConfidentialFields(this.config.model);
-        this.controllerFile.addImport(['Err', 'DatabaseError', 'ValidationError'], '@vesta/core');
+        this.controllerFile.addImport(['Err'], genRelativePath(this.path, 'src/cmn/core/Err'));
+        this.controllerFile.addImport(['DatabaseError'], genRelativePath(this.path, 'src/cmn/core/error/DatabaseError'));
+        this.controllerFile.addImport(['ValidationError'], genRelativePath(this.path, 'src/cmn/core/error/ValidationError'));
         this.controllerFile.addImport([modelClassName, `I${modelClassName}`], genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         this.controllerFile.addImport(['AclAction'], genRelativePath(this.path, `src/cmn/enum/Acl`));
         let acl = this.routingPath.replace(/\/+/g, '.');
@@ -292,20 +294,21 @@ export class ExpressControllerGen {
                 ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} != authUser.id`);
             }
         }
-        let ownerCheckCode = ownerChecks.length ? `\n\t\tlet result = null;
+        let ownerCheckCode = ownerChecks.length ? `
         if (!isAdmin) {
-            result = await ${modelName}.find<I${modelName}>({id});
+            const result = await ${modelName}.find<I${modelName}>({id});
             if (result.items.length != 1 || ${ownerChecks.join(' || ')}) {
                 throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
             }
         }` : '';
         return `${this.getAuthUserCode()}const id = this.retrieveId(req);${ownerCheckCode}
-        let ${modelInstanceName} = result ? result.items[0] : new ${modelName}({id});
+        let ${modelInstanceName} = new ${modelName}({id});
         let dResult = await ${modelInstanceName}.remove();
         res.json(dResult);`;
     }
 
     private getUploadCode(): string {
+        //todo add conf & owner
         this.controllerFile.addImport(['FileUploader'], genRelativePath(this.path, 'src/helpers/FileUploader'));
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);

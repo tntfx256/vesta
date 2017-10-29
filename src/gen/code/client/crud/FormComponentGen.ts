@@ -36,7 +36,7 @@ export class FormComponentGen {
         // imports
         formFile.addImport(['React'], 'react', true);
         formFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
-        formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/medium'));
+        formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/error/IValidationError'));
         formFile.addImport(['FieldValidationMessage', 'ModelValidationMessage', 'Util'], genRelativePath(path, 'src/client/app/util/Util'));
         formFile.addImport(['FormWrapper', this.hasFieldOfType(FieldType.Enum) ? 'FormOption' : null], genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
         formFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
@@ -126,12 +126,11 @@ export class FormComponentGen {
         let codes = [];
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
             let fieldData = this.getFieldData(formFile, this.schema.name, fields[fieldsName[i]]);
-            if (fieldData) {
-                formComponentsToImport = formComponentsToImport.concat(fieldData.imports);
-                formComponents += fieldData.form;
-                if (fieldData.code) {
-                    codes.push(fieldData.code);
-                }
+            if (!fieldData) continue;
+            formComponentsToImport = formComponentsToImport.concat(fieldData.imports);
+            formComponents += fieldData.form;
+            if (fieldData.code) {
+                codes.push(fieldData.code);
             }
         }
         let importedComponents = [];
@@ -147,7 +146,7 @@ export class FormComponentGen {
         if (fieldName == 'id') return <IFormFieldData>null;
         const props: IFieldProperties = field.properties;
         let modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
-        if (modelMeta.hasOwnProperty('form') && !modelMeta.form) return <IFormFieldData>null;
+        if ('form' in modelMeta && !modelMeta.form) return <IFormFieldData>null;
         const instanceName = camelCase(modelName);
         let form = '';
         let code = '';
@@ -193,7 +192,7 @@ export class FormComponentGen {
                 component = 'FormDateTimeInput';
                 properties.push(`dateTime={dateTime}`);
                 if (!this.writtenOnce.dateTime) {
-                    formFile.addImport(['DateTimeFactory'], genRelativePath(this.config.path, 'src/client/app/medium'));
+                    formFile.addImport(['DateTimeFactory'], genRelativePath(this.config.path, 'src/client/app/cmn/core/DateTimeFactory'));
                     formFile.addImport(['ConfigService'], genRelativePath(this.config.path, 'src/client/app/service/ConfigService'));
                     this.writtenOnce.dateTime = true;
                     code += `const dateTime = DateTimeFactory.create(ConfigService.getConfig().locale)`;

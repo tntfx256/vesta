@@ -37,7 +37,7 @@ export class ListComponentGen {
         listFile.addImport(['PageComponent', 'PageComponentProps', 'PageComponentState'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         listFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         listFile.addImport(['Column', 'DataTable', 'IDataTableQueryOption'], genRelativePath(path, 'src/client/app/components/general/DataTable'));
-        listFile.addImport(['IDeleteResult'], genRelativePath(path, 'src/client/app/medium'));
+        listFile.addImport(['IDeleteResult'], genRelativePath(path, 'src/client/app/cmn/core/ICRUDResult'));
         listFile.addImport(['IAccess'], genRelativePath(path, 'src/client/app/service/AuthService'));
         // params
         listFile.addInterface(`${this.className}Params`);
@@ -110,6 +110,7 @@ export class ListComponentGen {
         let codes = [];
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
             let fieldData = this.getFieldData(listFile, this.schema.name, fields[fieldsName[i]]);
+            if (!fieldData) continue;
             if (fieldData.column) {
                 columns.push(fieldData.column);
             }

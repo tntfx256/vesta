@@ -44,11 +44,14 @@ export class ModelGen {
     private initModel(modelName) {
         modelName = pascalCase(modelName);
         this.modelFile = new TsFileGen(modelName);
+        this.modelFile.addImport(['Model'], '../core/Model');
+        this.modelFile.addImport(['Schema'], '../core/Schema');
+        this.modelFile.addImport(['Database'], '../core/Database');
+        this.modelFile.addImport(['FieldType'], '../core/Field');
         this.modelInterface = this.modelFile.addInterface(`I${this.modelFile.name}`);
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass('Model');
         this.modelClass.addImplements(this.modelInterface.name);
-        this.modelFile.addImport(['Model', 'Schema', 'Database', 'FieldType'], '../../medium');
 
         let cm = this.modelClass.setConstructor();
         cm.addParameter({name: 'values', type: `I${modelName}`, isOptional: true});
@@ -157,9 +160,9 @@ export class ModelGen {
         if (Vesta.getInstance().isApiServer) {
             return 'vesta/server/cmn/models/';
         }
-        // running gulp model:ts to compile model files
+        // running gulp model:compile to compile model files
         if (!ModelGen.isModelGenerated) {
-            execSync(`"node_modules/.bin/gulp" model:ts`, {stdio: 'inherit'});
+            execSync(`"node_modules/.bin/gulp" model:compile`, {stdio: 'inherit'});
             ModelGen.isModelGenerated = true;
         }
         return 'vesta/tmp/cmn/model/models';

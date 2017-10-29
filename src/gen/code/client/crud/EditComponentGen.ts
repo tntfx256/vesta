@@ -24,7 +24,7 @@ export class EditComponentGen {
         let editFile = new TsFileGen(this.className);
         // imports
         editFile.addImport(['React'], 'react', true);
-        editFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/medium'));
+        editFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/error/IValidationError'));
         editFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'PageComponentState', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         editFile.addImport([formClassName], `./${formClassName}`);
         editFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
