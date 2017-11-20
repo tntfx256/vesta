@@ -25,7 +25,7 @@ export class AddComponentGen {
         let addFile = new TsFileGen(this.className);
         // imports
         addFile.addImport(['React'], 'react', true);
-        addFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/error/IValidationError'));
+        addFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/Validator'));
         addFile.addImport(['PageComponent', 'PageComponentProps', 'PageComponentState', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         addFile.addImport([formClassName], `./${formClassName}`);
         addFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));

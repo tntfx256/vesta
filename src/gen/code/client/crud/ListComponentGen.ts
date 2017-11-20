@@ -81,7 +81,7 @@ export class ListComponentGen {
                 this.props.fetch(this.props.queryOption);
             })
             .catch(error => {
-                this.notif.error(this.tr(error.message));
+                this.notif.error(error.message);
             })`);
         // render method
         let {column, code} = this.getColumnsData(listFile);

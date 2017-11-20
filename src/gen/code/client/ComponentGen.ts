@@ -102,7 +102,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
         if (this.config.model) {
             let modelClassName = this.model.originalClassName;
             componentFile.addImport(['Route', 'Switch'], 'react-router');
-            componentFile.addImport(['IValidationError'], genRelativePath(this.path, 'src/client/app/cmn/core/error/ValidationError'));
+            componentFile.addImport(['IValidationError'], genRelativePath(this.path, 'src/client/app/cmn/core/Validator'));
             componentFile.addImport(['DynamicRouter'], genRelativePath(this.path, 'src/client/app/components/general/DynamicRouter'));
             componentFile.addImport(['IDataTableQueryOption'], genRelativePath(this.path, 'src/client/app/components/general/DataTable'));
             componentFile.addImport(['PageTitle'], genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
@@ -247,7 +247,8 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 return response.items[0];
             })
             .catch(error => {
-                this.notif.error(this.tr(error.message));
+                this.setState({showLoader: false});
+                this.notif.error(error.message);
             })`);
         // fetchCount method
         let fetchCountMethod = componentClass.addMethod(`fetchCount`, ClassGen.Access.Private);
@@ -264,7 +265,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
             .catch(error => {
                 this.state.queryOption.total = 0;
                 this.setState({queryOption: this.state.queryOption});
-                this.notif.error(this.tr(error.message));
+                this.notif.error(error.message);
             })`);
         // fetchAll method
         let fetchAllMethod = componentClass.addMethod(`fetchAll`);
@@ -278,7 +279,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
             })
             .catch(error => {
                 this.setState({showLoader: false, validationErrors: error.violations});
-                this.notif.error(this.tr(error.message));
+                this.notif.error(error.message);
             })`);
         // save method
         // files
@@ -315,18 +316,18 @@ export const ${this.className} = (props: ${this.className}Props) => {
         saveMethod.setAsArrowFunction(true);
         saveMethod.addParameter({name: 'model', type: model.interfaceName});
         saveMethod.setContent(`let ${model.instanceName} = new ${model.className}(model);
-        const saveType = ${model.instanceName}.id ? 'update' : 'add';${deleteCode}
+        const saveType = ${model.instanceName}.id ? 'update' : 'add';
         let validationErrors = ${model.instanceName}.validate();
         if (validationErrors) {
             return this.setState({validationErrors});
-        }
+        }${deleteCode}
         this.setState({showLoader: true, validationErrors: null});
         let data = ${model.instanceName}.getValues<${model.interfaceName}>();
         (model.id ? this.api.put<${model.interfaceName}>('${model.instanceName}', data) : this.api.post<${model.interfaceName}>('${model.instanceName}', data))
             .then(response => ${uploadCode})${uploadResultCode}
             .catch(error => {
                 this.setState({showLoader: false, validationErrors: error.violations});
-                this.notif.error(this.tr(error.message));
+                this.notif.error(error.message);
             })`);
         // fetch functions for relations
         if (this.relationalFields) {
@@ -344,7 +345,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
             })
             .catch(error => {
                 this.setState({showLoader: false, validationErrors: error.violations});
-                this.notif.error(this.tr(error.message));
+                this.notif.error(error.message);
             })`);
                 }
             }

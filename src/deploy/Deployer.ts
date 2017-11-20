@@ -8,6 +8,7 @@ export interface IDeployHistory {
     type: 'deploy' | 'backup';
     branch?: string;
 }
+
 /**
  * projectName      ProjectGroupName-projectName (automatic)
  * deployPath       app/ProjectGroupName-projectName (automatic)
@@ -51,6 +52,4 @@ export class Deployer {
         execute(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
         remove(this.cloningPath);
     }
-
-
 }

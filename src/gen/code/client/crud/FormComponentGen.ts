@@ -36,7 +36,7 @@ export class FormComponentGen {
         // imports
         formFile.addImport(['React'], 'react', true);
         formFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
-        formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/error/IValidationError'));
+        formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/Validator'));
         formFile.addImport(['FieldValidationMessage', 'ModelValidationMessage', 'Util'], genRelativePath(path, 'src/client/app/util/Util'));
         formFile.addImport(['FormWrapper', this.hasFieldOfType(FieldType.Enum) ? 'FormOption' : null], genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
         formFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
@@ -153,7 +153,7 @@ export class FormComponentGen {
         let imports = [];
         let component = '';
         let properties = [`name="${fieldName}" label={this.tr('fld_${fieldName}')} value={${instanceName}.${fieldName}}`,
-            `error={errors.${fieldName}} onChange={this.onChange}`];
+            `error={errors.${fieldName}} onChange={this.onChange} placeholder={true}`];
         switch (props.type) {
             case FieldType.Text:
                 component = 'FormTextArea';
@@ -302,33 +302,32 @@ export class FormComponentGen {
             case FieldType.Password:
                 break;
             case FieldType.Tel:
-                messages.tel = `this.tr('err_phone')`;
+                messages.type = `this.tr('err_phone')`;
                 break;
             case FieldType.EMail:
                 messages.email = `this.tr('err_email')`;
                 break;
             case FieldType.URL:
-                messages.url = `this.tr('err_url')`;
-                break;
-            case FieldType.Number:
-                messages.number = `this.tr('err_number')`;
+                messages.type = `this.tr('err_url')`;
                 break;
             case FieldType.Integer:
-                messages.integer = `this.tr('err_number')`;
-                break;
+            case FieldType.Number:
             case FieldType.Float:
-                messages.float = `this.tr('err_number')`;
+                messages.type = `this.tr('err_number')`;
                 break;
             case FieldType.File:
                 break;
             case FieldType.Timestamp:
-                messages.timestamp = `this.tr('err_date')`;
+                messages.type = `this.tr('err_date')`;
                 break;
             case FieldType.Boolean:
+                messages.type = `this.tr('err_enum')`;
                 break;
             case FieldType.Enum:
+                messages.type = `this.tr('err_enum')`;
                 break;
             case FieldType.Relation:
+                messages.type = `this.tr('err_relation')`;
                 break;
             case FieldType.List:
                 break;
