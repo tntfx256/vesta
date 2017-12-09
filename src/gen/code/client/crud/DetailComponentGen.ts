@@ -131,8 +131,8 @@ export class DetailComponentGen {
             case FieldType.Password:
                 break;
             case FieldType.File:
-                detailsFile.addImport(['Util'], genRelativePath(this.config.path, 'src/client/app/util/Util'));
-                code = `const ${instanceName}${pascalCase(fieldName)} = Util.getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
+                detailsFile.addImport(['getFileUrl'], genRelativePath(this.config.path, 'src/client/app/util/Util'));
+                code = `const ${instanceName}${pascalCase(fieldName)} = getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
                 value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
                 break;
             case FieldType.Timestamp:

@@ -1,43 +1,56 @@
-import * as fs from "fs-extra";
-import {IProjectConfig, ProjectType} from "../ProjectGen";
+import {IExtProjectConfig, IProjectConfig, ProjectType} from "../ProjectGen";
 import {Log} from "../../util/Log";
-import {writeFile} from "../../util/FsUtil";
+import {readJsonFile, remove, writeFile} from "../../util/FsUtil";
+import {existsSync} from "fs";
+import {clone} from "../../util/Util";
 
-export interface IProjectVersion {
-    app: string;
+export interface IVestaVersion {
+    platform: number;
     api: string;
-    platform?: number;
 }
 
 export interface IVesta {
-    version: IProjectVersion;
+    version: IVestaVersion;
     config: IProjectConfig;
 }
 
 export class Vesta {
     private static instance: Vesta;
     private vesta: IVesta;
-    private path = 'vesta.json';
+    private path = 'package.json';
+    private oldPath = 'vesta.json';
     private isUpdate: boolean = false;
-    // private v2 = false;
 
     constructor(private config?: IProjectConfig) {
-        if (config) {// creating new project
-            // this.v2 = true;
+        if (config) {
+            // creating new project
             this.vesta = {
-                version: {app: '0.1.0', api: 'v1', platform: 2},
+                version: {
+                    platform: 2,
+                    api: 'v1'
+                },
                 config: config
             };
         } else {
             this.isUpdate = true;
             try {
-                if (!fs.existsSync(this.path)) {
-                    Log.error('`vesta.json` not found. Make sure you are in the correct directory');
+                let update = false;
+                if (existsSync(this.oldPath)) {
+                    this.vesta = readJsonFile<any>(this.oldPath);
+                    update = true;
+                } else {
+                    const packageData = readJsonFile<any>(this.path);
+                    if ('vesta' in packageData) {
+                        this.vesta = packageData.vesta;
+                    } else {
+                        Log.error('`vesta.json` not found. Make sure you are in the correct directory');
+                    }
+                }
+                if (!existsSync(this.path)) {
+                    Log.error('`package.json` not found. Make sure you are in the correct directory');
                     process.exit();
                 }
-                this.vesta = JSON.parse(fs.readFileSync(this.path, {encoding: 'utf8'}));
-                // let platform = this.vesta.version.platform;
-                // this.v2 = platform && platform > 1;
+                update && this.generate();
             } catch (e) {
                 Log.error(e);
                 process.exit();
@@ -46,10 +59,14 @@ export class Vesta {
     }
 
     public generate() {
-        if (this.isUpdate) {
-            Log.error('Invalid operation');
-        } else {
-            writeFile(`${this.config.name}/vesta.json`, JSON.stringify(this.vesta, null, 2));
+        const packageData = readJsonFile<any>(this.path);
+        packageData.vesta = this.vesta;
+        try {
+            // adding platform config to package.json
+            writeFile(this.path, JSON.stringify(packageData, null, 2));
+            // removing vesta.json
+            remove(this.oldPath);
+        } catch (e) {
         }
     }
 
@@ -57,20 +74,16 @@ export class Vesta {
         return this.vesta.config;
     }
 
-    public getVersion(): IProjectVersion {
+    public getVersion(): IVestaVersion {
         return this.vesta.version;
     }
-
-    // public get isV2() {
-    //     return this.v2;
-    // }
 
     public get isClientApplication(): boolean {
         return this.vesta.config.type == ProjectType.ClientApplication;
     }
 
-    public get isControlPanel(): boolean {
-        return this.vesta.config.type == ProjectType.ControlPanel;
+    public get isAdminPanel(): boolean {
+        return this.vesta.config.type == ProjectType.AdminPanel;
     }
 
     public get isApiServer(): boolean {
@@ -81,8 +94,10 @@ export class Vesta {
         return this.vesta.config.type == ProjectType.ApiServer ? 'src/cmn' : 'src/client/app/cmn';
     }
 
-    public static getInstance(config?: IProjectConfig): Vesta {
+    public static getInstance(config?: IExtProjectConfig): Vesta {
         if (!Vesta.instance) {
+            const newConfig = clone(config);
+            delete newConfig.name;
             Vesta.instance = new Vesta(config);
         }
         return Vesta.instance;

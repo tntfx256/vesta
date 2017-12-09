@@ -1,6 +1,6 @@
 {
   "name": "vesta",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "description": "Vesta Platform",
   "license": "Apache-2.0",
   "author": "hbtb <bishehsary@gmail.com>",
@@ -15,9 +15,8 @@
     "repository": {
       "api": "https://github.com/VestaRayanAfzar/vesta-template-api.git",
       "client": "https://github.com/VestaRayanAfzar/vesta-template-client.git",
-      "cpanel": "https://github.com/VestaRayanAfzar/vesta-template-cpanel.git",
-      "cmn": "https://github.com/VestaRayanAfzar/vesta-template-cmn.git",
-      "module": "https://github.com/VestaRayanAfzar/vesta-template-module.git"
+      "admin": "https://github.com/VestaRayanAfzar/vesta-template-admin.git",
+      "cmn": "https://github.com/VestaRayanAfzar/vesta-template-cmn.git"
     }
   },
   "scripts": {

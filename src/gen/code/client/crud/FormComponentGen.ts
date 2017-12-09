@@ -37,7 +37,7 @@ export class FormComponentGen {
         formFile.addImport(['React'], 'react', true);
         formFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/Validator'));
-        formFile.addImport(['FieldValidationMessage', 'ModelValidationMessage', 'Util'], genRelativePath(path, 'src/client/app/util/Util'));
+        formFile.addImport(['FieldValidationMessage', 'ModelValidationMessage', 'validationMessage'], genRelativePath(path, 'src/client/app/util/Util'));
         formFile.addImport(['FormWrapper', this.hasFieldOfType(FieldType.Enum) ? 'FormOption' : null], genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
         formFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
@@ -76,11 +76,11 @@ export class FormComponentGen {
         let filesCode = [];
         for (let i = files.length; i--;) {
             filesCode.push(`if (${model.instanceName}.${files[i]}) {
-                    ${model.instanceName}.${files[i]} = Util.getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);
+                    ${model.instanceName}.${files[i]} = getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${files[i]}}\`);
                 }`);
         }
         if (filesCode.length) {
-            formFile.addImport(['Util'], genRelativePath(path, 'src/client/app/util/Util'));
+            formFile.addImport(['getFileUrl'], genRelativePath(path, 'src/client/app/util/Util'));
             finalCode = `{
                 ${filesCode.join('\n\t\t\t\t')}
                 ${finalCode};
@@ -108,7 +108,7 @@ export class FormComponentGen {
         formClass.addMethod('render').setContent(`const requiredErrorMessage = this.tr('err_required');
         const formErrorsMessages: ModelValidationMessage = {${messages}};
         const {validationErrors} = this.props;
-        const errors: FieldValidationMessage = validationErrors ? Util.validationMessage(formErrorsMessages, validationErrors) : {};
+        const errors: FieldValidationMessage = validationErrors ? validationMessage(formErrorsMessages, validationErrors) : {};
         ${formData.code}
         let ${model.instanceName} = this.state.${model.instanceName};
         return (
@@ -190,13 +190,6 @@ export class FormComponentGen {
                 break;
             case FieldType.Timestamp:
                 component = 'FormDateTimeInput';
-                properties.push(`dateTime={dateTime}`);
-                if (!this.writtenOnce.dateTime) {
-                    formFile.addImport(['DateTimeFactory'], genRelativePath(this.config.path, 'src/client/app/cmn/core/DateTimeFactory'));
-                    formFile.addImport(['ConfigService'], genRelativePath(this.config.path, 'src/client/app/service/ConfigService'));
-                    this.writtenOnce.dateTime = true;
-                    code += `const dateTime = DateTimeFactory.create(ConfigService.getConfig().locale)`;
-                }
                 break;
             case FieldType.Boolean:
                 component = 'FormSelect';

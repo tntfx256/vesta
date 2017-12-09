@@ -43,6 +43,10 @@ export function pascalCase(str: string) {
     return fcUpper(camelCase(str));
 }
 
+export function kebabCase(str: string) {
+    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
 export function plural(name: string): string {
     let lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
     if (['a', 'i', 'u', 's'].indexOf(lastChar) >= 0) {

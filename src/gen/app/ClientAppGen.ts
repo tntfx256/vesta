@@ -1,5 +1,5 @@
 import {Vesta} from "../file/Vesta";
-import {IProjectConfig} from "../ProjectGen";
+import {IExtProjectConfig} from "../ProjectGen";
 import {GitGen} from "../file/GitGen";
 import {PlatformConfig} from "../../PlatformConfig";
 import {findInFileAndReplace} from "../../util/Util";
@@ -12,21 +12,21 @@ export class ClientAppGen {
 
     protected vesta: Vesta;
 
-    constructor(protected config: IProjectConfig) {
+    constructor(protected config: IExtProjectConfig) {
         this.vesta = Vesta.getInstance(config);
     }
 
     private cloneTemplate() {
         let dir = this.config.name,
             templateRepo = PlatformConfig.getRepository();
-        GitGen.clone(this.vesta.isControlPanel ? templateRepo.cpanel : templateRepo.client, dir);
+        GitGen.clone(this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client, dir);
     }
 
     public generate() {
         this.cloneTemplate();
         let dir = this.config.name,
             templateRepo = PlatformConfig.getRepository(),
-            templateProjectName = GitGen.getRepoName(this.vesta.isControlPanel ? templateRepo.cpanel : templateRepo.client),
+            templateProjectName = GitGen.getRepoName(this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client),
             replacePattern = {};
         replacePattern[templateProjectName] = dir;
         copy(`${dir}/resources/gitignore/config.var.ts`, `${dir}/src/client/app/config/config.var.ts`);

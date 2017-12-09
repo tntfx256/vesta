@@ -1,4 +1,4 @@
-import {IProjectConfig, ProjectGen, ProjectType} from "../gen/ProjectGen";
+import {IExtProjectConfig, IProjectConfig, ProjectGen, ProjectType} from "../gen/ProjectGen";
 import {Log} from "../util/Log";
 import {ArgParser} from "../util/ArgParser";
 
@@ -13,14 +13,14 @@ export class Create {
         if (!name || !name.match(/^[a-z][a-z0-9-]+/i)) {
             return Log.error('projectName may only contains [letters, numbers, dash]');
         }
-        const projectConfig: IProjectConfig = <IProjectConfig>{name};
+        const projectConfig: IProjectConfig = <IExtProjectConfig>{name};
         switch (argParser.get('--type')) {
             case 'api':
                 projectConfig.type = ProjectType.ApiServer;
                 projectConfig.server = {};
                 break;
-            case 'cpanel':
-                projectConfig.type = ProjectType.ControlPanel;
+            case 'admin':
+                projectConfig.type = ProjectType.AdminPanel;
                 projectConfig.client = {};
                 break;
             case 'client':
@@ -52,7 +52,7 @@ Creating new project based on the provided options
     PROJECT_NAME    The name of the project
 
 Options:
-    --type          Type of project [client, cpanel, api]       {default: client}
+    --type          Type of project [client, admin, api]       {default: client}
     --main-repo     Address of the main repository
     --cmn-repo      Address of the common repository
     -h,--help       Display this help

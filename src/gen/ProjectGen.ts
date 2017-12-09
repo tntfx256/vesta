@@ -4,32 +4,35 @@ import {CommonGen} from "./app/CommonGen";
 import {GitGen, IRepositoryConfig} from "./file/GitGen";
 import {ClientAppGen, IClientAppConfig} from "./app/ClientAppGen";
 import {DockerGen} from "./code/DockerGen";
-import {I18nGenConfig} from "./code/I18nGen";
+import {I18nConfig} from "./code/I18nGen";
 import {PlatformConfig} from "../PlatformConfig";
 import {execute, IExecOptions} from "../util/CmdUtil";
 import {mkdir} from "../util/FsUtil";
 import {finalizeClonedTemplate, findInFileAndReplace} from "../util/Util";
+import {kebabCase} from "../util/StringUtil";
 
-export const enum ProjectType {ClientApplication = 1, ControlPanel, ApiServer}
+export const enum ProjectType {ClientApplication = 1, AdminPanel, ApiServer}
 
 export interface IProjectConfig {
-    name: string;
     type: ProjectType;
     server?: IServerAppConfig;
     client?: IClientAppConfig;
     repository?: IRepositoryConfig;
-    i18n?: I18nGenConfig;
+    i18n?: I18nConfig;
+}
+
+export interface IExtProjectConfig extends IProjectConfig {
+    name?: string;
 }
 
 export class ProjectGen {
-
     public vesta: Vesta;
     public serverApp: ServerAppGen;
     public clientApp: ClientAppGen;
     public commonApp: CommonGen;
     private docker: DockerGen;
 
-    constructor(public config: IProjectConfig) {
+    constructor(public config: IExtProjectConfig) {
         this.vesta = Vesta.getInstance(config);
         this.docker = new DockerGen(config);
         //
@@ -38,7 +41,7 @@ export class ProjectGen {
             this.clientApp = new ClientAppGen(config);
         } else if (config.type == ProjectType.ApiServer) {
             this.serverApp = new ServerAppGen(config);
-        } else if (config.type == ProjectType.ControlPanel) {
+        } else if (config.type == ProjectType.AdminPanel) {
             this.clientApp = new ClientAppGen(config);
         }
     }
@@ -47,16 +50,16 @@ export class ProjectGen {
         let isClientSideProject = this.config.type != ProjectType.ApiServer;
         let dir = this.config.name;
         let templateRepo = PlatformConfig.getRepository();
-        let projectTemplateName = GitGen.getRepoName(isClientSideProject ? (this.vesta.isControlPanel ? templateRepo.cpanel : templateRepo.client) : templateRepo.api);
+        let projectTemplateName = GitGen.getRepoName(isClientSideProject ? (this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client) : templateRepo.api);
         let repoInfo = this.config.repository;
-        let replacement = {[projectTemplateName]: this.config.name};
+        let replacement = {[projectTemplateName]: kebabCase(this.config.name)};
         let execOption: IExecOptions = {cwd: dir};
         mkdir(dir);
         // having the client or server to generate it's projects
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
         this.vesta.generate();
-        finalizeClonedTemplate(dir, this.config.name);
+        finalizeClonedTemplate(dir, kebabCase(this.config.name));
         findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
         if (!repoInfo || !repoInfo.main) {
             this.commonApp.generate();

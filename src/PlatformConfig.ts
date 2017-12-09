@@ -2,7 +2,7 @@ export interface IPlatformRepositoryConfig {
     api: string;
     client: string;
     cmn: string;
-    cpanel: string;
+    admin: string;
     module: string;
 }
 

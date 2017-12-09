@@ -15,6 +15,7 @@ interface IColumnFieldData {
 export class ListComponentGen {
     private className: string;
     private schema: Schema;
+    private writtenOnce: any = {};
 
     constructor(private config: CrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}List`;
@@ -39,6 +40,7 @@ export class ListComponentGen {
         listFile.addImport(['Column', 'DataTable', 'IDataTableQueryOption'], genRelativePath(path, 'src/client/app/components/general/DataTable'));
         listFile.addImport(['IDeleteResult'], genRelativePath(path, 'src/client/app/cmn/core/ICRUDResult'));
         listFile.addImport(['IAccess'], genRelativePath(path, 'src/client/app/service/AuthService'));
+        listFile.addImport(['DataTableOperations'], genRelativePath(path, 'src/client/app/components/general/DataTableOperations'));
         // params
         listFile.addInterface(`${this.className}Params`);
         let listProps = listFile.addInterface(`${this.className}Props`);
@@ -85,13 +87,11 @@ export class ListComponentGen {
             })`);
         // render method
         let {column, code} = this.getColumnsData(listFile);
-        listClass.addMethod('render').setContent(`const access = this.props.access;${code}
+        listClass.addMethod('render').setContent(`const {access} = this.props;${code}
         const columns: Array<Column<I${model.originalClassName}>> = [${column}
             {
-                title: this.tr('operations'), render: r => <span className="dt-operation-cell">
-                <Link to={\`/${stateName}/detail/\${r.id}\`}>View</Link>
-                {access.edit ? <Link to={\`/${stateName}/edit/\${r.id}\`}>Edit</Link> : null}
-                {access.del ? <Link to={\`/${model.instanceName}/del/\${r.id}\`} onClick={this.del}>Del</Link> : null}</span>
+                title: this.tr('operations'), 
+                render: r => <DataTableOperations access={access} id={r.id} onDelete={this.del} path="${stateName}"/>
             }
         ];
         return (
@@ -133,6 +133,7 @@ export class ListComponentGen {
         let code = '';
         let hasValue = true;
         let render = null;
+        let isRenderInline = true;
         switch (props.type) {
             case FieldType.Text:
             case FieldType.Password:
@@ -151,6 +152,17 @@ export class ListComponentGen {
             // case FieldType.Float:
             //     break;
             case FieldType.Timestamp:
+                if (!this.writtenOnce.dateTime) {
+                    this.writtenOnce.dateTime = true;
+                    file.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
+                    code = `const dateTime = Culture.getDateTimeInstance();
+        const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
+                }
+                isRenderInline = false;
+                render = `{
+                dateTime.setTime(r.date);
+                return dateTime.format(dateTimeFormat);
+            }`;
                 break;
             case FieldType.Boolean:
                 render = `this.tr(r.${fieldName} ? 'yes' : 'no')`;
@@ -165,8 +177,17 @@ export class ListComponentGen {
                 break;
         }
         if (hasValue) {
-            render = render ? `, render: r => ${render}` : '';
-            column += `{name: '${fieldName}', title: this.tr('fld_${fieldName}')${render}}`;
+            if (render) {
+                column = isRenderInline ? `{title: this.tr('fld_${fieldName}'), render: r => ${render}}` : `
+                {
+                    title: this.tr('fld_${fieldName}'),
+                    render: r => {
+                        ${render}
+                    }
+                }`;
+            } else {
+                column = `{name: '${fieldName}', title: this.tr('fld_${fieldName}')}`;
+            }
         }
         return {column, code};
     }

@@ -1,5 +1,5 @@
 import {join as pathJoin} from "path";
-import {IProjectConfig} from "../ProjectGen";
+import {IExtProjectConfig} from "../ProjectGen";
 import {GitGen} from "../file/GitGen";
 import {Vesta} from "../file/Vesta";
 import {PlatformConfig} from "../../PlatformConfig";
@@ -10,7 +10,7 @@ import {mkdir, remove} from "../../util/FsUtil";
 export class CommonGen {
     private vesta: Vesta;
 
-    constructor(private config: IProjectConfig) {
+    constructor(private config: IExtProjectConfig) {
         this.vesta = Vesta.getInstance();
     }
 

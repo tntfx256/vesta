@@ -3,14 +3,14 @@ import {Question} from "inquirer";
 import {Log} from "../../util/Log";
 import {ask} from "../../util/Util";
 
-export interface I18nGenConfig {
+export interface I18nConfig {
     locales: Array<string>;
-    default: string;
     useMultilingualModel: boolean;
 }
+
 export class I18nGen {
 
-    constructor(private config: I18nGenConfig) {
+    constructor(private config: I18nConfig) {
     }
 
     public static getGeneratorConfig(appConfig: IProjectConfig): Promise<IProjectConfig> {
@@ -31,9 +31,8 @@ export class I18nGen {
                         Log.error(`Invalid locale '${locales[i]}'`);
                     }
                 }
-                appConfig.i18n = <I18nGenConfig>{
+                appConfig.i18n = <I18nConfig>{
                     locales: locales,
-                    default: locales[0],
                     useMultilingualModel: answer['useOnModel']
                 };
                 return appConfig;

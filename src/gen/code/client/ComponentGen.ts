@@ -232,7 +232,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
         }
         // let indent = `${strRepeat('\t', 10)}${strRepeat(' ', 3)}`;
         // let extraPropsCode = `,\n${indent}${extraProps.join(`,\n${indent}`)}`;
-        let extraPropsCode = `, ${extraProps.join(', ')}`;
+        let extraPropsCode = extraProps.length ? `, ${extraProps.join(', ')}` : '';
         // indent = `${strRepeat('\t', 9)}${strRepeat(' ', 3)}`;
         // let detailsExtraPropsCode = `,\n${indent}${extraProps.join(`,\n${indent}`)}`;
         // fetch method

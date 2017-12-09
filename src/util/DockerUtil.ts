@@ -6,6 +6,7 @@ import {IDeployConfig} from "../deploy/Deployer";
 import {ask} from "./Util";
 import {execute, getOutputOf, table} from "./CmdUtil";
 import {getKernelVersion, getOsCodeName} from "./OsUtil";
+
 let isRoot = require('is-root');
 
 interface IContainerInfo {
@@ -28,7 +29,10 @@ export class DockerUtil {
         if (!isRoot()) return Log.error('You must run this command as root!');
         const osCodeName = getOsCodeName();
         execute(`apt-get update -y`);
-        execute(`apt-get remove docker docker-engine`);
+        try {
+            execute(`apt-get remove docker docker-engine`);
+        } catch (e) {
+        }
         if (osCodeName.toLowerCase() === 'trusty') {
             const kernel = getKernelVersion();
             execute(`apt-get install linux-image-extra-${kernel} linux-image-extra-virtual`);

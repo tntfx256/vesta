@@ -1,5 +1,5 @@
 import {Vesta} from "../file/Vesta";
-import {IProjectConfig} from "../ProjectGen";
+import {IExtProjectConfig} from "../ProjectGen";
 import {GitGen} from "../file/GitGen";
 import {PlatformConfig} from "../../PlatformConfig";
 
@@ -9,7 +9,7 @@ export interface IServerAppConfig {
 export class ServerAppGen {
     private vesta: Vesta;
 
-    constructor(private config: IProjectConfig) {
+    constructor(private config: IExtProjectConfig) {
         this.vesta = Vesta.getInstance();
     }
 

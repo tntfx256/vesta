@@ -1,11 +1,12 @@
-import {IProjectConfig, ProjectType} from "../ProjectGen";
+import {IExtProjectConfig, ProjectType} from "../ProjectGen";
 import {Vesta} from "../file/Vesta";
 import {findInFileAndReplace} from "../../util/Util";
+
 let speakeasy = require('speakeasy');
 
 export class DockerGen {
 
-    constructor(private config: IProjectConfig) {
+    constructor(private config: IExtProjectConfig) {
     }
 
     public compose() {

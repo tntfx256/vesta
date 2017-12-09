@@ -291,7 +291,7 @@ export class FieldGen {
             case FieldType.Timestamp:
                 return 'number';
             case FieldType.File:
-                return 'File|string';
+                return 'string | File';
             case FieldType.Boolean:
                 return 'boolean';
             case FieldType.Relation:
