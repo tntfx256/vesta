@@ -1,4 +1,4 @@
-import {IExtProjectConfig, IProjectConfig, ProjectType} from "../ProjectGen";
+import {IProjectConfig, ProjectType} from "../ProjectGen";
 import {Log} from "../../util/Log";
 import {readJsonFile, remove, writeFile} from "../../util/FsUtil";
 import {existsSync} from "fs";
@@ -60,6 +60,8 @@ export class Vesta {
 
     public generate() {
         const packageData = readJsonFile<any>(this.path);
+        delete this.vesta.version['app'];
+        delete this.vesta.config['name'];
         packageData.vesta = this.vesta;
         try {
             // adding platform config to package.json
@@ -94,11 +96,15 @@ export class Vesta {
         return this.vesta.config.type == ProjectType.ApiServer ? 'src/cmn' : 'src/client/app/cmn';
     }
 
-    public static getInstance(config?: IExtProjectConfig): Vesta {
+    public static getInstance(config?: IProjectConfig): Vesta {
         if (!Vesta.instance) {
-            const newConfig = clone(config);
-            delete newConfig.name;
-            Vesta.instance = new Vesta(config);
+            let cfg = config;
+            try {
+                const newConfig = clone(config);
+                delete newConfig['name'];
+            } catch (e) {
+            }
+            Vesta.instance = new Vesta(cfg);
         }
         return Vesta.instance;
     }
