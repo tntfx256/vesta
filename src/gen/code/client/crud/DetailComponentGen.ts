@@ -17,6 +17,7 @@ export class DetailComponentGen {
     private className: string;
     private schema: Schema;
     private relationalFields: IModelFields;
+    private writtenOnce: any = {};
 
     constructor(private config: CrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}Detail`;
@@ -40,7 +41,7 @@ export class DetailComponentGen {
         // props
         let detailProps = detailFile.addInterface(`${this.className}Props`);
         detailProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        detailProps.addProperty({name: 'fetch', type: `FetchById<${model.interfaceName}>`});
+        detailProps.addProperty({name: 'onFetch', type: `FetchById<${model.interfaceName}>`});
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
@@ -62,7 +63,7 @@ export class DetailComponentGen {
         detailClass.getConstructor().setContent(`super(props);
         this.state = {${model.instanceName}: {}};`);
         // fetch
-        detailClass.addMethod('componentDidMount').setContent(`this.props.fetch(+this.props.match.params.id)
+        detailClass.addMethod('componentDidMount').setContent(`this.props.onFetch(+this.props.match.params.id)
             .then(${model.instanceName} => this.setState({${model.instanceName}}));`);
         const {field, code} = this.getDetailsData(detailFile);
         // render method
@@ -136,6 +137,16 @@ export class DetailComponentGen {
                 value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
                 break;
             case FieldType.Timestamp:
+                if (!this.writtenOnce.dateTime) {
+                    detailsFile.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
+                    this.writtenOnce.dateTime = true;
+                    code = `const dateTime = Culture.getDateTimeInstance();
+        const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
+                }
+                value = `${instanceName}${pascalCase(fieldName)}`;
+                code += `
+        dateTime.setTime(${instanceName}.${fieldName});
+        const ${value} = dateTime.format(dateTimeFormat);`;
                 break;
             case FieldType.Boolean:
                 value = `this.tr(${instanceName}.${fieldName} ? 'yes' : 'no')`;

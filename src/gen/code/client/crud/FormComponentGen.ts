@@ -35,7 +35,7 @@ export class FormComponentGen {
         let formFile = new TsFileGen(this.className);
         // imports
         formFile.addImport(['React'], 'react', true);
-        formFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        formFile.addImport(['PageComponent', 'PageComponentProps', 'FetchById', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/Validator'));
         formFile.addImport(['FieldValidationMessage', 'ModelValidationMessage', 'validationMessage'], genRelativePath(path, 'src/client/app/util/Util'));
         formFile.addImport(['FormWrapper', this.hasFieldOfType(FieldType.Enum) ? 'FormOption' : null], genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
@@ -46,8 +46,8 @@ export class FormComponentGen {
         let formProps = formFile.addInterface(`${this.className}Props`);
         formProps.setParentClass(`PageComponentProps<${this.className}Params>`);
         formProps.addProperty({name: 'id', type: 'number', isOptional: true});
-        formProps.addProperty({name: 'fetch', type: `FetchById<${model.interfaceName}>`, isOptional: true});
-        formProps.addProperty({name: 'save', type: `Save<${model.interfaceName}>`});
+        formProps.addProperty({name: 'onFetch', type: `FetchById<${model.interfaceName}>`, isOptional: true});
+        formProps.addProperty({name: 'onSave', type: `Save<${model.interfaceName}>`});
         formProps.addProperty({name: 'validationErrors', type: 'IValidationError'});
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
@@ -88,7 +88,7 @@ export class FormComponentGen {
         }
         formClass.addMethod('componentDidMount').setContent(`const id = +this.props.id;
         if (isNaN(id)) return;
-        this.props.fetch(id)
+        this.props.onFetch(id)
             .then(${model.instanceName} => ${finalCode});`);
         // onChange method
         let onChange = formClass.addMethod('onChange');
@@ -101,7 +101,7 @@ export class FormComponentGen {
         let onSubmit = formClass.addMethod('onSubmit');
         onSubmit.setAsArrowFunction(true);
         onSubmit.addParameter({name: 'e', type: 'Event'});
-        onSubmit.setContent(`this.props.save(this.state.${model.instanceName});`);
+        onSubmit.setContent(`this.props.onSave(this.state.${model.instanceName});`);
         // render
         let formData = this.getFormData(formFile);
         let messages = this.getValidationErrorMessages();

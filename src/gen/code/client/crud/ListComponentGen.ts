@@ -49,7 +49,7 @@ export class ListComponentGen {
         listProps.addProperty({name: pluralModel, type: `Array<${model.interfaceName}>`});
         listProps.addProperty({name: 'access', type: 'IAccess'});
         listProps.addProperty({
-            name: 'fetch',
+            name: 'onFetch',
             type: `(queryOption: IDataTableQueryOption<${model.interfaceName}>) => void`
         });
         listProps.addProperty({
@@ -69,35 +69,32 @@ export class ListComponentGen {
         listClass.getConstructor().setContent(`super(props);
         this.state = {${pluralModel}: []};`);
         // fetch
-        listClass.addMethod('componentDidMount').setContent(`this.props.fetch(this.props.queryOption);`);
+        listClass.addMethod('componentDidMount').setContent(`this.props.onFetch(this.props.queryOption);`);
         // delete action
-        let delMethod = listClass.addMethod('del');
-        delMethod.addParameter({name: 'e'});
+        let delMethod = listClass.addMethod('onDelete');
+        delMethod.addParameter({name: 'id'});
         delMethod.setAsArrowFunction(true);
-        delMethod.setContent(`e.preventDefault();
-        let match = e.target.href.match(/(\\d+)$/);
-        if (!match) return;
-        this.api.del<IDeleteResult>('${model.instanceName}', +match[0])
+        delMethod.setContent(`this.api.del<IDeleteResult>('${model.instanceName}', id)
             .then(response => {
                 this.notif.success(this.tr('info_delete_record', response.items[0]));
-                this.props.fetch(this.props.queryOption);
+                this.props.onFetch(this.props.queryOption);
             })
             .catch(error => {
                 this.notif.error(error.message);
             })`);
         // render method
         let {column, code} = this.getColumnsData(listFile);
-        listClass.addMethod('render').setContent(`const {access} = this.props;${code}
+        listClass.addMethod('render').setContent(`const {access, onFetch, ${pluralModel}} = this.props;${code}
         const columns: Array<Column<I${model.originalClassName}>> = [${column}
             {
                 title: this.tr('operations'), 
-                render: r => <DataTableOperations access={access} id={r.id} onDelete={this.del} path="${stateName}"/>
+                render: r => <DataTableOperations access={access} id={r.id} onDelete={this.onDelete} path="${stateName}"/>
             }
         ];
         return (
             <div className="crud-page">
-                <DataTable queryOption={this.props.queryOption} columns={columns} records={this.props.${pluralModel}}
-                           fetch={this.props.fetch} pagination={true}/>
+                <DataTable queryOption={this.props.queryOption} columns={columns} records={${pluralModel}}
+                           fetch={onFetch} pagination={true}/>
             </div>
         )`);
         return listFile.generate();
@@ -159,10 +156,8 @@ export class ListComponentGen {
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
                 }
                 isRenderInline = false;
-                render = `{
-                dateTime.setTime(r.date);
-                return dateTime.format(dateTimeFormat);
-            }`;
+                render = `dateTime.setTime(r.date);
+                    return dateTime.format(dateTimeFormat);`;
                 break;
             case FieldType.Boolean:
                 render = `this.tr(r.${fieldName} ? 'yes' : 'no')`;
@@ -178,13 +173,12 @@ export class ListComponentGen {
         }
         if (hasValue) {
             if (render) {
-                column = isRenderInline ? `{title: this.tr('fld_${fieldName}'), render: r => ${render}}` : `
-                {
-                    title: this.tr('fld_${fieldName}'),
-                    render: r => {
-                        ${render}
-                    }
-                }`;
+                column = isRenderInline ? `{title: this.tr('fld_${fieldName}'), render: r => ${render}}` : `{
+                title: this.tr('fld_${fieldName}'),
+                render: r => {
+                    ${render}
+                }
+            }`;
             } else {
                 column = `{name: '${fieldName}', title: this.tr('fld_${fieldName}')}`;
             }

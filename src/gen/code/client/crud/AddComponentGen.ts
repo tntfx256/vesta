@@ -34,7 +34,7 @@ export class AddComponentGen {
         // props
         let addProps = addFile.addInterface(`${this.className}Props`);
         addProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        addProps.addProperty({name: 'save', type: `Save<${model.interfaceName}>`});
+        addProps.addProperty({name: 'onSave', type: `Save<${model.interfaceName}>`});
         addProps.addProperty({name: 'validationErrors', type: 'IValidationError'});
         let extProps = [];
         let extPassedProps = [];
@@ -60,11 +60,11 @@ export class AddComponentGen {
         let addClass = addFile.addClass(this.className);
         addClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
         // render method
-        addClass.addMethod('render').setContent(`let {save, validationErrors${extPropsCode}} = this.props;
+        addClass.addMethod('render').setContent(`let {onSave, validationErrors${extPropsCode}} = this.props;
         return (
             <div className="crud-page">
                 <h1>{this.tr('title_record_add', this.tr('mdl_${model.originalClassName.toLowerCase()}'))}</h1>
-                <${formClassName} save={save} validationErrors={validationErrors}${extPassedPropsCode}>
+                <${formClassName} onSave={onSave} validationErrors={validationErrors}${extPassedPropsCode}>
                     <div className="btn-group">
                         <button className="btn btn-primary" type="submit">{this.tr('add')}</button>
                         <button className="btn" type="button" onClick={this.props.history.goBack}>{this.tr('cancel')}</button>

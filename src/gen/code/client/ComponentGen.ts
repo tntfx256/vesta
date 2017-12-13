@@ -236,7 +236,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
         // indent = `${strRepeat('\t', 9)}${strRepeat(' ', 3)}`;
         // let detailsExtraPropsCode = `,\n${indent}${extraProps.join(`,\n${indent}`)}`;
         // fetch method
-        let fetchMethod = componentClass.addMethod(`fetch`);
+        let fetchMethod = componentClass.addMethod(`onFetch`);
         fetchMethod.setAsArrowFunction(true);
         fetchMethod.addParameter({name: 'id', type: 'number'});
         let model = this.model;
@@ -251,7 +251,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 this.notif.error(error.message);
             })`);
         // fetchCount method
-        let fetchCountMethod = componentClass.addMethod(`fetchCount`, ClassGen.Access.Private);
+        let fetchCountMethod = componentClass.addMethod(`onFetchCount`, ClassGen.Access.Private);
         fetchCountMethod.setAsArrowFunction(true);
         fetchCountMethod.addParameter({
             name: 'queryOption',
@@ -268,11 +268,11 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 this.notif.error(error.message);
             })`);
         // fetchAll method
-        let fetchAllMethod = componentClass.addMethod(`fetchAll`);
+        let fetchAllMethod = componentClass.addMethod(`onFetchAll`);
         fetchAllMethod.setAsArrowFunction(true);
         fetchAllMethod.addParameter({name: 'queryOption', type: `IDataTableQueryOption<${this.model.interfaceName}>`});
         fetchAllMethod.setContent(`this.setState({showLoader: true, queryOption});
-        this.fetchCount(queryOption);
+        this.onFetchCount(queryOption);
         this.api.get<${model.interfaceName}>('${stateName}', queryOption)
             .then(response => {
                 this.setState({showLoader: false, ${plural(this.model.instanceName)}: response.items});
@@ -287,7 +287,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
         let files = fileFields ? Object.keys(fileFields) : [];
         let resultCode = `this.setState({showLoader: false});
                 this.notif.success(this.tr(\`info_\${saveType}_record\`, \`\${response.items[0].id}\`));
-                this.fetchAll(this.state.queryOption);
+                this.onFetchAll(this.state.queryOption);
                 this.props.history.goBack();`;
         let deleteCode = '';
         let uploadCode = '';
@@ -312,7 +312,7 @@ export const ${this.className} = (props: ${this.className}Props) => {
                 ${resultCode}
             }`;
         }
-        let saveMethod = componentClass.addMethod(`save`);
+        let saveMethod = componentClass.addMethod(`onSave`);
         saveMethod.setAsArrowFunction(true);
         saveMethod.addParameter({name: 'model', type: model.interfaceName});
         saveMethod.setContent(`let ${model.instanceName} = new ${model.className}(model);
@@ -366,20 +366,20 @@ export const ${this.className} = (props: ${this.className}Props) => {
                             {this.access.add ?
                                 <Route path="/${stateName}/add" 
                                        render={this.tz(${modelClassName}Add, {${stateName}: ['add']}, {
-                                           save: this.save, validationErrors${extraPropsCode}
+                                           onSave: this.onSave, validationErrors${extraPropsCode}
                                        })}/> : null}
                             {this.access.edit ? 
                                 <Route path="/${stateName}/edit/:id" 
                                        render={this.tz(${modelClassName}Edit, {${stateName}: ['edit']}, {
-                                           save: this.save, fetch: this.fetch, validationErrors${extraPropsCode}
+                                           onSave: this.onSave, onFetch: this.onFetch, validationErrors${extraPropsCode}
                                        })}/> : null}
                             <Route path="/${stateName}/detail/:id" 
                                    render={this.tz(${modelClassName}Detail, {${stateName}: ['read']}, {
-                                       fetch: this.fetch
+                                       onFetch: this.onFetch
                                    })}/>
                         </Switch>
                     </DynamicRouter>
-                    <${modelClassName}List access={this.access} fetch={this.fetchAll} queryOption={queryOption}
+                    <${modelClassName}List access={this.access} onFetch={this.onFetchAll} queryOption={queryOption}
                      ${strRepeat(' ', modelClassName.length)}     ${plural(this.model.instanceName)}={${plural(this.model.instanceName)}}/>
                 </div>
             </div>
