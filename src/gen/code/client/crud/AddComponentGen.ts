@@ -1,17 +1,18 @@
 import * as fs from "fs";
-import {CrudComponentGenConfig} from "../ComponentGen";
+import {ICrudComponentGenConfig} from "../ComponentGen";
 import {TsFileGen} from "../../../core/TSFileGen";
-import {camelCase, plural} from "../../../../util/StringUtil";
+import {plural} from "../../../../util/StringUtil";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {FieldType, IModelFields} from "@vesta/core";
 import {ModelGen} from "../../ModelGen";
 import {IFieldMeta} from "../../FieldGen";
+import {IModelFields} from "../../../../cmn/core/Model";
+import {FieldType, RelationType} from "../../../../cmn/core/Field";
 
 export class AddComponentGen {
     private className: string;
     private relationalFields: IModelFields;
 
-    constructor(private config: CrudComponentGenConfig) {
+    constructor(private config: ICrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}Add`;
         mkdir(config.path);
     }
@@ -19,14 +20,14 @@ export class AddComponentGen {
     private genCrudAddComponent() {
         let model = this.config.modelConfig;
         let path = this.config.path;
-        let stateName = camelCase(this.config.name);
+        const modelObject = ModelGen.getModel(this.config.modelConfig.originalClassName);
         let formClassName = `${this.config.modelConfig.originalClassName}Form`;
         // ts file
         let addFile = new TsFileGen(this.className);
         // imports
         addFile.addImport(['React'], 'react', true);
         addFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/Validator'));
-        addFile.addImport(['PageComponent', 'PageComponentProps', 'PageComponentState', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        addFile.addImport(['PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         addFile.addImport([formClassName], `./${formClassName}`);
         addFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
@@ -41,13 +42,15 @@ export class AddComponentGen {
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                if (!meta.form || !meta.relation.showAllOptions) continue;
+                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
                 addFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
-                let pluralName = plural(fieldNames[i]);
+                let pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 addProps.addProperty({
-                    name: `${plural(fieldNames[i])}`,
+                    name: pluralName,
                     type: `Array<I${meta.relation.model}>`
                 });
-                extProps.push(plural(fieldNames[i]));
+                extProps.push(pluralName);
                 extPassedProps.push(`${pluralName}={${pluralName}}`);
             }
         }
@@ -55,19 +58,20 @@ export class AddComponentGen {
         let extPassedPropsCode = extPassedProps.length ? ` ${extPassedProps.join(' ')}` : '';
         // state
         let addState = addFile.addInterface(`${this.className}State`);
-        addState.setParentClass('PageComponentState');
         // class
         let addClass = addFile.addClass(this.className);
         addClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
         // render method
-        addClass.addMethod('render').setContent(`let {onSave, validationErrors${extPropsCode}} = this.props;
+        addClass.addMethod('render').setContent(`const {onSave, validationErrors${extPropsCode}, history} = this.props;
+        
         return (
             <div className="crud-page">
-                <h1>{this.tr('title_record_add', this.tr('mdl_${model.originalClassName.toLowerCase()}'))}</h1>
+                <h1>{this.tr('title_record_add', this.tr('${model.originalClassName.toLowerCase()}'))}</h1>
                 <${formClassName} onSave={onSave} validationErrors={validationErrors}${extPassedPropsCode}>
                     <div className="btn-group">
                         <button className="btn btn-primary" type="submit">{this.tr('add')}</button>
-                        <button className="btn" type="button" onClick={this.props.history.goBack}>{this.tr('cancel')}</button>
+                        <button className="btn btn-outline" type="button"
+                                onClick={history.goBack}>{this.tr('cancel')}</button>
                     </div>
                 </${formClassName}>
             </div>

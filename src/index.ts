@@ -1,25 +1,29 @@
 #! /usr/bin/env node
-import * as path from "path";
-import {Create} from "./cmd/Create";
-import {Init} from "./cmd/Init";
-import {Gen} from "./cmd/Gen";
-import {Update} from "./cmd/Update";
-import {Deploy} from "./cmd/Deploy";
-import {Backup} from "./cmd/Backup";
-import {Docker} from "./cmd/Docker";
-import {Module} from "./cmd/Module";
-import {Log} from "./util/Log";
-import {IPlatformConfig, PlatformConfig} from "./PlatformConfig";
-import {ArgParser} from "./util/ArgParser";
-import {readJsonFile} from "./util/FsUtil";
+import { join } from "path";
+import { Backup } from "./cmd/Backup";
+import { Create } from "./cmd/Create";
+import { Deploy } from "./cmd/Deploy";
+import { Docker } from "./cmd/Docker";
+import { Gen } from "./cmd/Gen";
+import { Init } from "./cmd/Init";
+import { Module } from "./cmd/Module";
+import { Update } from "./cmd/Update";
+import { Culture } from "./cmn/core/Culture";
+import { UsDate } from "./cmn/culture/us/UsDate";
+import { UsLocale } from "./cmn/culture/us/UsLocale";
+import { IPlatformConfig, PlatformConfig } from "./PlatformConfig";
+import { ArgParser } from "./util/ArgParser";
+import { readJsonFile } from "./util/FsUtil";
+import { Log } from "./util/Log";
 
+Culture.register(UsLocale, {}, UsDate);
 const argParser = ArgParser.getInstance();
-let command = argParser.get();
+const command = argParser.get();
 
-const packageInfo = readJsonFile<any>(path.join(__dirname, '../package.json'));
+const packageInfo = readJsonFile<any>(join(__dirname, "../package.json"));
 
 if (!command) {
-    if (argParser.has('--version', '-v')) {
+    if (argParser.has("--version", "-v")) {
         Log.write(`Vesta Platform v${packageInfo.version}\n`);
     } else if (argParser.hasHelp()) {
         Log.write(`
@@ -55,41 +59,40 @@ Attention:
     process.exit(0);
 }
 // initiating platform configuration
-PlatformConfig.init(<IPlatformConfig>packageInfo.vesta);
+PlatformConfig.init(packageInfo.vesta);
 
 switch (command) {
     // no need to vesta.json
-    case 'init':
+    case "init":
         Init.init();
         break;
-    case 'create':
+    case "create":
         Create.init();
         break;
-    case 'module':
+    case "module":
         Module.init();
         break;
-    case 'deploy':
+    case "deploy":
         Deploy.init();
         break;
-    case 'backup':
+    case "backup":
         Backup.init();
         break;
-    case 'docker':
+    case "docker":
         Docker.init();
         break;
-    case 'update':
+    case "update":
         Update.init();
         break;
     // vesta.json must exist
-    case 'gen':
+    case "gen":
         Gen.init();
         break;
     default:
-        let error = command ? `'${command}' is not a vesta command\n` : '';
-        Log.error(`vesta: ${error}See 'Vesta --help'\n`);
+        const error = command ? `'${command}' is not a vesta command` : "";
+        Log.error(`vesta: ${error}See 'Vesta --help'`);
 }
 
-process.on('unhandledRejection', err => {
-    Log.error(`\nAn unhandledRejection occurred:\n ${err.message}`);
-    // console.error(err);
+process.on("unhandledRejection", (error) => {
+    Log.error(`\nAn unhandledRejection occurred:\n ${error.message}`);
 });

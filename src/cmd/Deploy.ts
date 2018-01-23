@@ -2,8 +2,8 @@ import {Deployer, IDeployConfig} from "../deploy/Deployer";
 import {Log} from "../util/Log";
 import {ArgParser} from "../util/ArgParser";
 import * as fs from "fs";
-import {GregorianDate} from "@vesta/culture-us";
 import {readJsonFile, writeFile} from "../util/FsUtil";
+import {Culture} from "../cmn/core/Culture";
 
 export class Deploy {
 
@@ -37,7 +37,7 @@ export class Deploy {
         }
         (new Deployer(config)).deploy();
         // saving config file
-        let date = new GregorianDate();
+        let date = Culture.getDateTimeInstance();
         config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy', branch: config.branch});
         writeFile(`${config.projectName}.json`, JSON.stringify(config, null, 2));
     }

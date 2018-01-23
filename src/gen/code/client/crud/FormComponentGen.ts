@@ -2,11 +2,14 @@ import * as fs from "fs";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
 import {ModelGen} from "../../ModelGen";
-import {Field, FieldType, IFieldProperties, IModelFields, RelationType, Schema} from "@vesta/core";
 import {Log} from "../../../../util/Log";
-import {camelCase, plural, strRepeat} from "../../../../util/StringUtil";
+import {camelCase, pascalCase, plural, strRepeat} from "../../../../util/StringUtil";
 import {IFieldMeta} from "../../FieldGen";
 import {FormGenConfig} from "../FormGen";
+import {Schema} from "../../../../cmn/core/Schema";
+import {IModelFields} from "../../../../cmn/core/Model";
+import {Field, FieldType, IFieldProperties, RelationType} from "../../../../cmn/core/Field";
+import {ClassGen} from "../../../core/ClassGen";
 
 interface IFormFieldData {
     imports?: Array<string>;
@@ -31,18 +34,20 @@ export class FormComponentGen {
     private genCrudFormComponent() {
         let model = this.config.modelConfig;
         let path = this.config.path;
+        const modelObject = ModelGen.getModel(model.originalClassName);
         // ts file
         let formFile = new TsFileGen(this.className);
         // imports
         formFile.addImport(['React'], 'react', true);
-        formFile.addImport(['PageComponent', 'PageComponentProps', 'FetchById', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        formFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         formFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/Validator'));
-        formFile.addImport(['FieldValidationMessage', 'ModelValidationMessage', 'validationMessage'], genRelativePath(path, 'src/client/app/util/Util'));
+        formFile.addImport(['ModelValidationMessage', 'validationMessage'], genRelativePath(path, 'src/client/app/util/Util'));
         formFile.addImport(['FormWrapper', this.hasFieldOfType(FieldType.Enum) ? 'FormOption' : null], genRelativePath(path, 'src/client/app/components/general/form/FormWrapper'));
         formFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         formFile.addInterface(`${this.className}Params`);
         // props
+        const extProps = [];
         let formProps = formFile.addInterface(`${this.className}Props`);
         formProps.setParentClass(`PageComponentProps<${this.className}Params>`);
         formProps.addProperty({name: 'id', type: 'number', isOptional: true});
@@ -52,11 +57,15 @@ export class FormComponentGen {
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                if (!meta.form || !meta.relation.showAllOptions) continue;
+                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
                 formFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                let pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 formProps.addProperty({
-                    name: `${plural(fieldNames[i])}`,
+                    name: pluralName,
                     type: `Array<I${meta.relation.model}>`
                 });
+                extProps.push(pluralName);
             }
         }
         // state
@@ -65,10 +74,13 @@ export class FormComponentGen {
         // class
         let formClass = formFile.addClass(this.className);
         formClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        // adding form error messages to class
+        formClass.addProperty({name: 'formErrorsMessages', type: 'ModelValidationMessage', access: 'private'});
         // constructor
         formClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
         formClass.getConstructor().setContent(`super(props);
-        this.state = {${model.instanceName}: {}};`);
+        this.state = {${model.instanceName}: {}};
+        this.formErrorsMessages = ${this.getValidationErrorMessages()}`);
         // fetch [componentDidMount]
         let fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
         let files = fileFields ? Object.keys(fileFields) : [];
@@ -104,13 +116,12 @@ export class FormComponentGen {
         onSubmit.setContent(`this.props.onSave(this.state.${model.instanceName});`);
         // render
         let formData = this.getFormData(formFile);
-        let messages = this.getValidationErrorMessages();
-        formClass.addMethod('render').setContent(`const requiredErrorMessage = this.tr('err_required');
-        const formErrorsMessages: ModelValidationMessage = {${messages}};
-        const {validationErrors} = this.props;
-        const errors: FieldValidationMessage = validationErrors ? validationMessage(formErrorsMessages, validationErrors) : {};
-        ${formData.code}
-        let ${model.instanceName} = this.state.${model.instanceName};
+        const extPropsCode = extProps.length ? `, ${extProps.join(', ')}` : '';
+        const extraCode = formData.code ? `\n\t\t${formData.code}` : '';
+        formClass.addMethod('render').setContent(`const {validationErrors${extPropsCode}} = this.props;
+        const {${model.instanceName}} = this.state;
+        const errors = validationErrors ? validationMessage(this.formErrorsMessages, validationErrors) : {};${extraCode}
+        
         return (
             <FormWrapper name="${model.instanceName}Form" onSubmit={this.onSubmit}>${formData.form}
                 {this.props.children}
@@ -146,17 +157,19 @@ export class FormComponentGen {
         if (fieldName == 'id') return <IFormFieldData>null;
         const props: IFieldProperties = field.properties;
         let modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
-        if ('form' in modelMeta && !modelMeta.form) return <IFormFieldData>null;
+        if (!modelMeta.form) return <IFormFieldData>null;
         const instanceName = camelCase(modelName);
         let form = '';
         let code = '';
         let imports = [];
         let component = '';
+        let hasPlaceHolder = true;
         let properties = [`name="${fieldName}" label={this.tr('fld_${fieldName}')} value={${instanceName}.${fieldName}}`,
-            `error={errors.${fieldName}} onChange={this.onChange} placeholder={true}`];
+            `error={errors.${fieldName}} onChange={this.onChange}`];
         switch (props.type) {
             case FieldType.Text:
-                component = 'FormTextArea';
+                hasPlaceHolder = !modelMeta.wysiwyg;
+                component = modelMeta.wysiwyg ? 'Wysiwyg' : 'FormTextArea';
                 break;
             case FieldType.String:
                 component = 'FormTextInput';
@@ -193,7 +206,7 @@ export class FormComponentGen {
                 break;
             case FieldType.Boolean:
                 component = 'FormSelect';
-                let options = [`{value: 0, title: this.tr('no')}`, `{value: 1, title: this.tr('yes')}`];
+                let options = [`{id: 0, title: this.tr('no')}`, `{id: 1, title: this.tr('yes')}`];
                 let optionName = `booleanOptions`;
                 if (!this.writtenOnce.boolean) {
                     this.writtenOnce.boolean = true;
@@ -203,6 +216,7 @@ export class FormComponentGen {
                 break;
             case FieldType.Enum:
                 component = 'FormSelect';
+                const formClass = formFile.getClass();
                 if (modelMeta.enum) {
                     let enumName = modelMeta.enum.options[0].split('.')[0];
                     if (modelMeta.enum.path) {
@@ -210,20 +224,40 @@ export class FormComponentGen {
                     } else {
                         formFile.addImport([enumName], genRelativePath(this.config.path, `src/client/app/cmn/models/${modelName}`));
                     }
-                    let options = modelMeta.enum.options.map((option, index) => `{value: ${option}, title: this.tr('enum_${option.split('.')[1].toLowerCase()}')}`);
+                    let options = modelMeta.enum.options.map((option, index) => `{id: ${option}, title: this.tr('enum_${option.split('.')[1].toLowerCase()}')}`);
                     let optionName = `${fieldName}Options`;
-                    code += `const ${optionName}: Array<FormOption> = [\n\t\t${options.join(',\n\t\t')}];`;
-                    properties.push(`options={${optionName}}`);
+                    // code += `const ${optionName}: Array<{}> = ;`;
+                    formClass.addProperty({
+                        name: `${fieldName}Options`,
+                        type: 'Array<FormOption>',
+                        access: 'private',
+                        defaultValue: `[\n\t\t${options.join(',\n\t\t')}]`
+                    });
+                    properties.push(`options={this.${optionName}}`);
                 }
                 break;
             case FieldType.Relation:
-                if (modelMeta.relation) {
-                    switch (props.relation.type) {
-                        case RelationType.One2Many:
-                        case RelationType.Many2Many:
-                            const schema: Schema = props.relation.model.schema;
-                            // console.log(schema);
-                            break;
+                if (!modelMeta.relation) break;
+                const relModelName = modelMeta.relation.model;
+                const searchableField = ModelGen.getFieldForFormSelect(relModelName);
+                const relInstanceName = camelCase(relModelName);
+                let isMulti = props.relation.type == RelationType.Many2Many;
+                properties.push(`titleKey="${searchableField}"`);
+                const pluralName = isMulti ? fieldName : plural(fieldName);
+                if (modelMeta.relation.showAllOptions) {
+                    component = isMulti ? 'FormMultichoice' : 'FormSelect';
+                    properties.push(`options={${pluralName}}`);
+                } else {
+                    const methodName = `search${pascalCase(pluralName)}`;
+                    const method = formFile.getClass().addMethod(methodName, ClassGen.Access.Private);
+                    method.setAsArrowFunction();
+                    method.addParameter({name: 'term', type: 'string'});
+                    method.setContent(`return this.api.get<I${modelName}>('${relInstanceName}', {query: {${searchableField}: \`*\${term}*\`}, limit: 10, fields: ['id', '${searchableField}']})
+            .then(response => response.items)`);
+                    component = 'Autocomplete';
+                    properties.push(`search={this.${methodName}}`);
+                    if (isMulti) {
+                        properties.push(`multi={true}`);
                     }
                 }
                 break;
@@ -236,6 +270,9 @@ export class FormComponentGen {
                 Log.error(`Unknown field type for ${fieldName} of type ${props.type}`)
         }
         if (component) {
+            if (hasPlaceHolder) {
+                properties.splice(1, 0, 'placeholder={true}');
+            }
             imports.push(component);
             form = `\n\t\t\t\t<${component} ${properties[0]}\n\t\t\t\t${strRepeat(' ', component.length + 2)}`;
             properties.shift();
@@ -256,15 +293,17 @@ export class FormComponentGen {
             }
             codes.push(`\n\t\t\t${fieldsName[i]}: {\n\t\t\t\t${code.join(',\n\t\t\t\t')}\n\t\t\t}`);
         }
-        return codes.length ? `${codes.join(',')}\n\t\t` : '';
+        return codes.length ? `{${codes.join(',')}\n\t\t}` : '';
     }
 
     private getFieldErrorMessages(field: Field) {
         if (field.fieldName == 'id') return null;
+        const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.modelConfig.originalClassName, field.fieldName);
+        if (!meta.form) return;
         let messages: any = {};
         let props: IFieldProperties = field.properties;
         if (props.required) {
-            messages.required = `requiredErrorMessage`;
+            messages.required = "this.tr('err_required')";
         }
         if (props.min) {
             messages.min = `this.tr('err_min_value', ${field.properties.min})`;

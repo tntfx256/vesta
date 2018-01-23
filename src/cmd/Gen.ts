@@ -22,12 +22,10 @@ export class Gen {
 
     private static generate(type: string) {
         if (['controller'].indexOf(type) >= 0 && !Vesta.getInstance().isApiServer) {
-            Log.error('Controller generator is not supported on Client side applications');
-            return;
+            return Log.error('Controller generator is not supported on Client side applications');
         }
         if (['sass', 'component', 'service', 'form'].indexOf(type) >= 0 && Vesta.getInstance().isApiServer) {
-            Log.error(`${pascalCase(type)} generator is not supported on Api applications`);
-            return;
+            return Log.error(`${pascalCase(type)} generator is not supported on Api applications`);
         }
         switch (type) {
             case 'controller':

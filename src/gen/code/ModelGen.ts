@@ -8,12 +8,15 @@ import {TsFileGen} from "../core/TSFileGen";
 import {InterfaceGen} from "../core/InterfaceGen";
 import {Log} from "../../util/Log";
 import {IStructureProperty} from "../core/AbstractStructureGen";
-import {Err, Field, FieldType, IModel, IModelFields, Schema} from "@vesta/core";
 import {ArgParser} from "../../util/ArgParser";
 import {camelCase, pascalCase} from "../../util/StringUtil";
 import {mkdir, unixPath, writeFile} from "../../util/FsUtil";
 import {ask} from "../../util/Util";
 import {execSync} from "child_process";
+import {IModel, IModelFields, Model} from "../../cmn/core/Model";
+import {Field, FieldType} from "../../cmn/core/Field";
+import {Schema} from "../../cmn/core/Schema";
+import {Err} from "../../cmn/core/Err";
 
 export interface ModelGenConfig {
     name: string;
@@ -230,6 +233,18 @@ export class ModelGen {
         return candidate;
     }
 
+    static getFieldForFormSelect(modelName: string) {
+        const model = ModelGen.getModel(modelName);
+        if (!model) return null;
+        const fields = model.schema.getFields();
+        if ('title' in fields) return 'title';
+        for (let i = 0, fieldNames = Object.keys(fields), il = fieldNames.length; i < il; ++i) {
+            const field = fields[fieldNames[i]];
+            if (field.properties.type == FieldType.String) return fieldNames[i];
+        }
+        return null;
+    }
+
     static getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
         let key = `${modelName}-${fieldName}`;
         if (!ModelGen.modelsMeta[key]) {
@@ -237,16 +252,17 @@ export class ModelGen {
             const content = fs.readFileSync(tsModelFile, 'utf8');
             let regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, 'i');
             const json = content.match(regExp);
+            let meta: IFieldMeta = {form: true, list: true};
             if (json) {
                 try {
-                    ModelGen.modelsMeta[key] = JSON.parse(json[1]);
+                    const parsedMeta: IFieldMeta = JSON.parse(json[1]);
+                    meta = Object.assign(meta, parsedMeta);
                 } catch (e) {
                     Log.error(`Error parsing model meta for '${modelName}'\n${json[1]}\n`);
                     ModelGen.modelsMeta[key] = {};
                 }
-            } else {
-                ModelGen.modelsMeta[key] = {};
             }
+            ModelGen.modelsMeta[key] = meta;
         }
         return ModelGen.modelsMeta[key];
     }
@@ -281,14 +297,13 @@ export class ModelGen {
         return confidentials;
     }
 
-    public static init(): ModelGenConfig {
+    public static init() {
         const argParser = ArgParser.getInstance();
         const config: ModelGenConfig = {
             name: argParser.get()
         };
         if (!config.name || !/^[a-z-]+/i.exec(config.name)) {
-            Log.error('Missing/Invalid model name');
-            return;
+            return Log.error('Missing/Invalid model name');
         }
         let model = new ModelGen(config);
         model.generate();

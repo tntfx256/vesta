@@ -2,21 +2,18 @@ import {ArgParser} from "../../../util/ArgParser";
 import {Log} from "../../../util/Log";
 import {camelCase, fcUpper} from "../../../util/StringUtil";
 import {mkdir} from "../../../util/FsUtil";
-import {IModelFields} from "@vesta/core";
-import {CrudComponentGenConfig, ModelConfig} from "./ComponentGen";
+import {ICrudComponentGenConfig, IModelConfig} from "./ComponentGen";
 import {existsSync} from "fs";
 import {FormComponentGen} from "./crud/FormComponentGen";
 
-export interface FormGenConfig extends CrudComponentGenConfig {
+export interface FormGenConfig extends ICrudComponentGenConfig {
     independent?: boolean;
 }
 
 
 export class FormGen {
     private className: string;
-    private model: ModelConfig;
     private path = 'src/client/app/components/';
-    private relationalFields: IModelFields;
 
     constructor(private config: FormGenConfig) {
         this.path += config.path;
@@ -24,7 +21,7 @@ export class FormGen {
         mkdir(this.path);
     }
 
-    private parseModel(): ModelConfig {
+    private parseModel(): IModelConfig {
         let modelFilePath = `src/client/app/cmn/models/${this.config.model}.ts`;
         if (!existsSync(modelFilePath)) {
             Log.error(`Specified model was not found: '${modelFilePath}'`);
@@ -43,7 +40,7 @@ export class FormGen {
     }
 
     public generate() {
-        this.config.modelConfig= this.parseModel();
+        this.config.modelConfig = this.parseModel();
         let fg = new FormComponentGen(this.config);
     }
 

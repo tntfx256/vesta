@@ -2,9 +2,10 @@ import {Question} from "inquirer";
 import {TsFileGen} from "../core/TSFileGen";
 import {ModelGen} from "./ModelGen";
 import {Log} from "../../util/Log";
-import {FieldType, FileMemeType, IFieldProperties, RelationType} from "@vesta/core";
 import {fcUpper} from "../../util/StringUtil";
 import {ask} from "../../util/Util";
+import {FieldType, IFieldProperties, RelationType} from "../../cmn/core/Field";
+import {MimeType} from "../../cmn/core/MimeType";
 
 export interface IFieldMeta {
     enum?: {
@@ -14,9 +15,11 @@ export interface IFieldMeta {
     relation?: {
         model: string;
         path?: string;
+        showAllOptions?: boolean;
     },
     form?: boolean;
     list?: boolean;
+    wysiwyg?: boolean;
     confidential?: boolean;
     verifyOwner?: boolean;
 }
@@ -152,11 +155,11 @@ export class FieldGen {
             let meme = [];
             arr[i] = arr[i].trim();
             if (arr[i].indexOf('/') > 0) {
-                if (FileMemeType.isValid(arr[i])) {
+                if (MimeType.isValid(arr[i])) {
                     meme = [arr[i]];
                 }
             } else {
-                meme = FileMemeType.getMeme(arr[i]);
+                meme = MimeType.getMime(arr[i]);
             }
             if (meme.length) {
                 for (let j = meme.length; j--;) {
@@ -175,21 +178,9 @@ export class FieldGen {
         switch (type) {
             case RelationType.Many2Many:
                 return `.areManyOf(${model})`;
-            case RelationType.One2One:
-                return `.isPartOf(${model})`;
             default:
                 return `.isOneOf(${model})`;
         }
-    }
-
-    private getRelationNumberFromCode(type: string): number {
-        switch (type) {
-            case 'One2One':
-                return RelationType.One2One;
-            case 'Many2Many':
-                return RelationType.Many2Many;
-        }
-        return RelationType.One2Many;
     }
 
     public setAsPrimary() {

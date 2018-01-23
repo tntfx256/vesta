@@ -2,9 +2,9 @@ import {Log} from "../util/Log";
 import {ArgParser} from "../util/ArgParser";
 import * as fs from "fs";
 import {Backuper} from "../deploy/Backuper";
-import {GregorianDate} from "@vesta/culture-us";
 import {IDeployConfig} from "../deploy/Deployer";
 import {readJsonFile, writeFile} from "../util/FsUtil";
+import {Culture} from "../cmn/core/Culture";
 
 export class Backup {
 
@@ -17,7 +17,7 @@ export class Backup {
         if (fs.existsSync(fileName)) {
             let prevDeployConfig = readJsonFile<IDeployConfig>(fileName);
             (new Backuper(prevDeployConfig)).backup();
-            let date = new GregorianDate();
+            let date = Culture.getDateTimeInstance();
             prevDeployConfig.history.push({date: date.format('Y/m/d H:i:s'), type: 'backup'});
             writeFile(fileName, JSON.stringify(prevDeployConfig, null, 2));
         } else {

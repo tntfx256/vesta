@@ -1,11 +1,12 @@
 import * as fs from "fs";
-import {CrudComponentGenConfig} from "../ComponentGen";
+import {ICrudComponentGenConfig} from "../ComponentGen";
 import {TsFileGen} from "../../../core/TSFileGen";
 import {genRelativePath, mkdir} from "../../../../util/FsUtil";
 import {camelCase, plural} from "../../../../util/StringUtil";
-import {Field, FieldType, IFieldProperties, Schema} from "@vesta/core";
 import {ModelGen} from "../../ModelGen";
 import {IFieldMeta} from "../../FieldGen";
+import {Schema} from "../../../../cmn/core/Schema";
+import {Field, FieldType, IFieldProperties} from "../../../../cmn/core/Field";
 
 interface IColumnFieldData {
     column: string;
@@ -17,7 +18,7 @@ export class ListComponentGen {
     private schema: Schema;
     private writtenOnce: any = {};
 
-    constructor(private config: CrudComponentGenConfig) {
+    constructor(private config: ICrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}List`;
         mkdir(config.path);
         let model = ModelGen.getModel(config.model);
@@ -35,7 +36,7 @@ export class ListComponentGen {
         // imports
         listFile.addImport(['React'], 'react', true);
         listFile.addImport(['Link'], 'react-router-dom');
-        listFile.addImport(['PageComponent', 'PageComponentProps', 'PageComponentState'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        listFile.addImport(['PageComponent', 'PageComponentProps', 'FetchAll'], genRelativePath(path, 'src/client/app/components/PageComponent'));
         listFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         listFile.addImport(['Column', 'DataTable', 'IDataTableQueryOption'], genRelativePath(path, 'src/client/app/components/general/DataTable'));
         listFile.addImport(['IDeleteResult'], genRelativePath(path, 'src/client/app/cmn/core/ICRUDResult'));
@@ -48,53 +49,55 @@ export class ListComponentGen {
         listProps.setParentClass(`PageComponentProps<${this.className}Params>`);
         listProps.addProperty({name: pluralModel, type: `Array<${model.interfaceName}>`});
         listProps.addProperty({name: 'access', type: 'IAccess'});
-        listProps.addProperty({
-            name: 'onFetch',
-            type: `(queryOption: IDataTableQueryOption<${model.interfaceName}>) => void`
-        });
-        listProps.addProperty({
-            name: 'queryOption',
-            type: `IDataTableQueryOption<${model.interfaceName}>`
-        });
+        listProps.addProperty({name: 'onFetch', type: `FetchAll<${model.interfaceName}>`});
+        listProps.addProperty({name: 'queryOption', type: `IDataTableQueryOption<${model.interfaceName}>`});
         // state
         let listState = listFile.addInterface(`${this.className}State`);
-        listState.setParentClass('PageComponentState');
         listState.addProperty({name: pluralModel, type: `Array<I${model.originalClassName}>`});
         // class
         let listClass = listFile.addClass(this.className);
         listClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        listClass.addProperty({name: 'columns', type: `Array<Column<I${model.originalClassName}>>`, access: 'private'});
+        let {column, code} = this.getColumnsData(listFile);
         // constructor
         listClass.setConstructor();
         listClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
+        let dateTimeCode = '';
+        if (this.hasFieldOfType(FieldType.Timestamp)) {
+            listFile.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
+            dateTimeCode = `\n\t\tconst dateTime = Culture.getDateTimeInstance();
+        const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
+        }
         listClass.getConstructor().setContent(`super(props);
-        this.state = {${pluralModel}: []};`);
+        this.state = {${pluralModel}: []};${dateTimeCode}
+        this.columns = [${column}
+            {
+                title: this.tr('operations'),
+                render: r => <DataTableOperations access={props.access} id={r.id} onDelete={this.onDelete} 
+                                                  path="${stateName}"/>
+            }
+        ];`);
         // fetch
         listClass.addMethod('componentDidMount').setContent(`this.props.onFetch(this.props.queryOption);`);
         // delete action
         let delMethod = listClass.addMethod('onDelete');
         delMethod.addParameter({name: 'id'});
         delMethod.setAsArrowFunction(true);
-        delMethod.setContent(`this.api.del<IDeleteResult>('${model.instanceName}', id)
+        delMethod.setContent(`this.api.del<IDeleteResult>(\`${model.instanceName}/\${id}\`)
             .then(response => {
-                this.notif.success(this.tr('info_delete_record', response.items[0]));
+                this.notif.success(this.tr('info_delete_record'));
                 this.props.onFetch(this.props.queryOption);
             })
             .catch(error => {
                 this.notif.error(error.message);
             })`);
         // render method
-        let {column, code} = this.getColumnsData(listFile);
-        listClass.addMethod('render').setContent(`const {access, onFetch, ${pluralModel}} = this.props;${code}
-        const columns: Array<Column<I${model.originalClassName}>> = [${column}
-            {
-                title: this.tr('operations'), 
-                render: r => <DataTableOperations access={access} id={r.id} onDelete={this.onDelete} path="${stateName}"/>
-            }
-        ];
+        listClass.addMethod('render').setContent(`const {queryOption, onFetch, ${pluralModel}} = this.props;${code}
+        
         return (
             <div className="crud-page">
-                <DataTable queryOption={this.props.queryOption} columns={columns} records={${pluralModel}}
-                           fetch={onFetch} pagination={true}/>
+                <DataTable columns={this.columns} records={${pluralModel}} queryOption={queryOption} fetch={onFetch}
+                           pagination={true}/>
             </div>
         )`);
         return listFile.generate();
@@ -125,7 +128,7 @@ export class ListComponentGen {
         let fieldName = field.fieldName;
         const props: IFieldProperties = field.properties;
         let modelMeta: IFieldMeta = ModelGen.getFieldMeta(model, fieldName);
-        if ('list' in modelMeta && !modelMeta.list) return <IColumnFieldData>null;
+        if (!modelMeta.list) return <IColumnFieldData>null;
         let column = '';
         let code = '';
         let hasValue = true;
@@ -151,9 +154,9 @@ export class ListComponentGen {
             case FieldType.Timestamp:
                 if (!this.writtenOnce.dateTime) {
                     this.writtenOnce.dateTime = true;
-                    file.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
-                    code = `const dateTime = Culture.getDateTimeInstance();
-        const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
+                    //             file.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
+                    //             code = `const dateTime = Culture.getDateTimeInstance();
+                    // const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
                 }
                 isRenderInline = false;
                 render = `dateTime.setTime(r.date);
@@ -164,10 +167,12 @@ export class ListComponentGen {
                 break;
             case FieldType.Enum:
                 if (modelMeta.enum) {
+                    const listClass = file.getClass();
                     let enumName = camelCase(modelMeta.enum.options[0].split('.')[0]) + 'Options';
                     let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split('.')[1].toLowerCase()}')`);
-                    code = `const ${enumName} = {${options.join(', ')}};`;
-                    render = `this.tr(${enumName}[r.${fieldName}])`;
+                    // code = `const ${enumName} = {${options.join(', ')}};`;
+                    render = `this.tr(this.${enumName}[r.${fieldName}])`;
+                    listClass.addProperty({name: enumName, access: 'private', defaultValue: `{${options.join(', ')}}`});
                 }
                 break;
         }
@@ -184,6 +189,14 @@ export class ListComponentGen {
             }
         }
         return {column, code};
+    }
+
+    private hasFieldOfType(type: FieldType) {
+        const fields = this.schema.getFields();
+        for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
+            if (fields[fieldsName[i]].properties.type == type) return true;
+        }
+        return false;
     }
 
     public generate() {

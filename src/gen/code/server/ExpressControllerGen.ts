@@ -7,10 +7,11 @@ import {Vesta} from "../../file/Vesta";
 import {Placeholder} from "../../core/Placeholder";
 import {ModelGen} from "../ModelGen";
 import {Log} from "../../../util/Log";
-import {FieldType, IModelFields} from "@vesta/core";
 import {ArgParser} from "../../../util/ArgParser";
 import {camelCase, fcUpper, plural} from "../../../util/StringUtil";
 import {genRelativePath, writeFile} from "../../../util/FsUtil";
+import {IModelFields} from "../../../cmn/core/Model";
+import {FieldType} from "../../../cmn/core/Field";
 
 export interface IExpressControllerConfig {
     route: string;
@@ -213,8 +214,8 @@ export class ExpressControllerGen {
         let relationFields = this.relationsFields ? `, {relations: ['${Object.keys(this.relationsFields).join("', '")}']}` : '';
         return `${this.getAuthUserCode()}const id = this.retrieveId(req);
         let result = await ${modelName}.find<I${modelName}>(id${relationFields});
-        if (result.items.length != 1${ownerCheckCode}) {
-            throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
+        if (!result.items.length${ownerCheckCode}) {
+            throw new DatabaseError(Err.Code.DBNoRecord, null);
         }${this.getConfFieldRemovingCode(true)}
         res.json(result);`;
     }
@@ -268,18 +269,22 @@ export class ExpressControllerGen {
         let modelName = ModelGen.extractModelName(this.config.model);
         let modelInstanceName = camelCase(modelName);
         let ownerChecks = [];
+        let ownerInlineChecks = [];
         for (let i = this.ownerVerifiedFields.length; i--;) {
-            ownerChecks.push(`${modelInstanceName}.${this.ownerVerifiedFields} = authUser.id;`);
+            ownerChecks.push(`${modelInstanceName}.${this.ownerVerifiedFields[i]} = authUser.id;`);
+            // check owner of record after finding the record based on recordId
+            ownerInlineChecks.push(`${modelInstanceName}.${this.ownerVerifiedFields[i]} != authUser.id`);
         }
         let ownerCheckCode = ownerChecks.length ? `\n\t\tif (!isAdmin) {\n\t\t\t${ownerChecks.join('\n\t\t\t')}\n\t\t}` : '';
+        let ownerCheckInlineCode = ownerInlineChecks.length ? ` || (!isAdmin && (${ownerInlineChecks.join(' || ')}))` : '';
         return `${this.getAuthUserCode()}let ${modelInstanceName} = new ${modelName}(req.body);${ownerCheckCode}
         let validationError = ${modelInstanceName}.validate();
         if (validationError) {
             throw new ValidationError(validationError);
         }
         let result = await ${modelName}.find<I${modelName}>(${modelInstanceName}.id);
-        if (result.items.length != 1) {
-            throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
+        if (!result.items.length${ownerCheckInlineCode}) {
+            throw new DatabaseError(Err.Code.DBNoRecord, null);
         }
         let uResult = await ${modelInstanceName}.update<I${modelName}>();${this.getConfFieldRemovingCode(true)}
         res.json(uResult);`;
@@ -294,15 +299,39 @@ export class ExpressControllerGen {
                 ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} != authUser.id`);
             }
         }
-        let ownerCheckCode = ownerChecks.length ? `
-        if (!isAdmin) {
-            const result = await ${modelName}.find<I${modelName}>({id});
-            if (result.items.length != 1 || ${ownerChecks.join(' || ')}) {
-                throw new DatabaseError(result.items.length ? Err.Code.DBRecordCount : Err.Code.DBNoRecord, null);
+        const fieldsOfTypeFile = ModelGen.getFieldsByType(modelName, FieldType.File);
+        let deleteFileCode = [];
+
+        if (fieldsOfTypeFile) {
+            this.controllerFile.addImport(['LogLevel'], genRelativePath(this.path, 'src/cmn/models/Log'));
+            deleteFileCode = ['\n\t\tconst filesToBeDeleted = [];', `const baseDirectory = \`\${this.config.dir.upload}/${modelInstanceName}\`;`];
+            for (let fields = Object.keys(fieldsOfTypeFile), i = 0, il = fields.length; i < il;) {
+                const field = fieldsOfTypeFile[fields[i]];
+                if (field.properties.type == FieldType.List) {
+                    deleteFileCode.push(`if (${modelInstanceName}.${field.fieldName}) {
+            for (let i = ${modelInstanceName}.${field.fieldName}.length; i--; ) {
+                filesToBeDeleted.push(\'\${baseDirectory}/\${${modelInstanceName}.${field.fieldName}[i]}\');
             }
+        }`);
+                } else {
+                    deleteFileCode.push(`filesToBeDeleted.push(\`\${baseDirectory}/\${${modelInstanceName}.${field.fieldName}\`);`);
+                }
+            }
+            deleteFileCode.push(`for (let i = filesToBeDeleted.length; i--;) {
+            try {
+                await FileUploader.checkAndDeleteFile(filesToBeDeleted[i]);
+            } catch (e) {
+                req.log(LogLevel.Warn, error.message, 'remove${modelName}', '${modelName}Controller');
+            }
+        }`);
+        }
+        let ownerCheckCode = ownerChecks.length ? `
+        if (!isAdmin && (!result.items.length || ${ownerChecks.join(' || ')})) {
+            throw new DatabaseError(Err.Code.DBNoRecord, null);
         }` : '';
-        return `${this.getAuthUserCode()}const id = this.retrieveId(req);${ownerCheckCode}
-        let ${modelInstanceName} = new ${modelName}({id});
+        return `${this.getAuthUserCode()}const id = this.retrieveId(req);
+        const result = await ${modelName}.find<I${modelName}>(id);${ownerCheckCode}
+        let ${modelInstanceName} = new ${modelName}(result.items[0]);${deleteFileCode.join('\n\t\t')}
         let dResult = await ${modelInstanceName}.remove();
         res.json(dResult);`;
     }
@@ -326,7 +355,7 @@ export class ExpressControllerGen {
         if (upl.${fileNames[i]}) {
             let ${oldName} = ${modelInstanceName}.${fileNames[i]};
             delList.push(FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${${oldName}}\`)
-                .then(() => ${modelInstanceName}.${fileNames[i]} = upl.${fileNames[i]}));
+                .then(() => ${modelInstanceName}.${fileNames[i]} = <string>upl.${fileNames[i]}));
         }`
             }
             code += `
@@ -338,8 +367,9 @@ export class ExpressControllerGen {
         let result = await ${modelName}.find<I${modelName}>(id);
         if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
         ${modelInstanceName} = new ${modelName}(result.items[0]);
-        let uploader = new FileUploader<I${modelName}>(destDirectory);
-        let upl = await uploader.upload(req);
+        let uploader = new FileUploader<I${modelName}>(true);
+        await uploader.parse(req);
+        let upl = await uploader.upload(destDirectory);
         ${code}
         let uResult = await ${modelInstanceName}.update();    
         res.json(uResult);`;

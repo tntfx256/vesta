@@ -1,0 +1,3 @@
+[submodule "src/cmn"]
+	path = src/cmn
+	url = https://github.com/VestaRayanAfzar/vesta-template-cmn

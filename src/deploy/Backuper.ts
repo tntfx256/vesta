@@ -3,15 +3,15 @@ import * as YAML from "yamljs";
 import {IDeployConfig} from "./Deployer";
 import {Log} from "../util/Log";
 import {DockerUtil} from "../util/DockerUtil";
-import {GregorianDate} from "@vesta/culture-us";
 import {execute} from "../util/CmdUtil";
+import {Culture} from "../cmn/core/Culture";
 
 export class Backuper {
     private backupName: string;
     private volumePrefix: string;
 
     constructor(private config: IDeployConfig) {
-        let date = new GregorianDate();
+        let date = Culture.getDateTimeInstance();
         this.backupName = `backup_${date.format('Ymd-His')}`;
     }
 

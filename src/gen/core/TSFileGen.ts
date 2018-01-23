@@ -1,11 +1,11 @@
-import * as path from "path";
-import {ClassGen} from "./ClassGen";
-import {InterfaceGen} from "./InterfaceGen";
-import {EnumGen} from "./EnumGen";
-import {MethodGen} from "./MethodGen";
-import {Log} from "../../util/Log";
-import {camelCase, pascalCase} from "../../util/StringUtil";
-import {writeFile} from "../../util/FsUtil";
+import { join, relative } from "path";
+import { ClassGen } from "./ClassGen";
+import { InterfaceGen } from "./InterfaceGen";
+import { EnumGen } from "./EnumGen";
+import { MethodGen } from "./MethodGen";
+import { Log } from "../../util/Log";
+import { camelCase, pascalCase } from "../../util/StringUtil";
+import { writeFile } from "../../util/FsUtil";
 
 export interface ImportStatement {
     name: string;
@@ -15,7 +15,7 @@ export interface ImportStatement {
 }
 
 export interface ImportStorage {
-    [from: string]: Array<ImportStatement>
+    [from: string]: Array<ImportStatement>;
 }
 
 export interface IMixin {
@@ -25,7 +25,7 @@ export interface IMixin {
 }
 
 export class TsFileGen {
-    static CodeLocation = {AfterImport: 1, AfterEnum: 2, AfterInterface: 3, AfterClass: 4, AfterMethod: 5};
+    public static CodeLocation = { AfterImport: 1, AfterEnum: 2, AfterInterface: 3, AfterClass: 4, AfterMethod: 5 };
     private refs: Array<string> = [];
     private mixins: Array<IMixin> = [];
     private methods: Array<MethodGen> = [];
@@ -50,7 +50,7 @@ export class TsFileGen {
             this.importStatements[from] = [];
         }
         for (let i = 0, il = modules.length; i < il; ++i) {
-            if (!modules[i]) continue;
+            if (!modules[i]) { continue; }
             let found = false;
             for (let j = this.importStatements[from].length; j--;) {
                 let st: ImportStatement = this.importStatements[from][j];
@@ -60,7 +60,7 @@ export class TsFileGen {
                 }
             }
             if (!found) {
-                this.importStatements[from].push({name: modules[i], from, isDefault});
+                this.importStatements[from].push({ name: modules[i], from, isDefault });
             }
         }
     }
@@ -70,17 +70,20 @@ export class TsFileGen {
             name = this.name;
         }
         name = pascalCase(name);
-        let clss = this.getClass(name);
-        if (clss) return clss;
-        clss = new ClassGen(name, isAbstract);
-        this.classes.push(clss);
-        return clss;
+        let classObject = this.getClass(name);
+        if (classObject) { return classObject; }
+        classObject = new ClassGen(name, isAbstract);
+        this.classes.push(classObject);
+        return classObject;
     }
 
-    public getClass(name: string): ClassGen {
+    public getClass(name?: string): ClassGen {
+        if (!name) {
+            return this.classes.length ? this.classes[0] : null;
+        }
         name = pascalCase(name);
         for (let i = this.classes.length; i--;) {
-            if (this.classes[i].name == name) {
+            if (this.classes[i].name === name) {
                 return this.classes[i];
             }
         }
@@ -146,7 +149,7 @@ export class TsFileGen {
     }
 
     public addMixin(code: string, position: number = TsFileGen.CodeLocation.AfterImport): void {
-        this.mixins.push({code: code, position: position});
+        this.mixins.push({ code: code, position: position });
     }
 
     private getMixin(position) {
@@ -160,25 +163,41 @@ export class TsFileGen {
     }
 
     private getImportStatements(): string {
-        let codes = [];
-        let stPath = Object.keys(this.importStatements);
+        const codes = [];
+        const nodeModules = [];
+        const relativeModules = [];
+        Object.keys(this.importStatements).forEach(path => {
+            if (path.startsWith(".")) {
+                relativeModules.push(path);
+            } else {
+                nodeModules.push(path);
+            }
+        });
+        const stPath = nodeModules.sort().concat(relativeModules.sort());
+        // todo: we should sort path, tslint
         for (let i = 0, il = stPath.length; i < il; ++i) {
-            let defaults = [];
-            let modulars = [];
+            const defaults = [];
+            const modulars = [];
             for (let j = 0, jl = this.importStatements[stPath[i]].length; j < jl; ++j) {
-                let st = this.importStatements[stPath[i]][j];
+                const st = this.importStatements[stPath[i]][j];
                 if (st.isDefault) {
                     defaults.push(st.name);
                 } else {
                     modulars.push(st.name);
                 }
             }
-            let code = '';
-            if (defaults.length) code = defaults.join(', ');
-            if (modulars.length) code += `${code ? ', ' : ''}{${modulars.join(', ')}}`;
+            let code = "";
+            if (defaults.length) {
+                defaults.sort();
+                code = defaults.join(", ");
+            }
+            if (modulars.length) {
+                modulars.sort();
+                code += `${code ? ", " : ""}{${modulars.join(", ")}}`;
+            }
             codes.push(`import ${code} from "${stPath[i]}";`);
         }
-        return codes.length ? `${codes.join('\n')}\n` : '';
+        return codes.length ? `${codes.join("\n")}\n` : "";
     }
 
     public generate(): string {
@@ -212,7 +231,7 @@ export class TsFileGen {
 
     public write(directory: string, ext: string = 'ts'): void {
         try {
-            writeFile(path.join(directory, `${this.name}.${ext}`), this.generate());
+            writeFile(join(directory, `${this.name}.${ext}`), this.generate());
         } catch (e) {
             Log.error(e.message);
         }

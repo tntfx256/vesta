@@ -13,7 +13,7 @@ export class I18nGen {
     constructor(private config: I18nConfig) {
     }
 
-    public static getGeneratorConfig(appConfig: IProjectConfig): Promise<IProjectConfig> {
+    public static getGeneratorConfig(appConfig: IProjectConfig) {
         return ask(<Question>{type: 'confirm', name: 'enableI18n', message: 'Enable I18N support: '})
             .then(answer => {
                 if (!answer['enableI18n']) return appConfig;
@@ -28,7 +28,7 @@ export class I18nGen {
                 for (let i = locales.length; i--;) {
                     locales[i] = locales[i].trim();
                     if (!/[a-z]{2}\-[A-Z]{2}/.exec(locales[i])) {
-                        Log.error(`Invalid locale '${locales[i]}'`);
+                        return Log.error(`Invalid locale '${locales[i]}'`);
                     }
                 }
                 appConfig.i18n = <I18nConfig>{
