@@ -1,6 +1,6 @@
 {
   "name": "vesta",
-  "version": "2.5.7",
+  "version": "2.5.8",
   "description": "Vesta Platform",
   "license": "Apache-2.0",
   "author": "hbtb <bishehsary@gmail.com>",
@@ -29,6 +29,7 @@
     "email": "bishehsary@gmail.com"
   },
   "dependencies": {
+    "@vesta/core": "^1.1.4",
     "colors": "^1.1.2",
     "fs-extra": "^5.0.0",
     "inquirer": "^5.0.0",

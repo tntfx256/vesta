@@ -1,12 +1,11 @@
-import * as fs from "fs";
-import {ICrudComponentGenConfig} from "../ComponentGen";
-import {TsFileGen} from "../../../core/TSFileGen";
-import {plural} from "../../../../util/StringUtil";
-import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {ModelGen} from "../../ModelGen";
-import {IFieldMeta} from "../../FieldGen";
-import {IModelFields} from "../../../../cmn/core/Model";
-import {FieldType, RelationType} from "../../../../cmn/core/Field";
+import { FieldType, IModelFields, RelationType } from "@vesta/core";
+import { writeFileSync } from "fs";
+import { genRelativePath, mkdir } from "../../../../util/FsUtil";
+import { plural } from "../../../../util/StringUtil";
+import { TsFileGen } from "../../../core/TSFileGen";
+import { IFieldMeta } from "../../FieldGen";
+import { ModelGen } from "../../ModelGen";
+import { ICrudComponentGenConfig } from "../ComponentGen";
 
 export class AddComponentGen {
     private className: string;
@@ -17,53 +16,60 @@ export class AddComponentGen {
         mkdir(config.path);
     }
 
+    public generate() {
+        this.relationalFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
+        const code = this.genCrudAddComponent();
+        // generate file
+        writeFileSync(`${this.config.path}/${this.className}.tsx`, code);
+    }
+
     private genCrudAddComponent() {
-        let model = this.config.modelConfig;
-        let path = this.config.path;
+        const model = this.config.modelConfig;
+        const path = this.config.path;
         const modelObject = ModelGen.getModel(this.config.modelConfig.originalClassName);
-        let formClassName = `${this.config.modelConfig.originalClassName}Form`;
+        const formClassName = `${this.config.modelConfig.originalClassName}Form`;
         // ts file
-        let addFile = new TsFileGen(this.className);
+        const addFile = new TsFileGen(this.className);
         // imports
-        addFile.addImport(['React'], 'react', true);
-        addFile.addImport(['IValidationError'], genRelativePath(path, 'src/client/app/cmn/core/Validator'));
-        addFile.addImport(['PageComponent', 'PageComponentProps', 'Save'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        addFile.addImport(["React"], "react", true);
+        addFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/cmn/core/Validator"));
+        addFile.addImport(["PageComponent", "PageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
         addFile.addImport([formClassName], `./${formClassName}`);
         addFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         addFile.addInterface(`${this.className}Params`);
         // props
-        let addProps = addFile.addInterface(`${this.className}Props`);
+        const addProps = addFile.addInterface(`${this.className}Props`);
         addProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        addProps.addProperty({name: 'onSave', type: `Save<${model.interfaceName}>`});
-        addProps.addProperty({name: 'validationErrors', type: 'IValidationError'});
-        let extProps = [];
-        let extPassedProps = [];
+        addProps.addProperty({ name: "onSave", type: `Save<${model.interfaceName}>` });
+        addProps.addProperty({ name: "validationErrors", type: "IValidationError" });
+        const extProps = [];
+        const extPassedProps = [];
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
-                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                if (!meta.form || !meta.relation.showAllOptions) continue;
+                const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
                 addFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
-                let pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
+                const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 addProps.addProperty({
                     name: pluralName,
-                    type: `Array<I${meta.relation.model}>`
+                    type: `Array<I${meta.relation.model}>`,
                 });
                 extProps.push(pluralName);
                 extPassedProps.push(`${pluralName}={${pluralName}}`);
             }
         }
-        let extPropsCode = extProps.length ? `, ${extProps.join(', ')}` : '';
-        let extPassedPropsCode = extPassedProps.length ? ` ${extPassedProps.join(' ')}` : '';
+        const extPropsCode = extProps.length ? `, ${extProps.join(", ")}` : "";
+        const extPassedPropsCode = extPassedProps.length ? ` ${extPassedProps.join(" ")}` : "";
         // state
-        let addState = addFile.addInterface(`${this.className}State`);
+        const addState = addFile.addInterface(`${this.className}State`);
         // class
-        let addClass = addFile.addClass(this.className);
+        const addClass = addFile.addClass(this.className);
         addClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
         // render method
-        addClass.addMethod('render').setContent(`const {onSave, validationErrors${extPropsCode}, history} = this.props;
-        
+        addClass.addMethod("render").setContent(`const {onSave, validationErrors${extPropsCode}, history} = this.props;
+
         return (
             <div className="crud-page">
                 <h1>{this.tr('title_record_add', this.tr('${model.originalClassName.toLowerCase()}'))}</h1>
@@ -77,12 +83,5 @@ export class AddComponentGen {
             </div>
         )`);
         return addFile.generate();
-    }
-
-    public generate() {
-        this.relationalFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
-        let code = this.genCrudAddComponent();
-        // generate file
-        fs.writeFileSync(`${this.config.path}/${this.className}.tsx`, code);
     }
 }

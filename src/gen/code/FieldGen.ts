@@ -1,142 +1,189 @@
-import {Question} from "inquirer";
-import {TsFileGen} from "../core/TSFileGen";
-import {ModelGen} from "./ModelGen";
-import {Log} from "../../util/Log";
-import {fcUpper} from "../../util/StringUtil";
-import {ask} from "../../util/Util";
-import {FieldType, IFieldProperties, RelationType} from "../../cmn/core/Field";
-import {MimeType} from "../../cmn/core/MimeType";
+import { Question } from "inquirer";
+import { Log } from "../../util/Log";
+import { fcUpper } from "../../util/StringUtil";
+import { ask } from "../../util/Util";
+import { TsFileGen } from "../core/TSFileGen";
+import { ModelGen } from "./ModelGen";
+import { IFieldProperties, FieldType, Mime, RelationType } from "@vesta/core";
 
 export interface IFieldMeta {
+    confidential?: boolean;
     enum?: {
         options: Array<string>;
         path: string;
-    },
+    };
+    form?: boolean;
+    list?: boolean;
     relation?: {
         model: string;
         path?: string;
         showAllOptions?: boolean;
-    },
-    form?: boolean;
-    list?: boolean;
-    wysiwyg?: boolean;
-    confidential?: boolean;
+    };
     verifyOwner?: boolean;
+    wysiwyg?: boolean;
 }
 
 export class FieldGen {
     // private isMultilingual:boolean = false;
-    private properties: IFieldProperties = <IFieldProperties>{};
-    private metaInfo: IFieldMeta = {};
     private enumName: string;
+    private metaInfo: IFieldMeta = {};
+    private properties: IFieldProperties = {} as IFieldProperties;
 
     constructor(private modelFile: TsFileGen, private name: string) {
         this.properties.enum = [];
         this.properties.fileType = [];
     }
 
-    private getFieldTypeChoices(isForList: boolean = false): Array<string> {
-        return isForList ?
-            [
-                'String',//FieldType.String,
-                'EMail',//FieldType.EMail,
-                'Password',//FieldType.Password,
-                'Tel',//FieldType.Tel,
-                'URL',//FieldType.URL,
-                'Number',//FieldType.Number,
-                'Integer',//FieldType.Integer,
-                'Float',//FieldType.Float,
-                'Timestamp',//FieldType.Timestamp,
-                'File'//FieldType.File,
-            ] :
-            [
-                'String',//FieldType.String,
-                'EMail',//FieldType.EMail,
-                'Password',//FieldType.Password,
-                'Text',//FieldType.Text,
-                'Tel',//FieldType.Tel,
-                'URL',//FieldType.URL,
-                'Number',//FieldType.Number,
-                'Integer',//FieldType.Integer,
-                'Float',//FieldType.Float,
-                'Timestamp',//FieldType.Timestamp,
-                'File',//FieldType.File,
-                'Boolean',//FieldType.Boolean,
-                'Object',//FieldType.Object,
-                'Enum',//FieldType.Enum,
-                'Relation',//FieldType.Relation,
-                'List'//FieldType.List,
-            ];
+    public addProperty(name, type) {
+        this.properties[name] = type;
+    }
+
+    public generate(): string {
+        const meta: IFieldMeta = {};
+        if ("form" in this.metaInfo) { meta.form = this.metaInfo.form; }
+        if ("list" in this.metaInfo) { meta.list = this.metaInfo.list; }
+        let code = `${this.modelFile.name}.schema.addField('${this.name}').type(${this.getCodeForFieldType(this.properties.type)})`;
+        if (this.properties.type == FieldType.List) { code += `.listOf(${this.getCodeForFieldType(this.properties.list)})`; }
+        if (this.properties.required) { code += ".required()"; }
+        if (this.properties.primary) { code += ".primary()"; }
+        if (this.properties.unique) { code += ".unique()"; }
+        if (this.properties.minLength) { code += `.minLength(${this.properties.minLength})`; }
+        if (this.properties.maxLength) { code += `.maxLength(${this.properties.maxLength})`; }
+        if (this.properties.min) { code += `.min(${this.properties.min})`; }
+        if (this.properties.max) { code += `.max(${this.properties.max})`; }
+        if (this.properties.maxSize) { code += `.maxSize(${this.properties.maxSize})`; }
+        if (this.properties.fileType.length) { code += `.fileType('${this.properties.fileType.join("', '")}')`; }
+        if (this.properties.enum.length) { code += this.genCodeForEnumField(meta); }
+        if (this.properties.default) { code += this.getDefaultValueForSchemaCode(); }
+        if (this.properties.relation) {
+            const { type, model } = this.properties.relation;
+            const modelName = model.toString();
+            meta.relation = { model: modelName };
+            this.modelFile.addImport([`I${modelName}`, modelName], `./${modelName}`);
+            code += this.getRelationCodeFromNumber(type, modelName);
+        }
+        if (Object.keys(meta).length) {
+            code = `///@${this.name}(${JSON.stringify(meta)})\n${code}`;
+        }
+        return code + ";";
+    }
+
+    public getNameTypePair(): { defaultValue: string, fieldName: string, fieldType: string, interfaceFieldType: string } {
+        const fieldType = this.properties.type == FieldType.Enum ? this.enumName : this.getCodeForActualFieldType(this.properties.type);
+        return {
+            defaultValue: this.getDefaultValueForClassProperty(),
+            fieldName: this.name,
+            fieldType,
+            interfaceFieldType: fieldType,
+        };
     }
 
     public readFieldProperties(): Promise<any> {
-        let question: Question = <Question>{
-            name: 'fieldType',
-            type: 'list',
-            message: 'Field Type: ',
-            default: 'String',
-            choices: this.getFieldTypeChoices()
-        };
+        const question: Question = {
+            choices: this.getFieldTypeChoices(),
+            default: "String",
+            message: "Field Type: ",
+            name: "fieldType",
+            type: "list",
+        } as Question;
         return ask<{ fieldType: string }>(question)
-            .then(fieldTypeAnswer => {
+            .then((fieldTypeAnswer) => {
                 this.properties.type = this.getFieldType(fieldTypeAnswer.fieldType);
-                let questions = this.getQuestionsBasedOnFieldType(this.properties.type, false);
+                const questions = this.getQuestionsBasedOnFieldType(this.properties.type, false);
                 return ask<any>(questions);
             })
-            .then(answers => {
+            .then((answers) => {
                 this.setPropertiesFromAnswers(answers);
                 // if field is of type list, a new series of questions should be answered based on the items type
                 if (this.properties.list) {
-                    let listQuestions = this.getQuestionsBasedOnFieldType(this.properties.list, true);
-                    return ask(listQuestions).then(answers => this.setPropertiesFromAnswers(answers));
+                    const listQuestions = this.getQuestionsBasedOnFieldType(this.properties.list, true);
+                    return ask(listQuestions).then((listAnswers) => this.setPropertiesFromAnswers(listAnswers));
                 }
             });
     }
 
+    public setAsPrimary() {
+        this.properties.primary = true;
+    }
+
+    private getFieldTypeChoices(isForList: boolean = false): Array<string> {
+        return isForList ?
+            [
+                "String", //FieldType.String,
+                "EMail", //FieldType.EMail,
+                "Password", //FieldType.Password,
+                "Tel", //FieldType.Tel,
+                "URL", //FieldType.URL,
+                "Number", //FieldType.Number,
+                "Integer", //FieldType.Integer,
+                "Float", //FieldType.Float,
+                "Timestamp", //FieldType.Timestamp,
+                "File", //FieldType.File,
+            ] :
+            [
+                "String", //FieldType.String,
+                "EMail", //FieldType.EMail,
+                "Password", //FieldType.Password,
+                "Text", //FieldType.Text,
+                "Tel", //FieldType.Tel,
+                "URL", //FieldType.URL,
+                "Number", //FieldType.Number,
+                "Integer", //FieldType.Integer,
+                "Float", //FieldType.Float,
+                "Timestamp", //FieldType.Timestamp,
+                "File", //FieldType.File,
+                "Boolean", //FieldType.Boolean,
+                "Object", //FieldType.Object,
+                "Enum", //FieldType.Enum,
+                "Relation", //FieldType.Relation,
+                "List", //FieldType.List,
+            ];
+    }
+
     private getFieldType(name: string): FieldType {
-        let map = {
-            String: FieldType.String,
-            EMail: FieldType.EMail,
-            Password: FieldType.Password,
-            Text: FieldType.Text,
-            Tel: FieldType.Tel,
-            URL: FieldType.URL,
-            Number: FieldType.Number,
-            Integer: FieldType.Integer,
-            Float: FieldType.Float,
-            Timestamp: FieldType.Timestamp,
-            File: FieldType.File,
+        const map = {
             Boolean: FieldType.Boolean,
-            Object: FieldType.Object,
+            EMail: FieldType.EMail,
             Enum: FieldType.Enum,
-            Relation: FieldType.Relation,
+            File: FieldType.File,
+            Float: FieldType.Float,
+            Integer: FieldType.Integer,
             List: FieldType.List,
+            Number: FieldType.Number,
+            Object: FieldType.Object,
+            Password: FieldType.Password,
+            Relation: FieldType.Relation,
+            String: FieldType.String,
+            Tel: FieldType.Tel,
+            Text: FieldType.Text,
+            Timestamp: FieldType.Timestamp,
+            URL: FieldType.URL,
         };
         return map[name] || 0;
     }
 
     private setPropertiesFromAnswers(answers: any) {
         for (let properties = Object.keys(answers), i = 0, il = properties.length; i < il; ++i) {
-            let property = properties[i];
-            if (['relatedModel'].indexOf(property) >= 0) continue;
+            const property = properties[i];
+            if (["relatedModel"].indexOf(property) >= 0) { continue; }
             switch (property) {
-                case 'enum':
-                    this.properties.enum = (answers.enum).split(',').map(item => item.trim());
+                case "enum":
+                    this.properties.enum = (answers.enum).split(",").map((item) => item.trim());
                     break;
-                case 'fileType':
+                case "fileType":
                     this.properties.fileType = this.getFileTypes(answers.fileType);
                     break;
-                case 'relationType':
-                    this.properties.relation = {type: answers.relationType, model: answers.relatedModel};
+                case "relationType":
+                    this.properties.relation = { type: answers.relationType, model: answers.relatedModel };
                     break;
-                case 'list':
+                case "list":
                     this.properties.list = this.getFieldType(answers.list);
                     break;
-                case 'showInList':
-                    if (!answers.showInList) this.metaInfo.list = false;
+                case "showInList":
+                    if (!answers.showInList) { this.metaInfo.list = false; }
                     break;
-                case 'showInForm':
-                    if (!answers.showInForm) this.metaInfo.form = false;
+                case "showInForm":
+                    if (!answers.showInForm) { this.metaInfo.form = false; }
                     break;
                 default:
                     this.properties[property] = answers[property];
@@ -144,22 +191,18 @@ export class FieldGen {
         }
     }
 
-    public addProperty(name, type) {
-        this.properties[name] = type;
-    }
-
     private getFileTypes(answer: string): Array<string> {
-        let arr = answer.split(','),
-            fileTypes = [];
+        const arr = answer.split(",");
+        const fileTypes = [];
         for (let i = arr.length; i--;) {
             let meme = [];
             arr[i] = arr[i].trim();
-            if (arr[i].indexOf('/') > 0) {
-                if (MimeType.isValid(arr[i])) {
+            if (arr[i].indexOf("/") > 0) {
+                if (Mime.isValid(arr[i])) {
                     meme = [arr[i]];
                 }
             } else {
-                meme = MimeType.getMime(arr[i]);
+                meme = Mime.getMime(arr[i]);
             }
             if (meme.length) {
                 for (let j = meme.length; j--;) {
@@ -183,22 +226,18 @@ export class FieldGen {
         }
     }
 
-    public setAsPrimary() {
-        this.properties.primary = true;
-    }
-
     private getQuestionsBasedOnFieldType(type: FieldType, isListItem: boolean): Array<Question> {
         let askForDefaultValue = false;
-        let qs: Array<Question> = [];
+        const qs: Array<Question> = [];
         let askForListnForm = false;
         if (!isListItem) {
-            qs.push(<Question>{name: 'required', type: 'confirm', message: 'Is Required: ', default: false});
+            qs.push({ name: "required", type: "confirm", message: "Is Required: ", default: false } as Question);
         }
         switch (type) {
             case FieldType.String:
-                qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
-                qs.push(<Question>{name: 'minLength', type: 'input', message: 'Min Length: '});
-                qs.push(<Question>{name: 'maxLength', type: 'input', message: 'Max Length: '});
+                qs.push({ name: "unique", type: "confirm", message: "Is Unique: ", default: false } as Question);
+                qs.push({ name: "minLength", type: "input", message: "Min Length: " } as Question);
+                qs.push({ name: "maxLength", type: "input", message: "Max Length: " } as Question);
                 // qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
                 askForListnForm = true;
                 break;
@@ -206,14 +245,14 @@ export class FieldGen {
                 // qs.push(<Question>{name: 'multilingual', type: 'confirm', message: 'IS Multilingual: '});
                 break;
             case FieldType.Password:
-                qs.push(<Question>{name: 'minLength', type: 'input', message: 'Min Length: '});
+                qs.push({ name: "minLength", type: "input", message: "Min Length: " } as Question);
                 break;
             case FieldType.Tel:
-                qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
+                qs.push({ name: "unique", type: "confirm", message: "Is Unique: ", default: false } as Question);
                 askForListnForm = true;
                 break;
             case FieldType.EMail:
-                qs.push(<Question>{name: 'unique', type: 'confirm', message: 'Is Unique: ', default: false});
+                qs.push({ name: "unique", type: "confirm", message: "Is Unique: ", default: false } as Question);
                 askForListnForm = true;
                 break;
             case FieldType.URL:
@@ -221,14 +260,14 @@ export class FieldGen {
             case FieldType.Number:
             case FieldType.Integer:
             case FieldType.Float:
-                qs.push(<Question>{name: 'min', type: 'input', message: 'Min Value: '});
-                qs.push(<Question>{name: 'max', type: 'input', message: 'Max Value: '});
+                qs.push({ name: "min", type: "input", message: "Min Value: " } as Question);
+                qs.push({ name: "max", type: "input", message: "Max Value: " } as Question);
                 askForDefaultValue = true;
                 askForListnForm = true;
                 break;
             case FieldType.File:
-                qs.push(<Question>{name: 'maxSize', type: 'input', message: 'Max File Size (KB): '});
-                qs.push(<Question>{name: 'fileType', type: 'input', message: 'Valid File Extensions: '});
+                qs.push({ name: "maxSize", type: "input", message: "Max File Size (KB): " } as Question);
+                qs.push({ name: "fileType", type: "input", message: "Valid File Extensions: " } as Question);
                 break;
             case FieldType.Boolean:
                 askForDefaultValue = true;
@@ -237,30 +276,30 @@ export class FieldGen {
                 break;
             case FieldType.Enum:
                 // askForDefaultValue = true;
-                qs.push(<Question>{name: 'enum', type: 'input', message: 'Valid Options: '});
+                qs.push({ name: "enum", type: "input", message: "Valid Options: " } as Question);
                 askForListnForm = true;
                 break;
             case FieldType.Relation:
-                let types = ['One2One', 'One2Many', 'Many2Many'];
-                let models = Object.keys(ModelGen.getModelsList());
-                qs.push(<Question>{name: 'relationType', type: 'list', choices: types, message: 'Relation Type: '});
-                qs.push(<Question>{name: 'relatedModel', type: 'list', choices: models, message: 'Target Model: '});
+                const types = ["One2One", "One2Many", "Many2Many"];
+                const models = Object.keys(ModelGen.getModelsList());
+                qs.push({ name: "relationType", type: "list", choices: types, message: "Relation Type: " } as Question);
+                qs.push({ name: "relatedModel", type: "list", choices: models, message: "Target Model: " } as Question);
                 break;
             case FieldType.List:
-                qs.push(<Question>{
-                    name: 'list',
-                    type: 'list',
+                qs.push({
+                    name: "list",
+                    type: "list",
                     choices: this.getFieldTypeChoices(true),
-                    message: 'Type of list items: '
-                });
+                    message: "Type of list items: ",
+                } as Question);
                 break;
         }
         if (askForDefaultValue) {
-            qs.push(<Question>{name: 'default', type: 'input', message: 'Default Value: '});
+            qs.push({ name: "default", type: "input", message: "Default Value: " } as Question);
         }
         if (askForListnForm) {
-            qs.push(<Question>{name: 'showInList', type: 'confirm', message: 'Show in data table: ', default: true});
-            qs.push(<Question>{name: 'showInForm', type: 'confirm', message: 'Show in form: ', default: true});
+            qs.push({ name: "showInList", type: "confirm", message: "Show in data table: ", default: true } as Question);
+            qs.push({ name: "showInForm", type: "confirm", message: "Show in form: ", default: true } as Question);
         }
         return qs;
     }
@@ -273,20 +312,20 @@ export class FieldGen {
             case FieldType.Tel:
             case FieldType.EMail:
             case FieldType.URL:
-                return 'string';
+                return "string";
             case FieldType.Number:
             case FieldType.Integer:
             case FieldType.Float:
             //case FieldType.Date:
             //case FieldType.DateTime:
             case FieldType.Timestamp:
-                return 'number';
+                return "number";
             case FieldType.File:
-                return 'string | File';
+                return "string | File";
             case FieldType.Boolean:
-                return 'boolean';
+                return "boolean";
             case FieldType.Relation:
-                let types = `number | I${this.properties.relation.model}`;
+                const types = `number | I${this.properties.relation.model}`;
                 if (this.properties.relation.type == RelationType.Many2Many) {
                     return `Array<${types}>`;
                 }
@@ -297,98 +336,68 @@ export class FieldGen {
             //case FieldType.Enum:
             //    return 'any';
         }
-        if (this.properties.primary) return 'number';
-        return 'any';
+        if (this.properties.primary) { return "number"; }
+        return "any";
     }
 
     private getCodeForFieldType(type: FieldType): string {
-        if (this.properties.primary) return 'FieldType.Integer';
+        if (this.properties.primary) { return "FieldType.Integer"; }
         switch (type) {
             case FieldType.String:
-                return 'FieldType.String';
+                return "FieldType.String";
             case FieldType.Text:
-                return 'FieldType.Text';
+                return "FieldType.Text";
             case FieldType.Password:
-                return 'FieldType.Password';
+                return "FieldType.Password";
             case FieldType.Tel:
-                return 'FieldType.Tel';
+                return "FieldType.Tel";
             case FieldType.EMail:
-                return 'FieldType.EMail';
+                return "FieldType.EMail";
             case FieldType.URL:
-                return 'FieldType.URL';
+                return "FieldType.URL";
             case FieldType.Number:
-                return 'FieldType.Number';
+                return "FieldType.Number";
             case FieldType.Integer:
-                return 'FieldType.Integer';
+                return "FieldType.Integer";
             case FieldType.Float:
-                return 'FieldType.Float';
+                return "FieldType.Float";
             case FieldType.File:
-                return 'FieldType.File';
+                return "FieldType.File";
             //case FieldType.Date:
             //    return 'FieldType.Date';
             //case FieldType.DateTime:
             //    return 'FieldType.DateTime';
             case FieldType.Timestamp:
-                return 'FieldType.Timestamp';
+                return "FieldType.Timestamp";
             case FieldType.Boolean:
-                return 'FieldType.Boolean';
+                return "FieldType.Boolean";
             case FieldType.Object:
-                return 'FieldType.Object';
+                return "FieldType.Object";
             case FieldType.Enum:
-                return 'FieldType.Enum';
+                return "FieldType.Enum";
             case FieldType.Relation:
-                return 'FieldType.Relation';
+                return "FieldType.Relation";
             case FieldType.List:
-                return 'FieldType.List';
+                return "FieldType.List";
         }
-        return 'FieldType.String';
-    }
-
-    public generate(): string {
-        let meta: IFieldMeta = {};
-        if ('form' in this.metaInfo) meta.form = this.metaInfo.form;
-        if ('list' in this.metaInfo) meta.list = this.metaInfo.list;
-        let code = `${this.modelFile.name}.schema.addField('${this.name}').type(${this.getCodeForFieldType(this.properties.type)})`;
-        if (this.properties.type == FieldType.List) code += `.listOf(${this.getCodeForFieldType(this.properties.list)})`;
-        if (this.properties.required) code += '.required()';
-        if (this.properties.primary) code += '.primary()';
-        if (this.properties.unique) code += '.unique()';
-        if (this.properties.minLength) code += `.minLength(${this.properties.minLength})`;
-        if (this.properties.maxLength) code += `.maxLength(${this.properties.maxLength})`;
-        if (this.properties.min) code += `.min(${this.properties.min})`;
-        if (this.properties.max) code += `.max(${this.properties.max})`;
-        if (this.properties.maxSize) code += `.maxSize(${this.properties.maxSize})`;
-        if (this.properties.fileType.length) code += `.fileType('${this.properties.fileType.join("', '")}')`;
-        if (this.properties.enum.length) code += this.genCodeForEnumField(meta);
-        if (this.properties.default) code += this.getDefaultValueForSchemaCode();
-        if (this.properties.relation) {
-            let {type, model} = this.properties.relation;
-            let modelName = model.toString();
-            meta.relation = {model: modelName};
-            this.modelFile.addImport([`I${modelName}`, modelName], `./${modelName}`);
-            code += this.getRelationCodeFromNumber(type, modelName);
-        }
-        if (Object.keys(meta).length) {
-            code = `///@${this.name}(${JSON.stringify(meta)})\n${code}`;
-        }
-        return code + ';';
+        return "FieldType.String";
     }
 
     private genCodeForEnumField(meta: IFieldMeta): string {
-        let enumArray = [],
-            firstEnum: string = this.properties.enum[0];
-        if (firstEnum.indexOf('.') > 0) {
-            this.enumName = firstEnum.substr(0, firstEnum.indexOf('.'));
+        let enumArray = [];
+        let firstEnum: string = this.properties.enum[0];
+        if (firstEnum.indexOf(".") > 0) {
+            this.enumName = firstEnum.substr(0, firstEnum.indexOf("."));
             enumArray = this.properties.enum;
             Log.warning(`Do not forget to import the (${this.enumName})`);
         } else {
             this.enumName = fcUpper(this.modelFile.name) + fcUpper(this.name);
-            let enumField = this.modelFile.addEnum(this.enumName);
+            const enumField = this.modelFile.addEnum(this.enumName);
             enumField.shouldExport(true);
             firstEnum = `${this.enumName}.${firstEnum}`;
             for (let i = 0, il = this.properties.enum.length; i < il; ++i) {
                 enumField.addProperty(this.properties.enum[i]);
-                let v = fcUpper(this.properties.enum[i]);
+                const v = fcUpper(this.properties.enum[i]);
                 enumArray.push(`${this.enumName}.${v}`);
                 if (i == 0) {
                     firstEnum = enumArray[0];
@@ -396,18 +405,8 @@ export class FieldGen {
             }
         }
         this.properties.default = enumArray[0];
-        meta.enum = {options: enumArray, path: ''};
+        meta.enum = { options: enumArray, path: "" };
         return `.enum(${enumArray.join(", ")})`;
-    }
-
-    public getNameTypePair(): { fieldName: string, fieldType: string, interfaceFieldType: string, defaultValue: string } {
-        let fieldType = this.properties.type == FieldType.Enum ? this.enumName : this.getCodeForActualFieldType(this.properties.type);
-        return {
-            fieldName: this.name,
-            fieldType: fieldType,
-            interfaceFieldType: fieldType,
-            defaultValue: this.getDefaultValueForClassProperty()
-        }
     }
 
     private getDefaultValueForSchemaCode() {
@@ -451,14 +450,14 @@ export class FieldGen {
             // case FieldType.Enum:
             // case FieldType.Object:
             case FieldType.Timestamp:
-                return 'Date.now()';
+                return "Date.now()";
             case FieldType.Boolean:
-                return 'false';
+                return "false";
             case FieldType.Relation:
-                if (this.properties.relation.type == RelationType.Many2Many) return '[]';
+                if (this.properties.relation.type == RelationType.Many2Many) { return "[]"; }
                 break;
             case FieldType.List:
-                return '[]';
+                return "[]";
         }
         return undefined;
     }

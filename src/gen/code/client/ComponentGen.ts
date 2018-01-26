@@ -1,7 +1,5 @@
-import * as fs from "fs";
-import { writeFileSync } from "fs";
-import { FieldType, RelationType } from "../../../cmn/core/Field";
-import { IModelFields } from "../../../cmn/core/Model";
+import { FieldType, IModelFields, RelationType } from "@vesta/core";
+import { existsSync, writeFileSync } from "fs";
 import { ArgParser } from "../../../util/ArgParser";
 import { genRelativePath, mkdir } from "../../../util/FsUtil";
 import { Log } from "../../../util/Log";
@@ -122,152 +120,15 @@ Example:
         }
     }
 
-    private genStateless() {
-        const cmpName = camelCase(this.className);
-        const className = kebabCase(cmpName).toLowerCase();
-        const importPath = genRelativePath(this.path, "src/client/app/components/BaseComponent");
-        const params = this.config.noParams ? "" : `\n\nexport interface I${this.className}Params {\n}`;
-        return `import React from "react";
-import { BaseComponentProps } from "${importPath}";${params}
-
-export interface I${this.className}Props extends BaseComponentProps${params ? `<I${this.className}Params>` : ""} {
-}
-
-export const ${this.className} = (props: I${this.className}Props) => {
-    return (
-        <div className="${className}">
-            <h2>${this.className} Component</h2>
-        </div>
-    );
-};\n`;
-    }
-
-    private parseModel(): IModelConfig {
-        const modelFilePath = `src/client/app/cmn/models/${this.config.model}.ts`;
-        if (!fs.existsSync(modelFilePath)) {
-            Log.error(`Specified model was not found: '${modelFilePath}'`);
-            return null;
-        }
-        // todo: require model file
-        const modelClassName = fcUpper(this.config.model.match(/([^\/]+)$/)[1]);
-        return {
-            className: modelClassName == this.className ? `${modelClassName}Model` : modelClassName,
-            file: modelFilePath,
-            instanceName: camelCase(modelClassName),
-            interfaceName: `I${modelClassName}`,
-            originalClassName: modelClassName,
-        };
-    }
-
-    private genComponentFile(): TsFileGen {
-        let componentFile = new TsFileGen(this.className);
-        componentFile.addImport(['React'], 'react', true);
-        if (this.config.isPage) {
-            componentFile.addImport(['PageComponent', 'PageComponentProps'], genRelativePath(this.path, 'src/client/app/components/PageComponent'));
-        } else {
-            componentFile.addImport(['Component'], 'react');
-            componentFile.addImport(['BaseComponentProps'], genRelativePath(this.path, 'src/client/app/components/BaseComponent'));
-        }
-        if (this.config.model || this.config.isPage) {
-            componentFile.addImport(['Navbar'], genRelativePath(this.path, 'src/client/app/components/general/Navbar'), true);
-        }
-        if (this.config.model) {
-            let modelClassName = this.model.originalClassName;
-            componentFile.addImport(['Route', 'Switch'], 'react-router');
-            componentFile.addImport(['IValidationError'], genRelativePath(this.path, 'src/client/app/cmn/core/Validator'));
-            componentFile.addImport(['DynamicRouter'], genRelativePath(this.path, 'src/client/app/components/general/DynamicRouter'));
-            componentFile.addImport(['IDataTableQueryOption'], genRelativePath(this.path, 'src/client/app/components/general/DataTable'));
-            componentFile.addImport(['PageTitle'], genRelativePath(this.path, 'src/client/app/components/general/PageTitle'));
-            componentFile.addImport(['Preloader'], genRelativePath(this.path, 'src/client/app/components/general/Preloader'));
-            componentFile.addImport(['CrudMenu'], genRelativePath(this.path, 'src/client/app/components/general/CrudMenu'));
-            componentFile.addImport(['IAccess'], genRelativePath(this.path, 'src/client/app/service/AuthService'));
-            let modelImportStatement = modelClassName == this.className ? `${modelClassName} as ${this.model.className}` : this.model.className;
-            componentFile.addImport([`I${modelClassName}`, modelImportStatement], genRelativePath(this.path, this.model.file));
-            let instanceName = camelCase(this.className);
-            componentFile.addImport([`${modelClassName}Add`], `./${instanceName}/${modelClassName}Add`);
-            componentFile.addImport([`${modelClassName}Edit`], `./${instanceName}/${modelClassName}Edit`);
-            componentFile.addImport([`${modelClassName}Detail`], `./${instanceName}/${modelClassName}Detail`);
-            componentFile.addImport([`${modelClassName}List`], `./${instanceName}/${modelClassName}List`);
-        }
-        return componentFile;
-    }
-
-    private genComponentClass(componentFile: TsFileGen): ClassGen {
-        // params interface
-        let params = '';
-        if (!this.config.noParams) {
-            let paramInterface = componentFile.addInterface(`I${this.className}Params`);
-            params = `<${paramInterface.name}>`;
-        }
-        // props
-        let propsInterface = componentFile.addInterface(`I${this.className}Props`);
-        propsInterface.setParentClass(this.config.isPage ? `PageComponentProps${params}` : `BaseComponentProps${params}`);
-        // state
-        let stateInterface = componentFile.addInterface(`I${this.className}State`);
-        if (this.config.model) {
-            stateInterface.addProperty({ name: 'showLoader', type: 'boolean' });
-            stateInterface.addProperty({ name: 'validationErrors', type: 'IValidationError' });
-            stateInterface.addProperty({
-                name: plural(this.model.instanceName),
-                type: `Array<${this.model.interfaceName}>`
-            });
-            stateInterface.addProperty({
-                name: 'queryOption',
-                type: `IDataTableQueryOption<${this.model.interfaceName}>`
-            });
-            if (this.relationalFields) {
-                const modelObject = ModelGen.getModel(this.model.originalClassName);
-                for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
-                    let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                    if (!meta.form || !meta.relation.showAllOptions) continue;
-                    stateInterface.addProperty({
-                        name: modelObject.schema.getField(fieldNames[i]).properties.relation.type == RelationType.Many2Many ? fieldNames[i] : plural(fieldNames[i]),
-                        type: `Array<I${meta.relation.model}>`
-                    });
-                }
-            }
-        }
-        // component class
-        let componentClass = componentFile.addClass(this.className);
-        componentClass.setParentClass(`${this.config.isPage ? 'PageComponent' : 'Component'}<${propsInterface.name}, ${stateInterface.name}>`);
-        if (this.config.model) {
-            componentClass.addProperty({ name: 'access', type: 'IAccess', access: 'private' });
-        }
-        componentClass.setConstructor();
-        componentClass.getConstructor().addParameter({ name: 'props', type: propsInterface.name });
-        if (this.config.model) {
-            this.addCrudParentComponentMethods(componentFile, componentClass);
-        } else {
-            this.addSimpleComponentMethods(componentClass);
-        }
-        return componentClass;
-    }
-
-    private addSimpleComponentMethods(componentClass: ClassGen) {
-        const instanceName = camelCase(this.className);
-        const className = kebabCase(this.className).toLowerCase();
-        // constructor method
-        componentClass.getConstructor().setContent(`super(props);
-        this.state = {};`);
-        // render method
-        const cssClass = this.config.isPage ? `page ${className}-page has-navbar` : `${className}`;
-        const navbar = this.config.isPage ? `\n\t\t\t\t<Navbar title={this.tr('${instanceName.toLowerCase()}')}/>` : "";
-        (componentClass.addMethod("render")).setContent(`return (
-            <div className="${cssClass}">${navbar}
-                <h1>${this.className} Component</h1>
-            </div>
-        );`);
-    }
-
     private addCrudParentComponentMethods(componentFile: TsFileGen, componentClass: ClassGen) {
-        let stateName = camelCase(this.className);
+        const stateName = camelCase(this.className);
         // constructor method
-        let extStates = [];
+        const extStates = [];
         const modelObject = ModelGen.getModel(this.model.originalClassName);
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
-                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                if (!meta.form || !meta.relation.showAllOptions) continue;
+                const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 // do not pluralize field names for many2many relationships
                 if (modelObject.schema.getField(fieldNames[i]).properties.relation.type == RelationType.Many2Many) {
                     extStates.push(`${fieldNames[i]}: []`);
@@ -276,7 +137,7 @@ export const ${this.className} = (props: I${this.className}Props) => {
                 }
             }
         }
-        let extStatesCode = extStates.length ? `,\n\t\t\t${extStates.join(',\n\t\t\t')}` : '';
+        const extStatesCode = extStates.length ? `,\n\t\t\t${extStates.join(",\n\t\t\t")}` : "";
         componentClass.getConstructor().setContent(`super(props);
         this.access = this.auth.getAccessList('${stateName}');
         this.state = { showLoader: false, validationErrors: null, ${plural(this.model.instanceName)}: [], queryOption: {page: 1, limit: this.pagination.itemsPerPage}${extStatesCode} };`);
@@ -285,7 +146,7 @@ export const ${this.className} = (props: I${this.className}Props) => {
         const fetchCallers = [];
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
-                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
                 fetchCallers.push(`this.fetch${pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i])}();`);
@@ -327,9 +188,9 @@ export const ${this.className} = (props: I${this.className}Props) => {
             </div>
         );`);
         // fetch method
-        let fetchMethod = componentClass.addMethod(`onFetch`);
+        const fetchMethod = componentClass.addMethod(`onFetch`);
         fetchMethod.setAsArrowFunction(true);
-        fetchMethod.addParameter({ name: 'id', type: 'number' });
+        fetchMethod.addParameter({ name: "id", type: "number" });
         fetchMethod.setContent(`this.setState({ showLoader: true });
         return this.api.get<${model.interfaceName}>(\`${stateName}/\${id}\`)
             .then(response => {
@@ -341,11 +202,11 @@ export const ${this.className} = (props: I${this.className}Props) => {
                 this.notif.error(error.message);
             })`);
         // fetchCount method
-        let fetchCountMethod = componentClass.addMethod(`onFetchCount`, ClassGen.Access.Private);
+        const fetchCountMethod = componentClass.addMethod(`onFetchCount`, ClassGen.Access.Private);
         fetchCountMethod.setAsArrowFunction(true);
         fetchCountMethod.addParameter({
-            name: 'queryOption',
-            type: `IDataTableQueryOption<${this.model.interfaceName}>`
+            name: "queryOption",
+            type: `IDataTableQueryOption<${this.model.interfaceName}>`,
         });
         fetchCountMethod.setContent(`this.api.get<${model.interfaceName}>('${stateName}/count', queryOption)
             .then(response => {
@@ -358,9 +219,9 @@ export const ${this.className} = (props: I${this.className}Props) => {
                 this.notif.error(error.message);
             })`);
         // fetchAll method
-        let fetchAllMethod = componentClass.addMethod(`onFetchAll`);
+        const fetchAllMethod = componentClass.addMethod(`onFetchAll`);
         fetchAllMethod.setAsArrowFunction(true);
-        fetchAllMethod.addParameter({ name: 'queryOption', type: `IDataTableQueryOption<${this.model.interfaceName}>` });
+        fetchAllMethod.addParameter({ name: "queryOption", type: `IDataTableQueryOption<${this.model.interfaceName}>` });
         fetchAllMethod.setContent(`this.setState({ showLoader: true, queryOption });
         this.onFetchCount(queryOption);
         this.api.get<${model.interfaceName}>('${stateName}', queryOption)
@@ -373,20 +234,20 @@ export const ${this.className} = (props: I${this.className}Props) => {
             })`);
         // save method
         // files
-        let fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
-        let files = fileFields ? Object.keys(fileFields) : [];
-        let resultCode = `this.setState({ showLoader: false });
+        const fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        const files = fileFields ? Object.keys(fileFields) : [];
+        const resultCode = `this.setState({ showLoader: false });
                 this.notif.success(this.tr('info_save_record'));
                 this.onFetchAll(this.state.queryOption);
                 this.props.history.goBack();`;
-        let deleteCode = '';
-        let uploadCode = '';
-        let uploadResultCode = '';
+        let deleteCode = "";
+        let uploadCode = "";
+        let uploadResultCode = "";
         if (files.length) {
             deleteCode = `\n\t\tlet hasFile = false;
         const ${model.instanceName}Files: ${model.interfaceName} = {};`;
             for (let i = files.length; i--;) {
-                let fieldName = files[0];
+                const fieldName = files[0];
                 deleteCode += `\n\t\tif (${model.instanceName}.${fieldName} && ${model.instanceName}.${fieldName} instanceof File) {
             ${model.instanceName}Files.${fieldName} = ${model.instanceName}.${fieldName};
             delete ${model.instanceName}.${fieldName};
@@ -402,9 +263,9 @@ export const ${this.className} = (props: I${this.className}Props) => {
                 ${resultCode}
             }`;
         }
-        let saveMethod = componentClass.addMethod(`onSave`);
+        const saveMethod = componentClass.addMethod(`onSave`);
         saveMethod.setAsArrowFunction(true);
-        saveMethod.addParameter({ name: 'model', type: model.interfaceName });
+        saveMethod.addParameter({ name: "model", type: model.interfaceName });
         saveMethod.setContent(`let ${model.instanceName} = new ${model.className}(model);
         let validationErrors = ${model.instanceName}.validate();
         if (validationErrors) {
@@ -421,13 +282,13 @@ export const ${this.className} = (props: I${this.className}Props) => {
         // fetch functions for relations
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
-                let meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                if (!meta.form || !meta.relation.showAllOptions) continue;
+                const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
-                let method = componentClass.addMethod(`fetch${pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i])}`);
+                const method = componentClass.addMethod(`fetch${pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i])}`);
                 if (meta.relation && meta.relation.model) {
-                    let modelName = meta.relation.model;
-                    let instanceName = camelCase(modelName);
+                    const modelName = meta.relation.model;
+                    const instanceName = camelCase(modelName);
                     method.setAsArrowFunction(true);
                     method.setContent(`this.setState({showLoader: true});
         this.api.get<I${modelName}>('${instanceName}')
@@ -444,21 +305,158 @@ export const ${this.className} = (props: I${this.className}Props) => {
         writeFileSync(`${this.path}/${this.className}.tsx`, componentFile.generate());
     }
 
+    private addSimpleComponentMethods(componentClass: ClassGen) {
+        const instanceName = camelCase(this.className);
+        const className = kebabCase(this.className).toLowerCase();
+        // constructor method
+        componentClass.getConstructor().setContent(`super(props);
+        this.state = {};`);
+        // render method
+        const cssClass = this.config.isPage ? `page ${className}-page has-navbar` : `${className}`;
+        const navbar = this.config.isPage ? `\n\t\t\t\t<Navbar title={this.tr('${instanceName.toLowerCase()}')}/>` : "";
+        (componentClass.addMethod("render")).setContent(`return (
+            <div className="${cssClass}">${navbar}
+                <h1>${this.className} Component</h1>
+            </div>
+        );`);
+    }
+
+    private createScss() {
+        if (!this.config.hasStyle) { return; }
+        const relPath = `components/${this.config.path}`;
+        const path = `src/client/scss/${relPath}`;
+        mkdir(path);
+        const className = kebabCase(this.className).toLowerCase();
+        writeFileSync(`${path}/_${className}.scss`, `.${className}${this.config.isPage ? "-page" : ""} {\n\n}`, { encoding: "utf8" });
+        const importStatement = `@import "${relPath}/${className}";`;
+        const replace = this.config.isPage ? "///<vesta:scssPageComponent/>" : "///<vesta:scssComponent/>";
+        findInFileAndReplace("src/client/scss/_common.scss", { [replace]: `${importStatement}\n${replace}` }, (code) => code.indexOf(importStatement) < 0);
+    }
+
+    private genComponentClass(componentFile: TsFileGen): ClassGen {
+        // params interface
+        let params = "";
+        if (!this.config.noParams) {
+            const paramInterface = componentFile.addInterface(`I${this.className}Params`);
+            params = `<${paramInterface.name}>`;
+        }
+        // props
+        const propsInterface = componentFile.addInterface(`I${this.className}Props`);
+        propsInterface.setParentClass(this.config.isPage ? `PageComponentProps${params}` : `BaseComponentProps${params}`);
+        // state
+        const stateInterface = componentFile.addInterface(`I${this.className}State`);
+        if (this.config.model) {
+            stateInterface.addProperty({ name: "showLoader", type: "boolean" });
+            stateInterface.addProperty({ name: "validationErrors", type: "IValidationError" });
+            stateInterface.addProperty({
+                name: plural(this.model.instanceName),
+                type: `Array<${this.model.interfaceName}>`,
+            });
+            stateInterface.addProperty({
+                name: "queryOption",
+                type: `IDataTableQueryOption<${this.model.interfaceName}>`,
+            });
+            if (this.relationalFields) {
+                const modelObject = ModelGen.getModel(this.model.originalClassName);
+                for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                    const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                    if (!meta.form || !meta.relation.showAllOptions) { continue; }
+                    stateInterface.addProperty({
+                        name: modelObject.schema.getField(fieldNames[i]).properties.relation.type == RelationType.Many2Many ? fieldNames[i] : plural(fieldNames[i]),
+                        type: `Array<I${meta.relation.model}>`,
+                    });
+                }
+            }
+        }
+        // component class
+        const componentClass = componentFile.addClass(this.className);
+        componentClass.setParentClass(`${this.config.isPage ? "PageComponent" : "Component"}<${propsInterface.name}, ${stateInterface.name}>`);
+        if (this.config.model) {
+            componentClass.addProperty({ name: "access", type: "IAccess", access: "private" });
+        }
+        componentClass.setConstructor();
+        componentClass.getConstructor().addParameter({ name: "props", type: propsInterface.name });
+        if (this.config.model) {
+            this.addCrudParentComponentMethods(componentFile, componentClass);
+        } else {
+            this.addSimpleComponentMethods(componentClass);
+        }
+        return componentClass;
+    }
+
+    private genComponentFile(): TsFileGen {
+        const componentFile = new TsFileGen(this.className);
+        componentFile.addImport(["React"], "react", true);
+        if (this.config.isPage) {
+            componentFile.addImport(["PageComponent", "PageComponentProps"], genRelativePath(this.path, "src/client/app/components/PageComponent"));
+        } else {
+            componentFile.addImport(["Component"], "react");
+            componentFile.addImport(["BaseComponentProps"], genRelativePath(this.path, "src/client/app/components/BaseComponent"));
+        }
+        if (this.config.model || this.config.isPage) {
+            componentFile.addImport(["Navbar"], genRelativePath(this.path, "src/client/app/components/general/Navbar"), true);
+        }
+        if (this.config.model) {
+            const modelClassName = this.model.originalClassName;
+            componentFile.addImport(["Route", "Switch"], "react-router");
+            componentFile.addImport(["IValidationError"], genRelativePath(this.path, "src/client/app/cmn/core/Validator"));
+            componentFile.addImport(["DynamicRouter"], genRelativePath(this.path, "src/client/app/components/general/DynamicRouter"));
+            componentFile.addImport(["IDataTableQueryOption"], genRelativePath(this.path, "src/client/app/components/general/DataTable"));
+            componentFile.addImport(["PageTitle"], genRelativePath(this.path, "src/client/app/components/general/PageTitle"));
+            componentFile.addImport(["Preloader"], genRelativePath(this.path, "src/client/app/components/general/Preloader"));
+            componentFile.addImport(["CrudMenu"], genRelativePath(this.path, "src/client/app/components/general/CrudMenu"));
+            componentFile.addImport(["IAccess"], genRelativePath(this.path, "src/client/app/service/AuthService"));
+            const modelImportStatement = modelClassName == this.className ? `${modelClassName} as ${this.model.className}` : this.model.className;
+            componentFile.addImport([`I${modelClassName}`, modelImportStatement], genRelativePath(this.path, this.model.file));
+            const instanceName = camelCase(this.className);
+            componentFile.addImport([`${modelClassName}Add`], `./${instanceName}/${modelClassName}Add`);
+            componentFile.addImport([`${modelClassName}Edit`], `./${instanceName}/${modelClassName}Edit`);
+            componentFile.addImport([`${modelClassName}Detail`], `./${instanceName}/${modelClassName}Detail`);
+            componentFile.addImport([`${modelClassName}List`], `./${instanceName}/${modelClassName}List`);
+        }
+        return componentFile;
+    }
+
     private genStateful() {
-        let componentFile = this.genComponentFile();
+        const componentFile = this.genComponentFile();
         this.genComponentClass(componentFile);
         return componentFile.generate();
     }
 
-    private createScss() {
-        if (!this.config.hasStyle) return;
-        let relPath = `components/${this.config.path}`;
-        let path = `src/client/scss/${relPath}`;
-        mkdir(path);
-        const className = kebabCase(this.className).toLowerCase();
-        writeFileSync(`${path}/_${className}.scss`, `.${className}${this.config.isPage ? '-page' : ''} {\n\n}`, { encoding: 'utf8' });
-        const importStatement = `@import "${relPath}/${className}";`;
-        let replace = this.config.isPage ? '///<vesta:scssPageComponent/>' : '///<vesta:scssComponent/>';
-        findInFileAndReplace('src/client/scss/_common.scss', { [replace]: `${importStatement}\n${replace}` }, code => code.indexOf(importStatement) < 0);
+    private genStateless() {
+        const cmpName = camelCase(this.className);
+        const className = kebabCase(cmpName).toLowerCase();
+        const importPath = genRelativePath(this.path, "src/client/app/components/BaseComponent");
+        const params = this.config.noParams ? "" : `\n\nexport interface I${this.className}Params {\n}`;
+        return `import React from "react";
+import { BaseComponentProps } from "${importPath}";${params}
+
+export interface I${this.className}Props extends BaseComponentProps${params ? `<I${this.className}Params>` : ""} {
+}
+
+export const ${this.className} = (props: I${this.className}Props) => {
+    return (
+        <div className="${className}">
+            <h2>${this.className} Component</h2>
+        </div>
+    );
+};\n`;
+    }
+
+    private parseModel(): IModelConfig {
+        const modelFilePath = `src/client/app/cmn/models/${this.config.model}.ts`;
+        if (!existsSync(modelFilePath)) {
+            Log.error(`Specified model was not found: '${modelFilePath}'`);
+            return null;
+        }
+        // todo: require model file
+        const modelClassName = fcUpper(this.config.model.match(/([^\/]+)$/)[1]);
+        return {
+            className: modelClassName == this.className ? `${modelClassName}Model` : modelClassName,
+            file: modelFilePath,
+            instanceName: camelCase(modelClassName),
+            interfaceName: `I${modelClassName}`,
+            originalClassName: modelClassName,
+        };
     }
 }

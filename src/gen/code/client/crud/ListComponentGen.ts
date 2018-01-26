@@ -1,16 +1,15 @@
-import * as fs from "fs";
-import {ICrudComponentGenConfig} from "../ComponentGen";
-import {TsFileGen} from "../../../core/TSFileGen";
-import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {camelCase, plural} from "../../../../util/StringUtil";
-import {ModelGen} from "../../ModelGen";
-import {IFieldMeta} from "../../FieldGen";
-import {Schema} from "../../../../cmn/core/Schema";
-import {Field, FieldType, IFieldProperties} from "../../../../cmn/core/Field";
+import { Field, FieldType, IFieldProperties, Schema } from "@vesta/core";
+import { writeFileSync } from "fs";
+import { genRelativePath, mkdir } from "../../../../util/FsUtil";
+import { camelCase, plural } from "../../../../util/StringUtil";
+import { TsFileGen } from "../../../core/TSFileGen";
+import { IFieldMeta } from "../../FieldGen";
+import { ModelGen } from "../../ModelGen";
+import { ICrudComponentGenConfig } from "../ComponentGen";
 
 interface IColumnFieldData {
-    column: string;
     code: string;
+    column: string;
 }
 
 export class ListComponentGen {
@@ -21,50 +20,55 @@ export class ListComponentGen {
     constructor(private config: ICrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}List`;
         mkdir(config.path);
-        let model = ModelGen.getModel(config.model);
+        const model = ModelGen.getModel(config.model);
         this.schema = model.schema;
+    }
 
+    public generate() {
+        const code = this.genCrudListComponent();
+        // generate file
+        writeFileSync(`${this.config.path}/${this.className}.tsx`, code);
     }
 
     private genCrudListComponent() {
-        let model = this.config.modelConfig;
-        let path = this.config.path;
-        let stateName = camelCase(this.config.name);
-        let pluralModel = plural(model.instanceName);
+        const model = this.config.modelConfig;
+        const path = this.config.path;
+        const stateName = camelCase(this.config.name);
+        const pluralModel = plural(model.instanceName);
         // ts file
-        let listFile = new TsFileGen(this.className);
+        const listFile = new TsFileGen(this.className);
         // imports
-        listFile.addImport(['React'], 'react', true);
-        listFile.addImport(['Link'], 'react-router-dom');
-        listFile.addImport(['PageComponent', 'PageComponentProps', 'FetchAll'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        listFile.addImport(["React"], "react", true);
+        listFile.addImport(["Link"], "react-router-dom");
+        listFile.addImport(["PageComponent", "PageComponentProps", "FetchAll"], genRelativePath(path, "src/client/app/components/PageComponent"));
         listFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
-        listFile.addImport(['Column', 'DataTable', 'IDataTableQueryOption'], genRelativePath(path, 'src/client/app/components/general/DataTable'));
-        listFile.addImport(['IDeleteResult'], genRelativePath(path, 'src/client/app/cmn/core/ICRUDResult'));
-        listFile.addImport(['IAccess'], genRelativePath(path, 'src/client/app/service/AuthService'));
-        listFile.addImport(['DataTableOperations'], genRelativePath(path, 'src/client/app/components/general/DataTableOperations'));
+        listFile.addImport(["Column", "DataTable", "IDataTableQueryOption"], genRelativePath(path, "src/client/app/components/general/DataTable"));
+        listFile.addImport(["IDeleteResult"], genRelativePath(path, "src/client/app/cmn/core/ICRUDResult"));
+        listFile.addImport(["IAccess"], genRelativePath(path, "src/client/app/service/AuthService"));
+        listFile.addImport(["DataTableOperations"], genRelativePath(path, "src/client/app/components/general/DataTableOperations"));
         // params
         listFile.addInterface(`${this.className}Params`);
-        let listProps = listFile.addInterface(`${this.className}Props`);
+        const listProps = listFile.addInterface(`${this.className}Props`);
         // props
         listProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        listProps.addProperty({name: pluralModel, type: `Array<${model.interfaceName}>`});
-        listProps.addProperty({name: 'access', type: 'IAccess'});
-        listProps.addProperty({name: 'onFetch', type: `FetchAll<${model.interfaceName}>`});
-        listProps.addProperty({name: 'queryOption', type: `IDataTableQueryOption<${model.interfaceName}>`});
+        listProps.addProperty({ name: pluralModel, type: `Array<${model.interfaceName}>` });
+        listProps.addProperty({ name: "access", type: "IAccess" });
+        listProps.addProperty({ name: "onFetch", type: `FetchAll<${model.interfaceName}>` });
+        listProps.addProperty({ name: "queryOption", type: `IDataTableQueryOption<${model.interfaceName}>` });
         // state
-        let listState = listFile.addInterface(`${this.className}State`);
-        listState.addProperty({name: pluralModel, type: `Array<I${model.originalClassName}>`});
+        const listState = listFile.addInterface(`${this.className}State`);
+        listState.addProperty({ name: pluralModel, type: `Array<I${model.originalClassName}>` });
         // class
-        let listClass = listFile.addClass(this.className);
+        const listClass = listFile.addClass(this.className);
         listClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
-        listClass.addProperty({name: 'columns', type: `Array<Column<I${model.originalClassName}>>`, access: 'private'});
-        let {column, code} = this.getColumnsData(listFile);
+        listClass.addProperty({ name: "columns", type: `Array<Column<I${model.originalClassName}>>`, access: "private" });
+        const { column, code } = this.getColumnsData(listFile);
         // constructor
         listClass.setConstructor();
-        listClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
-        let dateTimeCode = '';
+        listClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
+        let dateTimeCode = "";
         if (this.hasFieldOfType(FieldType.Timestamp)) {
-            listFile.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
+            listFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/cmn/core/Culture"));
             dateTimeCode = `\n\t\tconst dateTime = Culture.getDateTimeInstance();
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
         }
@@ -73,15 +77,14 @@ export class ListComponentGen {
         this.columns = [${column}
             {
                 title: this.tr('operations'),
-                render: r => <DataTableOperations access={props.access} id={r.id} onDelete={this.onDelete} 
-                                                  path="${stateName}"/>
+                render: r => <DataTableOperations access={props.access} id={r.id} onDelete={this.onDelete} path="${stateName}"/>
             }
         ];`);
         // fetch
-        listClass.addMethod('componentDidMount').setContent(`this.props.onFetch(this.props.queryOption);`);
+        listClass.addMethod("componentDidMount").setContent(`this.props.onFetch(this.props.queryOption);`);
         // delete action
-        let delMethod = listClass.addMethod('onDelete');
-        delMethod.addParameter({name: 'id'});
+        const delMethod = listClass.addMethod("onDelete");
+        delMethod.addParameter({ name: "id" });
         delMethod.setAsArrowFunction(true);
         delMethod.setContent(`this.api.del<IDeleteResult>(\`${model.instanceName}/\${id}\`)
             .then(response => {
@@ -92,8 +95,8 @@ export class ListComponentGen {
                 this.notif.error(error.message);
             })`);
         // render method
-        listClass.addMethod('render').setContent(`const {queryOption, onFetch, ${pluralModel}} = this.props;${code}
-        
+        listClass.addMethod("render").setContent(`const {queryOption, onFetch, ${pluralModel}} = this.props;${code}
+
         return (
             <div className="crud-page">
                 <DataTable columns={this.columns} records={${pluralModel}} queryOption={queryOption} fetch={onFetch}
@@ -106,11 +109,11 @@ export class ListComponentGen {
 
     private getColumnsData(listFile: TsFileGen): IColumnFieldData {
         const fields = this.schema.getFields();
-        let columns = [];
-        let codes = [];
+        const columns = [];
+        const codes = [];
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
-            let fieldData = this.getFieldData(listFile, this.schema.name, fields[fieldsName[i]]);
-            if (!fieldData) continue;
+            const fieldData = this.getFieldData(listFile, this.schema.name, fields[fieldsName[i]]);
+            if (!fieldData) { continue; }
             if (fieldData.column) {
                 columns.push(fieldData.column);
             }
@@ -119,18 +122,18 @@ export class ListComponentGen {
             }
         }
         return {
-            column: columns.length ? `\n\t\t\t${columns.join(',\n\t\t\t')},` : '',
-            code: codes.length ? `\n\t\t${codes.join('\n\t\t')}` : ''
+            code: codes.length ? `\n\t\t${codes.join("\n\t\t")}` : "",
+            column: columns.length ? `\n\t\t\t${columns.join(",\n\t\t\t")},` : "",
         };
     }
 
     private getFieldData(file: TsFileGen, model: string, field: Field): IColumnFieldData {
-        let fieldName = field.fieldName;
+        const fieldName = field.fieldName;
         const props: IFieldProperties = field.properties;
-        let modelMeta: IFieldMeta = ModelGen.getFieldMeta(model, fieldName);
-        if (!modelMeta.list) return <IColumnFieldData>null;
-        let column = '';
-        let code = '';
+        const modelMeta: IFieldMeta = ModelGen.getFieldMeta(model, fieldName);
+        if (!modelMeta.list) { return null as IColumnFieldData; }
+        let column = "";
+        const code = "";
         let hasValue = true;
         let render = null;
         let isRenderInline = true;
@@ -168,11 +171,11 @@ export class ListComponentGen {
             case FieldType.Enum:
                 if (modelMeta.enum) {
                     const listClass = file.getClass();
-                    let enumName = camelCase(modelMeta.enum.options[0].split('.')[0]) + 'Options';
-                    let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split('.')[1].toLowerCase()}')`);
+                    const enumName = camelCase(modelMeta.enum.options[0].split(".")[0]) + "Options";
+                    const options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split(".")[1].toLowerCase()}')`);
                     // code = `const ${enumName} = {${options.join(', ')}};`;
                     render = `this.tr(this.${enumName}[r.${fieldName}])`;
-                    listClass.addProperty({name: enumName, access: 'private', defaultValue: `{${options.join(', ')}}`});
+                    listClass.addProperty({ name: enumName, access: "private", defaultValue: `{${options.join(", ")}}` });
                 }
                 break;
         }
@@ -188,20 +191,14 @@ export class ListComponentGen {
                 column = `{name: '${fieldName}', title: this.tr('fld_${fieldName}')}`;
             }
         }
-        return {column, code};
+        return { column, code };
     }
 
     private hasFieldOfType(type: FieldType) {
         const fields = this.schema.getFields();
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
-            if (fields[fieldsName[i]].properties.type == type) return true;
+            if (fields[fieldsName[i]].properties.type == type) { return true; }
         }
         return false;
-    }
-
-    public generate() {
-        let code = this.genCrudListComponent();
-        // generate file
-        fs.writeFileSync(`${this.config.path}/${this.className}.tsx`, code);
     }
 }

@@ -1,17 +1,16 @@
-import * as fs from "fs";
-import {ICrudComponentGenConfig} from "../ComponentGen";
-import {TsFileGen} from "../../../core/TSFileGen";
-import {genRelativePath, mkdir} from "../../../../util/FsUtil";
-import {camelCase, fcUpper, pascalCase} from "../../../../util/StringUtil";
-import {Log} from "../../../../util/Log";
-import {ModelGen} from "../../ModelGen";
-import {IFieldMeta} from "../../FieldGen";
-import {Schema} from "../../../../cmn/core/Schema";
-import {Field, FieldType, IFieldProperties, RelationType} from "../../../../cmn/core/Field";
+import { Field, FieldType, IFieldProperties, RelationType, Schema } from "@vesta/core";
+import { writeFileSync } from "fs";
+import { genRelativePath, mkdir } from "../../../../util/FsUtil";
+import { Log } from "../../../../util/Log";
+import { camelCase, fcUpper, pascalCase } from "../../../../util/StringUtil";
+import { TsFileGen } from "../../../core/TSFileGen";
+import { IFieldMeta } from "../../FieldGen";
+import { ModelGen } from "../../ModelGen";
+import { ICrudComponentGenConfig } from "../ComponentGen";
 
 interface IDetailFieldData {
-    field: string;
     code: string;
+    field: string;
 }
 
 export class DetailComponentGen {
@@ -22,42 +21,48 @@ export class DetailComponentGen {
     constructor(private config: ICrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}Detail`;
         mkdir(config.path);
-        let model = ModelGen.getModel(config.model);
+        const model = ModelGen.getModel(config.model);
         this.schema = model.schema;
     }
 
+    public generate() {
+        const code = this.genCrudDetailComponent();
+        // generate file
+        writeFileSync(`${this.config.path}/${this.className}.tsx`, code);
+    }
+
     private genCrudDetailComponent() {
-        let model = this.config.modelConfig;
-        let path = this.config.path;
+        const model = this.config.modelConfig;
+        const path = this.config.path;
         // ts file
-        let detailFile = new TsFileGen(this.className);
+        const detailFile = new TsFileGen(this.className);
         // imports
-        detailFile.addImport(['React'], 'react', true);
-        detailFile.addImport(['FetchById', 'PageComponent', 'PageComponentProps'], genRelativePath(path, 'src/client/app/components/PageComponent'));
+        detailFile.addImport(["React"], "react", true);
+        detailFile.addImport(["FetchById", "PageComponent", "PageComponentProps"], genRelativePath(path, "src/client/app/components/PageComponent"));
         detailFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
-        detailFile.addInterface(`${this.className}Params`).addProperty({name: 'id', type: 'number'});
+        detailFile.addInterface(`${this.className}Params`).addProperty({ name: "id", type: "number" });
         // props
-        let detailProps = detailFile.addInterface(`${this.className}Props`);
+        const detailProps = detailFile.addInterface(`${this.className}Props`);
         detailProps.setParentClass(`PageComponentProps<${this.className}Params>`);
-        detailProps.addProperty({name: 'onFetch', type: `FetchById<${model.interfaceName}>`});
+        detailProps.addProperty({ name: "onFetch", type: `FetchById<${model.interfaceName}>` });
         // state
-        let detailState = detailFile.addInterface(`${this.className}State`);
-        detailState.addProperty({name: model.instanceName, type: model.interfaceName});
+        const detailState = detailFile.addInterface(`${this.className}State`);
+        detailState.addProperty({ name: model.instanceName, type: model.interfaceName });
         // class
-        let detailClass = detailFile.addClass(this.className);
+        const detailClass = detailFile.addClass(this.className);
         detailClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
-        detailClass.getConstructor().addParameter({name: 'props', type: `${this.className}Props`});
+        detailClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
         detailClass.getConstructor().setContent(`super(props);
         this.state = {${model.instanceName}: {}};`);
         // fetch
-        detailClass.addMethod('componentDidMount').setContent(`this.props.onFetch(+this.props.match.params.id)
+        detailClass.addMethod("componentDidMount").setContent(`this.props.onFetch(+this.props.match.params.id)
             .then(${model.instanceName} => this.setState({${model.instanceName}}));`);
-        const {field, code} = this.getDetailsData(detailFile);
+        const { field, code } = this.getDetailsData(detailFile);
         // render method
-        detailClass.addMethod('render').setContent(`const ${model.instanceName} = this.state.${model.instanceName};
+        detailClass.addMethod("render").setContent(`const ${model.instanceName} = this.state.${model.instanceName};
         if (!${model.instanceName}) return null;${code}
-        
+
         return (
             <div className="crud-page">
                 <table className="details-table">
@@ -77,10 +82,10 @@ export class DetailComponentGen {
 
     private getDetailsData(detailsFile: TsFileGen): IDetailFieldData {
         const fields = this.schema.getFields();
-        let columns = [];
-        let codes = [];
+        const columns = [];
+        const codes = [];
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
-            let fieldData = this.getFieldData(detailsFile, this.schema.name, fields[fieldsName[i]]);
+            const fieldData = this.getFieldData(detailsFile, this.schema.name, fields[fieldsName[i]]);
             if (fieldData) {
                 if (fieldData.field) {
                     columns.push(fieldData.field);
@@ -91,22 +96,22 @@ export class DetailComponentGen {
             }
         }
         return {
-            field: columns.length ? columns.join('\n\t\t\t\t\t') : '',
-            code: codes.length ? `\n\t\t${codes.join('\n\t\t')}` : ''
+            code: codes.length ? `\n\t\t${codes.join("\n\t\t")}` : "",
+            field: columns.length ? columns.join("\n\t\t\t\t\t") : "",
         };
     }
 
     private getFieldData(detailsFile: TsFileGen, modelName: string, field: Field): IDetailFieldData {
-        let fieldName = field.fieldName;
-        if (fieldName == 'id') return <IDetailFieldData>null;
+        const fieldName = field.fieldName;
+        if (fieldName == "id") { return null as IDetailFieldData; }
         const props: IFieldProperties = field.properties;
-        let modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
+        const modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
         const label = fcUpper(fieldName);
         const instanceName = camelCase(modelName);
-        let details = '';
-        let code = '';
-        let value = '';
-        let imports = [];
+        let details = "";
+        let code = "";
+        let value = "";
+        const imports = [];
         switch (props.type) {
             case FieldType.String:
             case FieldType.Text:
@@ -121,13 +126,13 @@ export class DetailComponentGen {
             case FieldType.Password:
                 break;
             case FieldType.File:
-                detailsFile.addImport(['getFileUrl'], genRelativePath(this.config.path, 'src/client/app/util/Util'));
+                detailsFile.addImport(["getFileUrl"], genRelativePath(this.config.path, "src/client/app/util/Util"));
                 code = `const ${instanceName}${pascalCase(fieldName)} = getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
                 value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
                 break;
             case FieldType.Timestamp:
                 if (!this.writtenOnce.dateTime) {
-                    detailsFile.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
+                    detailsFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/cmn/core/Culture"));
                     this.writtenOnce.dateTime = true;
                     code = `const dateTime = Culture.getDateTimeInstance();
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
@@ -144,14 +149,14 @@ export class DetailComponentGen {
                 if (modelMeta.enum) {
                     if (modelMeta.enum) {
                         const detailsClass = detailsFile.getClass();
-                        let enumName = camelCase(modelMeta.enum.options[0].split('.')[0]) + 'Options';
-                        let options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split('.')[1].toLowerCase()}')`);
+                        const enumName = camelCase(modelMeta.enum.options[0].split(".")[0]) + "Options";
+                        const options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split(".")[1].toLowerCase()}')`);
                         // code = `const ${enumName} = ;`;
                         value = `this.${enumName}[${instanceName}.${fieldName}]`;
                         detailsClass.addProperty({
+                            access: "private",
+                            defaultValue: `{${options.join(", ")}}`,
                             name: enumName,
-                            access: 'private',
-                            defaultValue: `{${options.join(', ')}}`
                         });
                     }
                 }
@@ -173,17 +178,11 @@ export class DetailComponentGen {
                 Log.warning(`Unsupported field type for ${fieldName}`);
                 break;
             default:
-                Log.error(`Unknown field type for ${fieldName} of type ${props.type}`)
+                Log.error(`Unknown field type for ${fieldName} of type ${props.type}`);
         }
         if (value) {
             details = `<tr>\n\t\t\t\t\t\t<td>{this.tr('fld_${fieldName.toLowerCase()}')}</td>\n\t\t\t\t\t\t<td>{${value}}</td>\n\t\t\t\t\t</tr>`;
         }
-        return {field: details, code}
-    }
-
-    public generate() {
-        let code = this.genCrudDetailComponent();
-        // generate file
-        fs.writeFileSync(`${this.config.path}/${this.className}.tsx`, code);
+        return { field: details, code };
     }
 }

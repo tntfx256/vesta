@@ -1,191 +1,75 @@
-import * as fs from "fs-extra";
-import * as path from "path";
-import {Question} from "inquirer";
-import {ClassGen} from "../core/ClassGen";
-import {Vesta} from "../file/Vesta";
-import {FieldGen as FieldGen, IFieldMeta} from "./FieldGen";
-import {TsFileGen} from "../core/TSFileGen";
-import {InterfaceGen} from "../core/InterfaceGen";
-import {Log} from "../../util/Log";
-import {IStructureProperty} from "../core/AbstractStructureGen";
-import {ArgParser} from "../../util/ArgParser";
-import {camelCase, pascalCase} from "../../util/StringUtil";
-import {mkdir, unixPath, writeFile} from "../../util/FsUtil";
-import {ask} from "../../util/Util";
-import {execSync} from "child_process";
-import {IModel, IModelFields, Model} from "../../cmn/core/Model";
-import {Field, FieldType} from "../../cmn/core/Field";
-import {Schema} from "../../cmn/core/Schema";
-import {Err} from "../../cmn/core/Err";
+import { Err, Field, FieldType, IModel, IModelFields, Schema } from "@vesta/core";
+import { execSync } from "child_process";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
+import { Question } from "inquirer";
+import { join, parse } from "path";
+import { ArgParser } from "../../util/ArgParser";
+import { mkdir, unixPath, writeFile } from "../../util/FsUtil";
+import { Log } from "../../util/Log";
+import { camelCase, pascalCase } from "../../util/StringUtil";
+import { ask } from "../../util/Util";
+import { IStructureProperty } from "../core/AbstractStructureGen";
+import { ClassGen } from "../core/ClassGen";
+import { InterfaceGen } from "../core/InterfaceGen";
+import { TsFileGen } from "../core/TSFileGen";
+import { Vesta } from "../file/Vesta";
+import { FieldGen as IFieldGen, IFieldMeta } from "./FieldGen";
 
-export interface ModelGenConfig {
+export interface IModelGenConfig {
     name: string;
 }
 
 interface IFields {
-    [name: string]: FieldGen
+    [name: string]: IFieldGen;
 }
 
 export class ModelGen {
-
-    private modelFile: TsFileGen;
-    private modelClass: ClassGen;
-    private modelInterface: InterfaceGen;
-    private path: string = 'src/cmn/models';
-    private vesta: Vesta;
-    private fields: IFields = {};
-    private static modelStorage: Array<IModel> = [];
     private static isModelGenerated = false;
     private static modelsMeta: { [name: string]: IFieldMeta } = {};
+    private static modelStorage: Array<IModel> = [];
+    private fields: IFields = {};
+    private modelClass: ClassGen;
+    private modelFile: TsFileGen;
+    private modelInterface: InterfaceGen;
+    private path: string = "src/cmn/models";
+    private vesta: Vesta;
 
-    constructor(private config: ModelGenConfig) {
-        this.vesta = Vesta.getInstance();
-        const modelName = pascalCase(config.name);
-        this.initModel(modelName);
-    }
-
-    private initModel(modelName) {
-        modelName = pascalCase(modelName);
-        this.modelFile = new TsFileGen(modelName);
-        this.modelFile.addImport(['Model'], '../core/Model');
-        this.modelFile.addImport(['Schema'], '../core/Schema');
-        this.modelFile.addImport(['Database'], '../core/Database');
-        this.modelFile.addImport(['FieldType'], '../core/Field');
-        this.modelInterface = this.modelFile.addInterface(`I${this.modelFile.name}`);
-        this.modelClass = this.modelFile.addClass();
-        this.modelClass.setParentClass('Model');
-        this.modelClass.addImplements(this.modelInterface.name);
-
-        let cm = this.modelClass.setConstructor();
-        cm.addParameter({name: 'values', type: `I${modelName}`, isOptional: true});
-        cm.addParameter({name: 'database', type: `Database`, isOptional: true});
-        cm.setContent(`super(${modelName}.schema, database || ${modelName}.database);
-        this.setValues(values);`);
-
-        this.modelClass.addProperty({
-            name: 'schema',
-            type: 'Schema',
-            access: ClassGen.Access.Public,
-            defaultValue: `new Schema('${modelName}')`,
-            isStatic: true
-        });
-        this.modelClass.addProperty({
-            name: 'database',
-            type: 'Database',
-            access: ClassGen.Access.Public,
-            isStatic: true
-        });
-        if (!this.vesta.isApiServer) {
-            this.path = 'src/client/app/cmn/models';
-        }
-        mkdir(this.path);
-    }
-
-    private readField() {
-        let question: Question = <Question>{
-            name: 'fieldName',
-            type: 'input',
-            message: 'Field Name: '
-        };
-        ask<{ fieldName: string }>(question).then(answer => {
-            if (!answer.fieldName) return this.write();
-            let fieldName = camelCase(<string>answer.fieldName);
-            let field = new FieldGen(this.modelFile, fieldName);
-            this.fields[fieldName] = field;
-            field.readFieldProperties()
-                .then(() => {
-                    Log.success('\n:: Press enter with empty fieldName when done\n');
-                    this.readField();
-                })
-                .catch(err => Log.error(err.message));
-        });
-    }
-
-    // todo import from existing database
-    public generate() {
-        this.readField();
-    }
-
-    private write() {
-        let fieldNames = Object.keys(this.fields);
-        // adding the id field
-        if (fieldNames.indexOf('id') < 0) {
-            let idField = new FieldGen(this.modelFile, 'id');
-            idField.setAsPrimary();
-            this.fields['id'] = idField;
-            fieldNames.splice(0, 0, 'id');
-        }
-        for (let i = 0, il = fieldNames.length; i < il; ++i) {
-            this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
-            let {fieldName, fieldType, interfaceFieldType, defaultValue} = this.fields[fieldNames[i]].getNameTypePair();
-            let property: IStructureProperty = {
-                name: fieldName,
-                type: fieldType,
-                access: ClassGen.Access.Public,
-                defaultValue: defaultValue,
-            };
-            this.modelClass.addProperty(property);
-            let iProperty: IStructureProperty = <IStructureProperty>Object.assign({}, property, {
-                isOptional: true,
-                type: interfaceFieldType
-            });
-            this.modelInterface.addProperty(iProperty);
-        }
-        this.modelFile.addMixin(`${this.modelFile.name}.schema.freeze();`, TsFileGen.CodeLocation.AfterClass);
-        writeFile(path.join(this.path, `${this.modelFile.name}.ts`), this.modelFile.generate());
-    }
-
-    static getModelsList(): any {
-        let modelDirectory = path.join(process.cwd(), Vesta.getInstance().isApiServer ? 'src/cmn/models' : 'src/client/app/cmn/models');
-        let models = {};
+    public static getModelsList(): any {
+        const modelDirectory = join(process.cwd(), Vesta.getInstance().isApiServer ? "src/cmn/models" : "src/client/app/cmn/models");
+        const models = {};
         try {
-            let modelFiles = fs.readdirSync(modelDirectory);
-            modelFiles.forEach(modelFile => {
-                let status = fs.statSync(path.join(modelDirectory, modelFile));
+            const modelFiles = readdirSync(modelDirectory);
+            modelFiles.forEach((modelFile) => {
+                const status = statSync(join(modelDirectory, modelFile));
                 if (status.isFile()) {
-                    models[modelFile.substr(0, modelFile.length - 3)] = path.join(modelDirectory, modelFile);
+                    models[modelFile.substr(0, modelFile.length - 3)] = join(modelDirectory, modelFile);
                 } else {
-                    let dir = modelFile;
-                    let subModelDirectory = path.join(modelDirectory, modelFile);
-                    let subModelFile = fs.readdirSync(subModelDirectory);
-                    subModelFile.forEach(modelFile => {
-                        models[dir + '/' + modelFile.substr(0, modelFile.length - 3)] = unixPath(path.join(subModelDirectory, modelFile));
-                    })
+                    const dir = modelFile;
+                    const subModelDirectory = join(modelDirectory, modelFile);
+                    const subModelFile = readdirSync(subModelDirectory);
+                    subModelFile.forEach((mFile) => {
+                        models[dir + "/" + mFile.substr(0, mFile.length - 3)] = unixPath(join(subModelDirectory, mFile));
+                    });
 
                 }
             });
         } catch (e) {
+            Log.warning(e.message);
         }
         return models;
     }
 
-    private static compileModelAndGetPath() {
-        if (Vesta.getInstance().isApiServer) {
-            return 'vesta/server/cmn/models/';
-        }
-        // running gulp model:compile to compile model files
-        if (!ModelGen.isModelGenerated) {
-            execSync(`"node_modules/.bin/gulp" model:compile`, {stdio: 'inherit'});
-            ModelGen.isModelGenerated = true;
-        }
-        return 'vesta/tmp/cmn/model/models';
-    }
-
-    /**
-     *
-     * @param modelName this might also contains the path to the model
-     * @returns {Model}
-     */
-    static getModel(modelName: string): IModel {
-        let possiblePath = ModelGen.compileModelAndGetPath();
+    public static getModel(modelName: string): IModel {
+        // modelName this might also contains the path to the model
+        const possiblePath = ModelGen.compileModelAndGetPath();
         if (ModelGen.modelStorage[modelName]) {
             return ModelGen.modelStorage[modelName];
         }
-        let pathToModel = `${modelName}.js`;
-        let className = ModelGen.extractModelName(pathToModel);
-        let modelFile = path.join(process.cwd(), possiblePath, pathToModel);
-        if (fs.existsSync(modelFile)) {
-            let module = require(modelFile);
+        const pathToModel = `${modelName}.js`;
+        const className = ModelGen.extractModelName(pathToModel);
+        const modelFile = join(process.cwd(), possiblePath, pathToModel);
+        if (existsSync(modelFile)) {
+            const module = require(modelFile);
             if (module[className]) {
                 // caching model
                 ModelGen.modelStorage[modelName] = module[className];
@@ -196,13 +80,13 @@ export class ModelGen {
         return null;
     }
 
-    static getFieldsByType(modelName: string, fieldType: FieldType): IModelFields {
-        let model = ModelGen.getModel(ModelGen.extractModelName(modelName));
+    public static getFieldsByType(modelName: string, fieldType: FieldType): IModelFields {
+        const model = ModelGen.getModel(ModelGen.extractModelName(modelName));
         let fieldsOfType: IModelFields = null;
-        if (!model) return fieldsOfType;
-        let fields: IModelFields = (<Schema>model.schema).getFields();
+        if (!model) { return fieldsOfType; }
+        const fields: IModelFields = (model.schema as Schema).getFields();
         for (let names = Object.keys(fields), i = 0, il = names.length; i < il; ++i) {
-            let field = fields[names[i]];
+            const field = fields[names[i]];
             if (field.properties.type == fieldType) {
                 if (!fieldsOfType) {
                     fieldsOfType = {};
@@ -215,44 +99,44 @@ export class ModelGen {
         return fieldsOfType;
     }
 
-    static extractModelName(modelPath: string): string {
-        return path.parse(modelPath).name;
+    public static extractModelName(modelPath: string): string {
+        return parse(modelPath).name;
     }
 
-    static getUniqueFieldNameOfRelatedModel(field: Field): string {
-        if (!field.properties.relation) throw new Err(Err.Code.WrongInput, `${field.fieldName} is not of type Relationship`);
-        let targetFields = field.properties.relation.model.schema.getFields();
-        let names = Object.keys(targetFields);
-        let candidate = 'name';
+    public static getUniqueFieldNameOfRelatedModel(field: Field): string {
+        if (!field.properties.relation) { throw new Err(Err.Code.WrongInput, `${field.fieldName} is not of type Relationship`); }
+        const targetFields = field.properties.relation.model.schema.getFields();
+        const names = Object.keys(targetFields);
+        let candidate = "name";
         for (let i = names.length; i--;) {
             if (targetFields[names[i]].properties.type == FieldType.String) {
-                if (targetFields[names[i]].properties.unique) return names[i];
+                if (targetFields[names[i]].properties.unique) { return names[i]; }
                 candidate = names[i];
             }
         }
         return candidate;
     }
 
-    static getFieldForFormSelect(modelName: string) {
+    public static getFieldForFormSelect(modelName: string) {
         const model = ModelGen.getModel(modelName);
-        if (!model) return null;
+        if (!model) { return null; }
         const fields = model.schema.getFields();
-        if ('title' in fields) return 'title';
+        if ("title" in fields) { return "title"; }
         for (let i = 0, fieldNames = Object.keys(fields), il = fieldNames.length; i < il; ++i) {
             const field = fields[fieldNames[i]];
-            if (field.properties.type == FieldType.String) return fieldNames[i];
+            if (field.properties.type == FieldType.String) { return fieldNames[i]; }
         }
         return null;
     }
 
-    static getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
-        let key = `${modelName}-${fieldName}`;
+    public static getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
+        const key = `${modelName}-${fieldName}`;
         if (!ModelGen.modelsMeta[key]) {
-            let tsModelFile = `src${Vesta.getInstance().isApiServer ? '' : '/client/app'}/cmn/models/${modelName}.ts`;
-            const content = fs.readFileSync(tsModelFile, 'utf8');
-            let regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, 'i');
+            const tsModelFile = `src${Vesta.getInstance().isApiServer ? "" : "/client/app"}/cmn/models/${modelName}.ts`;
+            const content = readFileSync(tsModelFile, "utf8");
+            const regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, "i");
             const json = content.match(regExp);
-            let meta: IFieldMeta = {form: true, list: true};
+            let meta: IFieldMeta = { form: true, list: true };
             if (json) {
                 try {
                     const parsedMeta: IFieldMeta = JSON.parse(json[1]);
@@ -267,14 +151,14 @@ export class ModelGen {
         return ModelGen.modelsMeta[key];
     }
 
-    static getConfidentialFields(modelName: string): Array<string> {
-        let model = ModelGen.getModel(modelName);
-        if (!model) return [];
-        let confidentials = [];
-        let fields = model.schema.getFields();
-        let fieldsNames = Object.keys(fields);
+    public static getConfidentialFields(modelName: string): Array<string> {
+        const model = ModelGen.getModel(modelName);
+        if (!model) { return []; }
+        const confidentials = [];
+        const fields = model.schema.getFields();
+        const fieldsNames = Object.keys(fields);
         for (let i = fieldsNames.length; i--;) {
-            let meta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldsNames[i]);
+            const meta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldsNames[i]);
             if (meta.confidential) {
                 confidentials.push(fieldsNames[i]);
             }
@@ -282,14 +166,14 @@ export class ModelGen {
         return confidentials;
     }
 
-    static getOwnerVerifiedFields(modelName: string): Array<string> {
-        let model = ModelGen.getModel(modelName);
-        if (!model) return [];
-        let confidentials = [];
-        let fields = model.schema.getFields();
-        let fieldsNames = Object.keys(fields);
+    public static getOwnerVerifiedFields(modelName: string): Array<string> {
+        const model = ModelGen.getModel(modelName);
+        if (!model) { return []; }
+        const confidentials = [];
+        const fields = model.schema.getFields();
+        const fieldsNames = Object.keys(fields);
         for (let i = fieldsNames.length; i--;) {
-            let meta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldsNames[i]);
+            const meta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldsNames[i]);
             if (meta.verifyOwner) {
                 confidentials.push(fieldsNames[i]);
             }
@@ -299,13 +183,122 @@ export class ModelGen {
 
     public static init() {
         const argParser = ArgParser.getInstance();
-        const config: ModelGenConfig = {
-            name: argParser.get()
+        const config: IModelGenConfig = {
+            name: argParser.get(),
         };
         if (!config.name || !/^[a-z-]+/i.exec(config.name)) {
-            return Log.error('Missing/Invalid model name');
+            return Log.error("Missing/Invalid model name");
         }
-        let model = new ModelGen(config);
+        const model = new ModelGen(config);
         model.generate();
+    }
+
+    private static compileModelAndGetPath() {
+        if (Vesta.getInstance().isApiServer) {
+            return "vesta/server/cmn/models/";
+        }
+        // running gulp model:compile to compile model files
+        if (!ModelGen.isModelGenerated) {
+            execSync(`"node_modules/.bin/gulp" model:compile`, { stdio: "inherit" });
+            ModelGen.isModelGenerated = true;
+        }
+        return "vesta/tmp/cmn/model/models";
+    }
+
+    constructor(private config: IModelGenConfig) {
+        this.vesta = Vesta.getInstance();
+        const modelName = pascalCase(config.name);
+        this.initModel(modelName);
+    }
+
+    // todo import from existing database
+    public generate() {
+        this.readField();
+    }
+
+    private initModel(modelName) {
+        modelName = pascalCase(modelName);
+        this.modelFile = new TsFileGen(modelName);
+        this.modelFile.addImport(["Model"], "../core/Model");
+        this.modelFile.addImport(["Schema"], "../core/Schema");
+        this.modelFile.addImport(["Database"], "../core/Database");
+        this.modelFile.addImport(["FieldType"], "../core/Field");
+        this.modelInterface = this.modelFile.addInterface(`I${this.modelFile.name}`);
+        this.modelClass = this.modelFile.addClass();
+        this.modelClass.setParentClass("Model");
+        this.modelClass.addImplements(this.modelInterface.name);
+
+        const cm = this.modelClass.setConstructor();
+        cm.addParameter({ name: "values", type: `I${modelName}`, isOptional: true });
+        cm.addParameter({ name: "database", type: `Database`, isOptional: true });
+        cm.setContent(`super(${modelName}.schema, database || ${modelName}.database);
+        this.setValues(values);`);
+
+        this.modelClass.addProperty({
+            access: ClassGen.Access.Public,
+            defaultValue: `new Schema('${modelName}')`,
+            isStatic: true,
+            name: "schema",
+            type: "Schema",
+        });
+        this.modelClass.addProperty({
+            access: ClassGen.Access.Public,
+            isStatic: true,
+            name: "database",
+            type: "Database",
+        });
+        if (!this.vesta.isApiServer) {
+            this.path = "src/client/app/cmn/models";
+        }
+        mkdir(this.path);
+    }
+
+    private readField() {
+        const question: Question = {
+            message: "Field Name: ",
+            name: "fieldName",
+            type: "input",
+        } as Question;
+        ask<{ fieldName: string }>(question).then((answer) => {
+            if (!answer.fieldName) { return this.write(); }
+            const fieldName = camelCase(answer.fieldName as string);
+            const field = new IFieldGen(this.modelFile, fieldName);
+            this.fields[fieldName] = field;
+            field.readFieldProperties()
+                .then(() => {
+                    Log.success("\n:: Press enter with empty fieldName when done\n");
+                    this.readField();
+                })
+                .catch((err) => Log.error(err.message));
+        });
+    }
+
+    private write() {
+        const fieldNames = Object.keys(this.fields);
+        // adding the id field
+        if (fieldNames.indexOf("id") < 0) {
+            const idField = new IFieldGen(this.modelFile, "id");
+            idField.setAsPrimary();
+            this.fields.id = idField;
+            fieldNames.splice(0, 0, "id");
+        }
+        for (let i = 0, il = fieldNames.length; i < il; ++i) {
+            this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
+            const { fieldName, fieldType, interfaceFieldType, defaultValue } = this.fields[fieldNames[i]].getNameTypePair();
+            const property: IStructureProperty = {
+                access: ClassGen.Access.Public,
+                defaultValue,
+                name: fieldName,
+                type: fieldType,
+            };
+            this.modelClass.addProperty(property);
+            const iProperty: IStructureProperty = Object.assign({}, property, {
+                isOptional: true,
+                type: interfaceFieldType,
+            }) as IStructureProperty;
+            this.modelInterface.addProperty(iProperty);
+        }
+        this.modelFile.addMixin(`${this.modelFile.name}.schema.freeze();`, TsFileGen.CodeLocation.AfterClass);
+        writeFile(join(this.path, `${this.modelFile.name}.ts`), this.modelFile.generate());
     }
 }

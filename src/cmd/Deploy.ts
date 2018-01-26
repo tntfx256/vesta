@@ -1,35 +1,43 @@
-import {Deployer, IDeployConfig} from "../deploy/Deployer";
-import {Log} from "../util/Log";
-import {ArgParser} from "../util/ArgParser";
-import * as fs from "fs";
-import {readJsonFile, writeFile} from "../util/FsUtil";
-import {Culture} from "../cmn/core/Culture";
+import { Culture } from "@vesta/core";
+import { existsSync } from "fs";
+import { Deployer, IDeployConfig } from "../deploy/Deployer";
+import { ArgParser } from "../util/ArgParser";
+import { readJsonFile, writeFile } from "../util/FsUtil";
+import { Log } from "../util/Log";
 
 export class Deploy {
 
-    private static getProjectName(url: string) {
-        let [, group, project] = /.+\/(.+)\/(.+)\.git$/.exec(url);
-        return `${group}-${project}`;
+    public static help() {
+        Log.write(`
+Usage: vesta deploy <PATH> [options...]
+
+Deploy a project from remote repository
+
+    PATH        The url to the git repository or The name of file
+                  that the previous deploy generates it
+Options:
+    --branch    Name of the git branch that deploy operation should use {default: master}
+`);
     }
 
-    static init() {
+    public static init() {
         const argParser = ArgParser.getInstance();
         if (argParser.hasHelp()) {
             return Deploy.help();
         }
-        let config: IDeployConfig = <IDeployConfig>{
-            history: [],
+        const config: IDeployConfig = {
             args: [],
-            deployPath: `app`
-        };
-        config.branch = argParser.get('--branch', 'master');
-        let path = argParser.get();
+            deployPath: `app`,
+            history: [],
+        } as IDeployConfig;
+        config.branch = argParser.get("--branch", "master");
+        const path = argParser.get();
         if (!path) {
-            return Log.error('Invalid file name or address of remote repository');
+            return Log.error("Invalid file name or address of remote repository");
         }
-        if (fs.existsSync(path)) {
-            let prevDeployConfig = readJsonFile<IDeployConfig>(path);
-            if (!prevDeployConfig) return;
+        if (existsSync(path)) {
+            const prevDeployConfig = readJsonFile<IDeployConfig>(path);
+            if (!prevDeployConfig) { return; }
             Object.assign(config, prevDeployConfig);
         } else {
             config.repositoryUrl = path;
@@ -37,21 +45,13 @@ export class Deploy {
         }
         (new Deployer(config)).deploy();
         // saving config file
-        let date = Culture.getDateTimeInstance();
-        config.history.push({date: date.format('Y/m/d H:i:s'), type: 'deploy', branch: config.branch});
+        const date = Culture.getDateTimeInstance();
+        config.history.push({ date: date.format("Y/m/d H:i:s"), type: "deploy", branch: config.branch });
         writeFile(`${config.projectName}.json`, JSON.stringify(config, null, 2));
     }
 
-    static help() {
-        Log.write(`
-Usage: vesta deploy <PATH> [options...]
-
-Deploy a project from remote repository
-
-    PATH        The url to the git repository or The name of file 
-                  that the previous deploy generates it
-Options:
-    --branch    Name of the git branch that deploy operation should use {default: master}
-`);
+    private static getProjectName(url: string) {
+        const [, group, project] = /.+\/(.+)\/(.+)\.git$/.exec(url);
+        return `${group}-${project}`;
     }
 }
