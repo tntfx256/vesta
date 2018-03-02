@@ -1,11 +1,11 @@
 import { join, relative } from "path";
-import { ClassGen } from "./ClassGen";
-import { InterfaceGen } from "./InterfaceGen";
-import { EnumGen } from "./EnumGen";
-import { MethodGen } from "./MethodGen";
+import { writeFile } from "../../util/FsUtil";
 import { Log } from "../../util/Log";
 import { camelCase, pascalCase } from "../../util/StringUtil";
-import { writeFile } from "../../util/FsUtil";
+import { ClassGen } from "./ClassGen";
+import { EnumGen } from "./EnumGen";
+import { InterfaceGen } from "./InterfaceGen";
+import { MethodGen } from "./MethodGen";
 
 export interface ImportStatement {
     name: string;
@@ -38,7 +38,7 @@ export class TsFileGen {
     }
 
     public addReference(...refs: Array<string>): void {
-        refs.forEach(ref => {
+        refs.forEach((ref) => {
             if (this.refs.indexOf(ref) < 0) {
                 this.refs.push(ref);
             }
@@ -53,7 +53,7 @@ export class TsFileGen {
             if (!modules[i]) { continue; }
             let found = false;
             for (let j = this.importStatements[from].length; j--;) {
-                let st: ImportStatement = this.importStatements[from][j];
+                const st: ImportStatement = this.importStatements[from][j];
                 if (st.name == modules[i]) {
                     found = true;
                     break;
@@ -91,9 +91,9 @@ export class TsFileGen {
     }
 
     public addInterface(inputName: string): InterfaceGen {
-        let name = pascalCase(inputName);
+        const name = pascalCase(inputName);
         let intfc = this.getInterface(name);
-        if (intfc) return intfc;
+        if (intfc) { return intfc; }
         intfc = new InterfaceGen(name);
         this.interfaces.push(intfc);
         return intfc;
@@ -101,7 +101,7 @@ export class TsFileGen {
 
     public getInterface(name: string): InterfaceGen {
         name = pascalCase(name);
-        if (name.charAt(0) != 'I') name += `I${name}`;
+        if (name.charAt(0) != "I") { name += `I${name}`; }
         for (let i = this.interfaces.length; i--;) {
             if (this.interfaces[i].name == name) {
                 return this.interfaces[i];
@@ -113,7 +113,7 @@ export class TsFileGen {
     public addEnum(name: string): EnumGen {
         name = pascalCase(name);
         let enm = this.getEnum(name);
-        if (enm) return enm;
+        if (enm) { return enm; }
         enm = new EnumGen(name);
         this.enums.push(enm);
         return enm;
@@ -132,7 +132,7 @@ export class TsFileGen {
     public addMethod(name: string): MethodGen {
         name = camelCase(name);
         let method = this.getMethod(name);
-        if (method) return method;
+        if (method) { return method; }
         method = new MethodGen(name);
         this.methods.push(method);
         return method;
@@ -149,37 +149,74 @@ export class TsFileGen {
     }
 
     public addMixin(code: string, position: number = TsFileGen.CodeLocation.AfterImport): void {
-        this.mixins.push({ code: code, position: position });
+        this.mixins.push({ code, position });
+    }
+
+    public generate(): string {
+        let code = "";
+        code += this.refs.length ? `${this.refs.join("\n")}` : "";
+        code += this.getImportStatements();
+        code += this.getMixin(TsFileGen.CodeLocation.AfterImport);
+        // enum
+        for (let i = 0, il = this.enums.length; i < il; ++i) {
+            code += this.enums[i].generate();
+            code += code ? "\n" : "";
+        }
+        code += this.getMixin(TsFileGen.CodeLocation.AfterEnum);
+        // interface
+        for (let i = 0, il = this.interfaces.length; i < il; ++i) {
+            code += "\n" + this.interfaces[i].generate() + "\n";
+        }
+        code += this.getMixin(TsFileGen.CodeLocation.AfterInterface);
+        // classes
+        for (let i = 0, il = this.classes.length; i < il; ++i) {
+            code += this.classes[i].generate() + "\n";
+        }
+        code += this.getMixin(TsFileGen.CodeLocation.AfterClass);
+        // functions
+        for (let i = 0, il = this.methods.length; i < il; ++i) {
+            code += this.methods[i].generate() + "\n";
+        }
+        code += this.getMixin(TsFileGen.CodeLocation.AfterMethod);
+        return code;
+    }
+
+    public write(directory: string, ext: string = "ts"): void {
+        try {
+            writeFile(join(directory, `${this.name}.${ext}`), this.generate());
+        } catch (e) {
+            Log.error(e.message);
+        }
     }
 
     private getMixin(position) {
-        let code = [];
+        const code = [];
         for (let i = 0, il = this.mixins.length; i < il; ++i) {
             if (this.mixins[i].position == position) {
                 code.push(`${this.mixins[i].code}`);
             }
         }
-        return code.length ? `${code.join('\n')}\n` : '';
+        return code.length ? `${code.join("\n")}\n` : "";
     }
 
     private getImportStatements(): string {
         const codes = [];
         const nodeModules = [];
         const relativeModules = [];
-        Object.keys(this.importStatements).forEach(path => {
+        Object.keys(this.importStatements).forEach((path) => {
             if (path.startsWith(".")) {
                 relativeModules.push(path);
             } else {
                 nodeModules.push(path);
             }
         });
-        const stPath = nodeModules.sort().concat(relativeModules.sort());
+        const sortedPath = nodeModules.sort().concat(relativeModules.sort());
         // todo: we should sort path, tslint
-        for (let i = 0, il = stPath.length; i < il; ++i) {
+        for (let i = 0, il = sortedPath.length; i < il; ++i) {
             const defaults = [];
             const modulars = [];
-            for (let j = 0, jl = this.importStatements[stPath[i]].length; j < jl; ++j) {
-                const st = this.importStatements[stPath[i]][j];
+            for (let j = 0, jl = this.importStatements[sortedPath[i]].length; j < jl; ++j) {
+                const st = this.importStatements[sortedPath[i]][j];
                 if (st.isDefault) {
                     defaults.push(st.name);
                 } else {
@@ -195,45 +232,8 @@ export class TsFileGen {
                 modulars.sort();
                 code += `${code ? ", " : ""}{${modulars.join(", ")}}`;
             }
-            codes.push(`import ${code} from "${stPath[i]}";`);
+            codes.push(`import ${code} from "${sortedPath[i]}";`);
         }
         return codes.length ? `${codes.join("\n")}\n` : "";
-    }
-
-    public generate(): string {
-        let code = '';
-        code += this.refs.length ? `${this.refs.join('\n')}` : '';
-        code += this.getImportStatements();
-        code += this.getMixin(TsFileGen.CodeLocation.AfterImport);
-        // enum
-        for (let i = 0, il = this.enums.length; i < il; ++i) {
-            code += this.enums[i].generate();
-            code += code ? '\n' : '';
-        }
-        code += this.getMixin(TsFileGen.CodeLocation.AfterEnum);
-        // interface
-        for (let i = 0, il = this.interfaces.length; i < il; ++i) {
-            code += '\n' + this.interfaces[i].generate() + '\n';
-        }
-        code += this.getMixin(TsFileGen.CodeLocation.AfterInterface);
-        // classes
-        for (let i = 0, il = this.classes.length; i < il; ++i) {
-            code += this.classes[i].generate() + '\n';
-        }
-        code += this.getMixin(TsFileGen.CodeLocation.AfterClass);
-        // methods
-        for (let i = 0, il = this.methods.length; i < il; ++i) {
-            code += this.methods[i].generate() + '\n';
-        }
-        code += this.getMixin(TsFileGen.CodeLocation.AfterMethod);
-        return code;
-    }
-
-    public write(directory: string, ext: string = 'ts'): void {
-        try {
-            writeFile(join(directory, `${this.name}.${ext}`), this.generate());
-        } catch (e) {
-            Log.error(e.message);
-        }
     }
 }

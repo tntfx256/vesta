@@ -1,5 +1,5 @@
-import {MethodGen} from "./MethodGen";
 import {camelCase, pascalCase} from "../../util/StringUtil";
+import {MethodGen} from "./MethodGen";
 
 export interface IMethods {
     [name: string]: MethodGen;
@@ -45,7 +45,7 @@ export abstract class AbstractStructureGen {
                 return this.methods[i];
             }
         }
-        let method = new MethodGen(name);
+        const method = new MethodGen(name);
         this.methods.push(method);
         return method;
     }
@@ -69,11 +69,11 @@ export abstract class AbstractStructureGen {
     }
 
     public addImplements(...interfaces: Array<string>) {
-        interfaces.forEach(intfc => {
+        interfaces.forEach((intfc) => {
             if (this.implementations.indexOf(intfc) < 0) {
                 this.implementations.push(intfc);
             }
-        })
+        });
     }
 
     public addProperty(property: IStructureProperty) {

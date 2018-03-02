@@ -1,10 +1,10 @@
+import { FieldType, IFieldProperties, Mime, RelationType } from "@vesta/core";
 import { Question } from "inquirer";
 import { Log } from "../../util/Log";
 import { fcUpper } from "../../util/StringUtil";
 import { ask } from "../../util/Util";
 import { TsFileGen } from "../core/TSFileGen";
 import { ModelGen } from "./ModelGen";
-import { IFieldProperties, FieldType, Mime, RelationType } from "@vesta/core";
 
 export interface IFieldMeta {
     confidential?: boolean;
@@ -42,7 +42,7 @@ export class FieldGen {
         const meta: IFieldMeta = {};
         if ("form" in this.metaInfo) { meta.form = this.metaInfo.form; }
         if ("list" in this.metaInfo) { meta.list = this.metaInfo.list; }
-        let code = `${this.modelFile.name}.schema.addField('${this.name}').type(${this.getCodeForFieldType(this.properties.type)})`;
+        let code = `${this.modelFile.name}.schema.addField("${this.name}").type(${this.getCodeForFieldType(this.properties.type)})`;
         if (this.properties.type == FieldType.List) { code += `.listOf(${this.getCodeForFieldType(this.properties.list)})`; }
         if (this.properties.required) { code += ".required()"; }
         if (this.properties.primary) { code += ".primary()"; }
@@ -52,7 +52,7 @@ export class FieldGen {
         if (this.properties.min) { code += `.min(${this.properties.min})`; }
         if (this.properties.max) { code += `.max(${this.properties.max})`; }
         if (this.properties.maxSize) { code += `.maxSize(${this.properties.maxSize})`; }
-        if (this.properties.fileType.length) { code += `.fileType('${this.properties.fileType.join("', '")}')`; }
+        if (this.properties.fileType.length) { code += `.fileType("${this.properties.fileType.join('", "')}")`; }
         if (this.properties.enum.length) { code += this.genCodeForEnumField(meta); }
         if (this.properties.default) { code += this.getDefaultValueForSchemaCode(); }
         if (this.properties.relation) {
@@ -280,17 +280,17 @@ export class FieldGen {
                 askForListnForm = true;
                 break;
             case FieldType.Relation:
-                const types = ["One2One", "One2Many", "Many2Many"];
+                const types = ["One2Many", "Many2Many"];
                 const models = Object.keys(ModelGen.getModelsList());
                 qs.push({ name: "relationType", type: "list", choices: types, message: "Relation Type: " } as Question);
                 qs.push({ name: "relatedModel", type: "list", choices: models, message: "Target Model: " } as Question);
                 break;
             case FieldType.List:
                 qs.push({
-                    name: "list",
-                    type: "list",
                     choices: this.getFieldTypeChoices(true),
                     message: "Type of list items: ",
+                    name: "list",
+                    type: "list",
                 } as Question);
                 break;
         }

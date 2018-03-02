@@ -44,17 +44,17 @@ export class FormComponentGen {
         const formFile = new TsFileGen(this.className);
         // imports
         formFile.addImport(["React"], "react", true);
-        formFile.addImport(["FetchById", "PageComponent", "PageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
-        formFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/cmn/core/Validator"));
-        formFile.addImport(["ModelValidationMessage", "validationMessage"], genRelativePath(path, "src/client/app/util/Util"));
+        formFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
+        formFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/medium"));
+        formFile.addImport(["IModelValidationMessage", "validationMessage"], genRelativePath(path, "src/client/app/util/Util"));
         formFile.addImport(["FormWrapper", this.hasFieldOfType(FieldType.Enum) ? "FormOption" : null], genRelativePath(path, "src/client/app/components/general/form/FormWrapper"));
         formFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
-        formFile.addInterface(`${this.className}Params`);
+        formFile.addInterface(`I${this.className}Params`);
         // props
         const extProps = [];
-        const formProps = formFile.addInterface(`${this.className}Props`);
-        formProps.setParentClass(`PageComponentProps<${this.className}Params>`);
+        const formProps = formFile.addInterface(`I${this.className}Props`);
+        formProps.setParentClass(`IPageComponentProps<I${this.className}Params>`);
         formProps.addProperty({ name: "id", type: "number", isOptional: true });
         formProps.addProperty({ name: "onFetch", type: `FetchById<${model.interfaceName}>`, isOptional: true });
         formProps.addProperty({ name: "onSave", type: `Save<${model.interfaceName}>` });
@@ -74,17 +74,17 @@ export class FormComponentGen {
             }
         }
         // state
-        const formState = formFile.addInterface(`${this.className}State`);
+        const formState = formFile.addInterface(`I${this.className}State`);
         formState.addProperty({ name: model.instanceName, type: model.interfaceName });
         // class
         const formClass = formFile.addClass(this.className);
-        formClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        formClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // adding form error messages to class
-        formClass.addProperty({ name: "formErrorsMessages", type: "ModelValidationMessage", access: "private" });
+        formClass.addProperty({ name: "formErrorsMessages", type: "IModelValidationMessage", access: "private" });
         // constructor
-        formClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
+        formClass.getConstructor().addParameter({ name: "props", type: `I${this.className}Props` });
         formClass.getConstructor().setContent(`super(props);
-        this.state = {${model.instanceName}: {}};
+        this.state = { ${model.instanceName}: {} };
         this.formErrorsMessages = ${this.getValidationErrorMessages()}`);
         // fetch [componentDidMount]
         const fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
@@ -104,34 +104,34 @@ export class FormComponentGen {
             }`;
         }
         formClass.addMethod("componentDidMount").setContent(`const id = +this.props.id;
-        if (isNaN(id)) return;
+        if (isNaN(id)) { return; }
         this.props.onFetch(id)
-            .then(${model.instanceName} => ${finalCode});`);
-        // onChange method
-        const onChange = formClass.addMethod("onChange");
-        onChange.setAsArrowFunction(true);
-        onChange.addParameter({ name: "name", type: "string" });
-        onChange.addParameter({ name: "value", type: "any" });
-        onChange.setContent(`this.state.${model.instanceName}[name] = value;
-        this.setState({${model.instanceName}: this.state.${model.instanceName}});`);
-        // onSubmit method
-        const onSubmit = formClass.addMethod("onSubmit");
-        onSubmit.setAsArrowFunction(true);
-        onSubmit.addParameter({ name: "e", type: "Event" });
-        onSubmit.setContent(`this.props.onSave(this.state.${model.instanceName});`);
+            .then((${model.instanceName}) => ${finalCode});`);
         // render
         const formData = this.getFormData(formFile);
         const extPropsCode = extProps.length ? `, ${extProps.join(", ")}` : "";
         const extraCode = formData.code ? `\n\t\t${formData.code}` : "";
-        formClass.addMethod("render").setContent(`const {validationErrors${extPropsCode}} = this.props;
-        const {${model.instanceName}} = this.state;
+        formClass.addMethod("render").setContent(`const { validationErrors${extPropsCode} } = this.props;
+        const { ${model.instanceName} } = this.state;
         const errors = validationErrors ? validationMessage(this.formErrorsMessages, validationErrors) : {};${extraCode}
 
         return (
             <FormWrapper name="${model.instanceName}Form" onSubmit={this.onSubmit}>${formData.form}
                 {this.props.children}
             </FormWrapper>
-        )`);
+        );`);
+        // onChange method
+        const onChange = formClass.addMethod("onChange", "private");
+        onChange.setAsArrowFunction(true);
+        onChange.addParameter({ name: "name", type: "string" });
+        onChange.addParameter({ name: "value", type: "any" });
+        onChange.setContent(`this.state.${model.instanceName}[name] = value;
+        this.setState({ ${model.instanceName}: this.state.${model.instanceName} });`);
+        // onSubmit method
+        const onSubmit = formClass.addMethod("onSubmit", "private");
+        onSubmit.setAsArrowFunction(true);
+        onSubmit.addParameter({ name: "e", type: "Event" });
+        onSubmit.setContent(`this.props.onSave(this.state.${model.instanceName});`);
         return formFile.generate();
     }
 
@@ -147,7 +147,7 @@ export class FormComponentGen {
         const imports = [];
         let component = "";
         let hasPlaceHolder = true;
-        const properties = [`name="${fieldName}" label={this.tr('fld_${fieldName}')} value={${instanceName}.${fieldName}}`,
+        const properties = [`name="${fieldName}" label={this.tr("fld_${fieldName}")} value={${instanceName}.${fieldName}}`,
         `error={errors.${fieldName}} onChange={this.onChange}`];
         switch (props.type) {
             case FieldType.Text:
@@ -189,7 +189,7 @@ export class FormComponentGen {
                 break;
             case FieldType.Boolean:
                 component = "FormSelect";
-                const boolOptions = [`{id: 0, title: this.tr('no')}`, `{id: 1, title: this.tr('yes')}`];
+                const boolOptions = [`{id: 0, title: this.tr("no")}`, `{id: 1, title: this.tr("yes")}`];
                 const boolOptionName = `booleanOptions`;
                 if (!this.writtenOnce.boolean) {
                     this.writtenOnce.boolean = true;
@@ -207,7 +207,7 @@ export class FormComponentGen {
                     } else {
                         formFile.addImport([enumName], genRelativePath(this.config.path, `src/client/app/cmn/models/${modelName}`));
                     }
-                    const options = modelMeta.enum.options.map((option, index) => `{id: ${option}, title: this.tr('enum_${option.split(".")[1].toLowerCase()}')}`);
+                    const options = modelMeta.enum.options.map((option, index) => `{id: ${option}, title: this.tr("enum_${option.split(".")[1].toLowerCase()}")}`);
                     const optionName = `${fieldName}Options`;
                     // code += `const ${optionName}: Array<{}> = ;`;
                     formClass.addProperty({
@@ -231,12 +231,14 @@ export class FormComponentGen {
                     component = isMulti ? "FormMultichoice" : "FormSelect";
                     properties.push(`options={${pluralName}}`);
                 } else {
+                    // import relational model
+                    formFile.addImport([`I${relModelName}`], genRelativePath(this.config.path, `src/client/app/cmn/models/${relModelName}`));
                     const methodName = `search${pascalCase(pluralName)}`;
                     const method = formFile.getClass().addMethod(methodName, ClassGen.Access.Private);
                     method.setAsArrowFunction();
                     method.addParameter({ name: "term", type: "string" });
-                    method.setContent(`return this.api.get<I${modelName}>('${relInstanceName}', {query: {${searchableField}: \`*\${term}*\`}, limit: 10, fields: ['id', '${searchableField}']})
-            .then(response => response.items)`);
+                    method.setContent(`return this.api.get<I${relModelName}>("${relInstanceName}", {query: {${searchableField}: \`*\${term}*\`}, limit: 10, fields: ["id", "${searchableField}"]})
+            .then((response) => response.items);`);
                     component = "Autocomplete";
                     properties.push(`search={this.${methodName}}`);
                     if (isMulti) {
@@ -257,7 +259,7 @@ export class FormComponentGen {
                 properties.splice(1, 0, "placeholder={true}");
             }
             imports.push(component);
-            form = `\n\t\t\t\t<${component} ${properties[0]}\n\t\t\t\t${strRepeat(" ", component.length + 2)}`;
+            form = `\n\t\t\t\t<${component} ${properties[0]} \n\t\t\t\t\t`;
             properties.shift();
             form += `${properties.join(" ")}/>`;
         }
@@ -271,28 +273,28 @@ export class FormComponentGen {
         const messages: any = {};
         const props: IFieldProperties = field.properties;
         if (props.required) {
-            messages.required = "this.tr('err_required')";
+            messages.required = 'this.tr("err_required")';
         }
         if (props.min) {
-            messages.min = `this.tr('err_min_value', ${field.properties.min})`;
+            messages.min = `this.tr("err_min_value", ${field.properties.min})`;
         }
         if (props.max) {
-            messages.max = `this.tr('err_max_value', ${field.properties.max})`;
+            messages.max = `this.tr("err_max_value", ${field.properties.max})`;
         }
         if (props.minLength) {
-            messages.minLength = `this.tr('err_min_length', ${field.properties.minLength})`;
+            messages.minLength = `this.tr("err_min_length", ${field.properties.minLength})`;
         }
         if (props.maxLength) {
-            messages.maxLength = `this.tr('err_max_length', ${field.properties.maxLength})`;
+            messages.maxLength = `this.tr("err_max_length", ${field.properties.maxLength})`;
         }
         if (props.maxSize) {
-            messages.maxSize = `this.tr('err_file_size', ${field.properties.maxSize})`;
+            messages.maxSize = `this.tr("err_file_size", ${field.properties.maxSize})`;
         }
         if (props.fileType.length) {
-            messages.fileType = `this.tr('err_file_type')`;
+            messages.fileType = `this.tr("err_file_type")`;
         }
         if (props.enum.length) {
-            messages.enum = `this.tr('err_enum')`;
+            messages.enum = `this.tr("err_enum")`;
         }
         switch (props.type) {
             case FieldType.Text:
@@ -302,32 +304,32 @@ export class FormComponentGen {
             case FieldType.Password:
                 break;
             case FieldType.Tel:
-                messages.type = `this.tr('err_phone')`;
+                messages.type = `this.tr("err_phone")`;
                 break;
             case FieldType.EMail:
-                messages.email = `this.tr('err_email')`;
+                messages.email = `this.tr("err_email")`;
                 break;
             case FieldType.URL:
-                messages.type = `this.tr('err_url')`;
+                messages.type = `this.tr("err_url")`;
                 break;
             case FieldType.Integer:
             case FieldType.Number:
             case FieldType.Float:
-                messages.type = `this.tr('err_number')`;
+                messages.type = `this.tr("err_number")`;
                 break;
             case FieldType.File:
                 break;
             case FieldType.Timestamp:
-                messages.type = `this.tr('err_date')`;
+                messages.type = `this.tr("err_date")`;
                 break;
             case FieldType.Boolean:
-                messages.type = `this.tr('err_enum')`;
+                messages.type = `this.tr("err_enum")`;
                 break;
             case FieldType.Enum:
-                messages.type = `this.tr('err_enum')`;
+                messages.type = `this.tr("err_enum")`;
                 break;
             case FieldType.Relation:
-                messages.type = `this.tr('err_relation')`;
+                messages.type = `this.tr("err_relation")`;
                 break;
             case FieldType.List:
                 break;
@@ -362,14 +364,14 @@ export class FormComponentGen {
     private getValidationErrorMessages() {
         const fields = this.schema.getFields();
         const codes = [];
-        for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
+        for (let fieldsName = Object.keys(fields).sort(), i = 0, il = fieldsName.length; i < il; ++i) {
             const messages = this.getFieldErrorMessages(fields[fieldsName[i]]);
             if (!messages) { continue; }
             const code = [];
-            for (let rules = Object.keys(messages), j = 0, jl = rules.length; j < jl; ++j) {
+            for (let rules = Object.keys(messages).sort(), j = 0, jl = rules.length; j < jl; ++j) {
                 code.push(`${rules[j]}: ${messages[rules[j]]}`);
             }
-            codes.push(`\n\t\t\t${fieldsName[i]}: {\n\t\t\t\t${code.join(",\n\t\t\t\t")}\n\t\t\t}`);
+            codes.push(`\n\t\t\t${fieldsName[i]}: {\n\t\t\t\t${code.join(",\n\t\t\t\t")},\n\t\t\t}`);
         }
         return codes.length ? `{${codes.join(",")}\n\t\t}` : "";
     }

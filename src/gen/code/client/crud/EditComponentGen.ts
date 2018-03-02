@@ -32,15 +32,15 @@ export class EditComponentGen {
         const editFile = new TsFileGen(this.className);
         // imports
         editFile.addImport(["React"], "react", true);
-        editFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/cmn/core/Validator"));
-        editFile.addImport(["FetchById", "PageComponent", "PageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
+        editFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/medium"));
+        editFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
         editFile.addImport([formClassName], `./${formClassName}`);
         editFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
-        editFile.addInterface(`${this.className}Params`).addProperty({ name: "id", type: "number" });
+        editFile.addInterface(`I${this.className}Params`).addProperty({ name: "id", type: "number" });
         // props
-        const editProps = editFile.addInterface(`${this.className}Props`);
-        editProps.setParentClass(`PageComponentProps<${this.className}Params>`);
+        const editProps = editFile.addInterface(`I${this.className}Props`);
+        editProps.setParentClass(`IPageComponentProps<I${this.className}Params>`);
         editProps.addProperty({ name: "onFetch", type: `FetchById<${model.interfaceName}>` });
         editProps.addProperty({ name: "onSave", type: `Save<${model.interfaceName}>` });
         editProps.addProperty({ name: "validationErrors", type: "IValidationError" });
@@ -64,26 +64,26 @@ export class EditComponentGen {
         const extPropsCode = extProps.length ? `, ${extProps.join(", ")}` : "";
         const extPassedPropsCode = extPassedProps.length ? ` ${extPassedProps.join(" ")}` : "";
         // state
-        const editState = editFile.addInterface(`${this.className}State`);
+        const editState = editFile.addInterface(`I${this.className}State`);
         // class
         const editClass = editFile.addClass(this.className);
-        editClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        editClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // render method
-        editClass.addMethod("render").setContent(`const {onSave, onFetch, validationErrors${extPropsCode}, history} = this.props;
+        editClass.addMethod("render").setContent(`const { onSave, onFetch, validationErrors${extPropsCode}, history } = this.props;
         const id = +this.props.match.params.id;
 
         return (
             <div className="crud-page">
-                <h1>{this.tr('title_record_edit', this.tr('${model.originalClassName.toLowerCase()}'))}</h1>
+                <h2>{this.tr("title_record_edit", this.tr("${model.originalClassName.toLowerCase()}"))}</h2>
                 <${formClassName} id={id} onFetch={onFetch} onSave={onSave} validationErrors={validationErrors}${extPassedPropsCode}>
                     <div className="btn-group">
-                        <button className="btn btn-primary" type="submit">{this.tr('save')}</button>
+                        <button className="btn btn-primary" type="submit">{this.tr("save")}</button>
                         <button className="btn btn-outline" type="button"
-                                onClick={history.goBack}>{this.tr('cancel')}</button>
+                            onClick={history.goBack}>{this.tr("cancel")}</button>
                     </div>
                 </${formClassName}>
             </div>
-        )`);
+        );`);
         return editFile.generate();
     }
 }

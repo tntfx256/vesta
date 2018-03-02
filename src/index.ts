@@ -1,5 +1,4 @@
 #! /usr/bin/env node
-import { Culture } from "@vesta/core";
 import { join } from "path";
 import { Backup } from "./cmd/Backup";
 import { Create } from "./cmd/Create";
@@ -9,14 +8,11 @@ import { Gen } from "./cmd/Gen";
 import { Init } from "./cmd/Init";
 import { Module } from "./cmd/Module";
 import { Update } from "./cmd/Update";
-import { UsDate } from "./cmn/culture/us/UsDate";
-import { UsLocale } from "./cmn/culture/us/UsLocale";
 import { IPlatformConfig, PlatformConfig } from "./PlatformConfig";
 import { ArgParser } from "./util/ArgParser";
 import { readJsonFile } from "./util/FsUtil";
 import { Log } from "./util/Log";
 
-Culture.register(UsLocale, {}, UsDate);
 const argParser = ArgParser.getInstance();
 const command = argParser.get();
 

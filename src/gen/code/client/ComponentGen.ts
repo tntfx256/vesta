@@ -38,10 +38,6 @@ export interface IModelConfig {
 }
 
 export class ComponentGen {
-    private className: string;
-    private model: IModelConfig;
-    private path = "src/client/app/components/";
-    private relationalFields: IModelFields;
 
     public static help() {
         Log.write(`
@@ -89,6 +85,11 @@ Example:
         // }
         (new ComponentGen(config)).generate();
     }
+
+    private className: string;
+    private model: IModelConfig;
+    private path = "src/client/app/components/";
+    private relationalFields: IModelFields;
 
     constructor(private config: IComponentGenConfig) {
         this.path += config.path;
@@ -139,8 +140,8 @@ Example:
         }
         const extStatesCode = extStates.length ? `,\n\t\t\t${extStates.join(",\n\t\t\t")}` : "";
         componentClass.getConstructor().setContent(`super(props);
-        this.access = this.auth.getAccessList('${stateName}');
-        this.state = { showLoader: false, validationErrors: null, ${plural(this.model.instanceName)}: [], queryOption: {page: 1, limit: this.pagination.itemsPerPage}${extStatesCode} };`);
+        this.access = this.auth.getAccessList("${stateName}");
+        this.state = { ${plural(this.model.instanceName)}: [], queryOption: { page: 1, limit: this.pagination.itemsPerPage }${extStatesCode} };`);
         // fetching relation on component did mount
         const extraProps = [];
         const fetchCallers = [];
@@ -164,23 +165,21 @@ Example:
         const model = this.model;
         // render method
         const modelClassName = this.model.originalClassName;
-        (componentClass.addMethod("render")).setContent(`let {showLoader, ${plural(model.instanceName)}, queryOption, validationErrors${extraPropsCode}} = this.state;
-        const addRoute = this.access.add ? <Route path="/${stateName}/add" render={this.tz(${modelClassName}Add, {${stateName}: ['add']}, { onSave: this.onSave, validationErrors${extraPropsCode} })} /> : null;
-        const editRoute = this.access.edit ? <Route path="/${stateName}/edit/:id" render={this.tz(${modelClassName}Edit, {${stateName}: ['edit']}, { onSave: this.onSave, onFetch: this.onFetch, validationErrors${extraPropsCode} })} /> : null;
+        (componentClass.addMethod("render")).setContent(`const {showLoader, ${plural(model.instanceName)}, queryOption, validationErrors${extraPropsCode}} = this.state;
 
         return (
             <div className="page ${kebabCase(stateName).toLowerCase()}-page has-navbar">
-                <PageTitle title={this.tr('mdl_${this.className.toLowerCase()}')}/>
-                <Navbar title={this.tr('mdl_${this.className.toLowerCase()}')} showBurger={true}/>
-                <h1>{this.tr('mdl_${this.className.toLowerCase()}')}</h1>
+                <PageTitle title={this.tr("mdl_${this.className.toLowerCase()}")}/>
+                <Navbar title={this.tr("mdl_${this.className.toLowerCase()}")} showBurger={true}/>
+                <h1>{this.tr("mdl_${this.className.toLowerCase()}")}</h1>
                 <Preloader show={showLoader}/>
                 <CrudMenu path="${stateName}" access={this.access}/>
                 <div className="crud-wrapper">
                     <DynamicRouter>
                         <Switch>
-                            {addRoute}
-                            {editRoute}
-                            <Route path="/${stateName}/detail/:id" render={this.tz(${modelClassName}Detail, {${stateName}: ['read']}, { onFetch: this.onFetch })} />
+                            {this.access.add ? <Route path="/${stateName}/add" render={this.tz(${modelClassName}Add, {${stateName}: ["add"]}, { onSave: this.onSave, validationErrors${extraPropsCode} })} /> : null}
+                            {this.access.edit ? <Route path="/${stateName}/edit/:id" render={this.tz(${modelClassName}Edit, {${stateName}: ["edit"]}, { onSave: this.onSave, onFetch: this.onFetch, validationErrors${extraPropsCode} })} /> : null}
+                            <Route path="/${stateName}/detail/:id" render={this.tz(${modelClassName}Detail, {${stateName}: ["read"]}, { onFetch: this.onFetch })} />
                         </Switch>
                     </DynamicRouter>
                     <${modelClassName}List access={this.access} onFetch={this.onFetchAll} queryOption={queryOption} ${plural(this.model.instanceName)}={${plural(this.model.instanceName)}} />
@@ -188,19 +187,33 @@ Example:
             </div>
         );`);
         // fetch method
-        const fetchMethod = componentClass.addMethod(`onFetch`);
+        const fetchMethod = componentClass.addMethod(`onFetch`, ClassGen.Access.Private);
         fetchMethod.setAsArrowFunction(true);
         fetchMethod.addParameter({ name: "id", type: "number" });
         fetchMethod.setContent(`this.setState({ showLoader: true });
         return this.api.get<${model.interfaceName}>(\`${stateName}/\${id}\`)
-            .then(response => {
+            .then((response) => {
                 this.setState({ showLoader: false });
                 return response.items[0];
             })
-            .catch(error => {
+            .catch((error) => {
                 this.setState({ showLoader: false });
                 this.notif.error(error.message);
-            })`);
+            });`);
+        // fetchAll method
+        const fetchAllMethod = componentClass.addMethod(`onFetchAll`, ClassGen.Access.Private);
+        fetchAllMethod.setAsArrowFunction(true);
+        fetchAllMethod.addParameter({ name: "queryOption", type: `IDataTableQueryOption<${this.model.interfaceName}>` });
+        fetchAllMethod.setContent(`this.setState({ showLoader: true, queryOption });
+        this.onFetchCount(queryOption);
+        this.api.get<${model.interfaceName}>("${stateName}", queryOption)
+            .then((response) => {
+                this.setState({ showLoader: false, ${plural(this.model.instanceName)}: response.items });
+            })
+            .catch((error) => {
+                this.setState({ showLoader: false, validationErrors: error.violations });
+                this.notif.error(error.message);
+            });`);
         // fetchCount method
         const fetchCountMethod = componentClass.addMethod(`onFetchCount`, ClassGen.Access.Private);
         fetchCountMethod.setAsArrowFunction(true);
@@ -208,36 +221,22 @@ Example:
             name: "queryOption",
             type: `IDataTableQueryOption<${this.model.interfaceName}>`,
         });
-        fetchCountMethod.setContent(`this.api.get<${model.interfaceName}>('${stateName}/count', queryOption)
-            .then(response => {
+        fetchCountMethod.setContent(`this.api.get<${model.interfaceName}>("${stateName}/count", queryOption)
+            .then((response) => {
                 this.state.queryOption.total = response.total;
                 this.setState({ queryOption: this.state.queryOption });
             })
-            .catch(error => {
+            .catch((error) => {
                 this.state.queryOption.total = 0;
                 this.setState({ queryOption: this.state.queryOption });
                 this.notif.error(error.message);
-            })`);
-        // fetchAll method
-        const fetchAllMethod = componentClass.addMethod(`onFetchAll`);
-        fetchAllMethod.setAsArrowFunction(true);
-        fetchAllMethod.addParameter({ name: "queryOption", type: `IDataTableQueryOption<${this.model.interfaceName}>` });
-        fetchAllMethod.setContent(`this.setState({ showLoader: true, queryOption });
-        this.onFetchCount(queryOption);
-        this.api.get<${model.interfaceName}>('${stateName}', queryOption)
-            .then(response => {
-                this.setState({ showLoader: false, ${plural(this.model.instanceName)}: response.items });
-            })
-            .catch(error => {
-                this.setState({ showLoader: false, validationErrors: error.violations });
-                this.notif.error(error.message);
-            })`);
+            });`);
         // save method
         // files
         const fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
         const files = fileFields ? Object.keys(fileFields) : [];
         const resultCode = `this.setState({ showLoader: false });
-                this.notif.success(this.tr('info_save_record'));
+                this.notif.success(this.tr("info_save_record"));
                 this.onFetchAll(this.state.queryOption);
                 this.props.history.goBack();`;
         let deleteCode = "";
@@ -255,7 +254,7 @@ Example:
         }`;
             }
             uploadCode = `hasFile ? this.api.upload<${model.interfaceName}>(\`${model.instanceName}/file/\${response.items[0].id}\`, ${model.instanceName}Files) : response`;
-            uploadResultCode = `\n\t\t\t.then(response => {
+            uploadResultCode = `\n\t\t\t.then((response) => {
                 ${resultCode}
             })`;
         } else {
@@ -263,22 +262,22 @@ Example:
                 ${resultCode}
             }`;
         }
-        const saveMethod = componentClass.addMethod(`onSave`);
+        const saveMethod = componentClass.addMethod(`onSave`, "private");
         saveMethod.setAsArrowFunction(true);
         saveMethod.addParameter({ name: "model", type: model.interfaceName });
-        saveMethod.setContent(`let ${model.instanceName} = new ${model.className}(model);
-        let validationErrors = ${model.instanceName}.validate();
+        saveMethod.setContent(`const ${model.instanceName} = new ${model.className}(model);
+        const validationErrors = ${model.instanceName}.validate();
         if (validationErrors) {
             return this.setState({validationErrors});
         }${deleteCode}
         this.setState({ showLoader: true, validationErrors: null });
-        let data = ${model.instanceName}.getValues<${model.interfaceName}>();
-        (model.id ? this.api.put<${model.interfaceName}>('${model.instanceName}', data) : this.api.post<${model.interfaceName}>('${model.instanceName}', data))
-            .then(response => ${uploadCode})${uploadResultCode}
-            .catch(error => {
+        const data = ${model.instanceName}.getValues<${model.interfaceName}>();
+        (model.id ? this.api.put<${model.interfaceName}>("${model.instanceName}", data) : this.api.post<${model.interfaceName}>("${model.instanceName}", data))
+            .then((response) => ${uploadCode})${uploadResultCode}
+            .catch((error) => {
                 this.setState({ showLoader: false, validationErrors: error.violations });
                 this.notif.error(error.message);
-            })`);
+            });`);
         // fetch functions for relations
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
@@ -291,14 +290,14 @@ Example:
                     const instanceName = camelCase(modelName);
                     method.setAsArrowFunction(true);
                     method.setContent(`this.setState({showLoader: true});
-        this.api.get<I${modelName}>('${instanceName}')
-            .then(response => {
+        this.api.get<I${modelName}>("${instanceName}")
+            .then((response) => {
                 this.setState({showLoader: false, ${shouldBePlural ? plural(fieldNames[i]) : fieldNames[i]}: response.items});
             })
-            .catch(error => {
+            .catch((error) => {
                 this.setState({showLoader: false, validationErrors: error.violations});
                 this.notif.error(error.message);
-            })`);
+            });`);
                 }
             }
         }
@@ -313,7 +312,7 @@ Example:
         this.state = {};`);
         // render method
         const cssClass = this.config.isPage ? `page ${className}-page has-navbar` : `${className}`;
-        const navbar = this.config.isPage ? `\n\t\t\t\t<Navbar title={this.tr('${instanceName.toLowerCase()}')}/>` : "";
+        const navbar = this.config.isPage ? `\n\t\t\t\t<Navbar title={this.tr("${instanceName.toLowerCase()}")}/>` : "";
         (componentClass.addMethod("render")).setContent(`return (
             <div className="${cssClass}">${navbar}
                 <h1>${this.className} Component</h1>
@@ -342,12 +341,12 @@ Example:
         }
         // props
         const propsInterface = componentFile.addInterface(`I${this.className}Props`);
-        propsInterface.setParentClass(this.config.isPage ? `PageComponentProps${params}` : `BaseComponentProps${params}`);
+        propsInterface.setParentClass(this.config.isPage ? `IPageComponentProps${params}` : `BaseComponentProps${params}`);
         // state
         const stateInterface = componentFile.addInterface(`I${this.className}State`);
         if (this.config.model) {
-            stateInterface.addProperty({ name: "showLoader", type: "boolean" });
-            stateInterface.addProperty({ name: "validationErrors", type: "IValidationError" });
+            stateInterface.addProperty({ name: "showLoader", type: "boolean", isOptional: true });
+            stateInterface.addProperty({ name: "validationErrors", type: "IValidationError", isOptional: true });
             stateInterface.addProperty({
                 name: plural(this.model.instanceName),
                 type: `Array<${this.model.interfaceName}>`,
@@ -388,7 +387,7 @@ Example:
         const componentFile = new TsFileGen(this.className);
         componentFile.addImport(["React"], "react", true);
         if (this.config.isPage) {
-            componentFile.addImport(["PageComponent", "PageComponentProps"], genRelativePath(this.path, "src/client/app/components/PageComponent"));
+            componentFile.addImport(["PageComponent", "IPageComponentProps"], genRelativePath(this.path, "src/client/app/components/PageComponent"));
         } else {
             componentFile.addImport(["Component"], "react");
             componentFile.addImport(["BaseComponentProps"], genRelativePath(this.path, "src/client/app/components/BaseComponent"));
@@ -399,8 +398,7 @@ Example:
         if (this.config.model) {
             const modelClassName = this.model.originalClassName;
             componentFile.addImport(["Route", "Switch"], "react-router");
-            componentFile.addImport(["IValidationError"], genRelativePath(this.path, "src/client/app/cmn/core/Validator"));
-            componentFile.addImport(["DynamicRouter"], genRelativePath(this.path, "src/client/app/components/general/DynamicRouter"));
+            componentFile.addImport(["DynamicRouter", "IValidationError"], genRelativePath(this.path, "src/client/app/medium"));
             componentFile.addImport(["IDataTableQueryOption"], genRelativePath(this.path, "src/client/app/components/general/DataTable"));
             componentFile.addImport(["PageTitle"], genRelativePath(this.path, "src/client/app/components/general/PageTitle"));
             componentFile.addImport(["Preloader"], genRelativePath(this.path, "src/client/app/components/general/Preloader"));

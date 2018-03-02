@@ -1,5 +1,5 @@
-import {MethodGen} from "./MethodGen";
-import {AbstractStructureGen} from "./AbstractStructureGen";
+import { AbstractStructureGen, IStructureProperty } from "./AbstractStructureGen";
+import { MethodGen } from "./MethodGen";
 
 export class InterfaceGen extends AbstractStructureGen {
 
@@ -8,37 +8,39 @@ export class InterfaceGen extends AbstractStructureGen {
     }
 
     public addMethod(name: string): MethodGen {
-        let method = super.addMethod(name);
+        const method = super.addMethod(name);
         method.isInterfaceMethod(true);
         return method;
     }
 
-    private getPropertiesCode(): string {
-        let codes = [];
-        for (let i = 0, il = this.properties.length; i < il; ++i) {
-            let code = this.properties[i].name;
-            if (this.properties[i].isOptional) code += '?';
-            if (this.properties[i].type) code += `: ${this.properties[i].type}`;
-            code += ';';
-            codes.push(code);
-        }
-        return codes.join('\n    ');
-    }
-
     public generate(): string {
-        let code = this.shouldBeExported ? 'export ' : '';
+        let code = this.shouldBeExported ? "export " : "";
         code += `interface ${this.name}`;
-        if (this.parentClass) code += ' extends ' + this.parentClass;
+        if (this.parentClass) { code += " extends " + this.parentClass; }
         if (this.implementations.length) {
-            code += ' implements ' + this.implementations.join(', ');
+            code += " implements " + this.implementations.join(", ");
         }
-        code += ' {\n';
-        if (this.properties.length) code += `    ${this.getPropertiesCode()}\n`;
+        code += " {\n";
+        if (this.properties.length) { code += `    ${this.getPropertiesCode()}\n`; }
         for (let i = 0, il = this.methods.length; i < il; ++i) {
             code += this.methods[i].generate();
-            code += '\n';
+            code += "\n";
         }
-        code += '}';
+        code += "}";
         return code;
+    }
+
+    private getPropertiesCode(): string {
+        const codes = [];
+        const sortedProperties = [].concat(this.properties);
+        sortedProperties.sort((a: IStructureProperty, b: IStructureProperty) => a.name > b.name ? 1 : -1);
+        for (let i = 0, il = sortedProperties.length; i < il; ++i) {
+            let code = sortedProperties[i].name;
+            if (sortedProperties[i].isOptional) { code += "?"; }
+            if (sortedProperties[i].type) { code += `: ${sortedProperties[i].type}`; }
+            code += ";";
+            codes.push(code);
+        }
+        return codes.join("\n    ");
     }
 }

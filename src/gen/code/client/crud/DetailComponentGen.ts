@@ -38,45 +38,41 @@ export class DetailComponentGen {
         const detailFile = new TsFileGen(this.className);
         // imports
         detailFile.addImport(["React"], "react", true);
-        detailFile.addImport(["FetchById", "PageComponent", "PageComponentProps"], genRelativePath(path, "src/client/app/components/PageComponent"));
+        detailFile.addImport(["FetchById", "PageComponent", "IPageComponentProps"], genRelativePath(path, "src/client/app/components/PageComponent"));
         detailFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
-        detailFile.addInterface(`${this.className}Params`).addProperty({ name: "id", type: "number" });
+        detailFile.addInterface(`I${this.className}Params`).addProperty({ name: "id", type: "number" });
         // props
-        const detailProps = detailFile.addInterface(`${this.className}Props`);
-        detailProps.setParentClass(`PageComponentProps<${this.className}Params>`);
+        const detailProps = detailFile.addInterface(`I${this.className}Props`);
+        detailProps.setParentClass(`IPageComponentProps<I${this.className}Params>`);
         detailProps.addProperty({ name: "onFetch", type: `FetchById<${model.interfaceName}>` });
         // state
-        const detailState = detailFile.addInterface(`${this.className}State`);
+        const detailState = detailFile.addInterface(`I${this.className}State`);
         detailState.addProperty({ name: model.instanceName, type: model.interfaceName });
         // class
         const detailClass = detailFile.addClass(this.className);
-        detailClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
+        detailClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         detailClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
         detailClass.getConstructor().setContent(`super(props);
         this.state = {${model.instanceName}: {}};`);
         // fetch
         detailClass.addMethod("componentDidMount").setContent(`this.props.onFetch(+this.props.match.params.id)
-            .then(${model.instanceName} => this.setState({${model.instanceName}}));`);
+            .then((${model.instanceName}) => this.setState({${model.instanceName}}));`);
         const { field, code } = this.getDetailsData(detailFile);
         // render method
         detailClass.addMethod("render").setContent(`const ${model.instanceName} = this.state.${model.instanceName};
-        if (!${model.instanceName}) return null;${code}
+        if (!${model.instanceName}) { return null;${code} }
 
         return (
             <div className="crud-page">
                 <table className="details-table">
-                    <thead>
                     <tr>
-                        <th colSpan={2}>{this.tr('title_record_detail', this.tr('mdl_${model.originalClassName.toLowerCase()}'), ${model.instanceName}.id)}</th>
+                        <th colSpan={2}>{this.tr("title_record_detail", this.tr("${model.originalClassName.toLowerCase()}"), ${model.instanceName}.id)}</th>
                     </tr>
-                    </thead>
-                    <tbody>
                     ${field}
-                    </tbody>
                 </table>
             </div>
-        )`);
+        );`);
         return detailFile.generate();
     }
 
@@ -132,7 +128,7 @@ export class DetailComponentGen {
                 break;
             case FieldType.Timestamp:
                 if (!this.writtenOnce.dateTime) {
-                    detailsFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/cmn/core/Culture"));
+                    detailsFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/medium"));
                     this.writtenOnce.dateTime = true;
                     code = `const dateTime = Culture.getDateTimeInstance();
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
@@ -143,14 +139,14 @@ export class DetailComponentGen {
         const ${value} = dateTime.format(dateTimeFormat);`;
                 break;
             case FieldType.Boolean:
-                value = `this.tr(${instanceName}.${fieldName} ? 'yes' : 'no')`;
+                value = `this.tr(${instanceName}.${fieldName} ? "yes" : "no")`;
                 break;
             case FieldType.Enum:
                 if (modelMeta.enum) {
                     if (modelMeta.enum) {
                         const detailsClass = detailsFile.getClass();
                         const enumName = camelCase(modelMeta.enum.options[0].split(".")[0]) + "Options";
-                        const options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split(".")[1].toLowerCase()}')`);
+                        const options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr("enum_${option.split(".")[1].toLowerCase()}")`);
                         // code = `const ${enumName} = ;`;
                         value = `this.${enumName}[${instanceName}.${fieldName}]`;
                         detailsClass.addProperty({
@@ -181,7 +177,7 @@ export class DetailComponentGen {
                 Log.error(`Unknown field type for ${fieldName} of type ${props.type}`);
         }
         if (value) {
-            details = `<tr>\n\t\t\t\t\t\t<td>{this.tr('fld_${fieldName.toLowerCase()}')}</td>\n\t\t\t\t\t\t<td>{${value}}</td>\n\t\t\t\t\t</tr>`;
+            details = `<tr>\n\t\t\t\t\t\t<td>{this.tr("fld_${fieldName.toLowerCase()}")}</td>\n\t\t\t\t\t\t<td>{${value}}</td>\n\t\t\t\t\t</tr>`;
         }
         return { field: details, code };
     }

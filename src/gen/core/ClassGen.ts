@@ -45,21 +45,32 @@ export class ClassGen extends AbstractStructureGen {
             code += " implements " + this.implementations.join(", ");
         }
         code += " {\n";
+        // based on tslint
+        // public static members, methods
+        // private static members, methods
+        // public, private members
+        // constructor
+        // public methods
+        // private methods
         if (this.properties.length) { code += `    ${this.getPropertiesCode()}\n`; }
-        if (this.constructorMethod) {
-            code += this.constructorMethod.generate();
-        }
-        const staticMethods: Array<MethodGen> = [];
-        for (let i = 0, il = this.methods.length; i < il; ++i) {
-            if (this.methods[i].isStatic()) {
-                staticMethods.push(this.methods[i]);
-            } else {
-                code += `\n${this.methods[i].generate()}`;
-            }
-        }
-        // placing the static methods at the end of class body
-        for (let i = 0, il = staticMethods.length; i < il; ++i) {
-            code += `\n${staticMethods[i].generate()}`;
+        // if (this.constructorMethod) {
+        //     code += this.constructorMethod.generate();
+        // }
+        // const staticMethods: Array<MethodGen> = [];
+        // for (let i = 0, il = this.methods.length; i < il; ++i) {
+        //     if (this.methods[i].isStatic()) {
+        //         staticMethods.push(this.methods[i]);
+        //     } else {
+        //         code += `\n${this.methods[i].generate()}`;
+        //     }
+        // }
+        // // placing the static methods at the end of class body
+        // for (let i = 0, il = staticMethods.length; i < il; ++i) {
+        //     code += `\n${staticMethods[i].generate()}`;
+        // }
+        const sortedMethods = this.sortMethods();
+        for (let i = 0, il = sortedMethods.length; i < il; ++i) {
+            code += `\n${sortedMethods[i].generate()}`;
         }
         this.mixins.forEach((mixin) => {
             code += mixin.code;
@@ -85,5 +96,30 @@ export class ClassGen extends AbstractStructureGen {
             codes.push(code);
         }
         return codes.join("\n    ");
+    }
+
+    private sortMethods() {
+        const publicStatics = [];
+        const privatestatics = [];
+        const publicMethods = [];
+        const privateMethods = [];
+        for (let i = this.methods.length; i--;) {
+            const method = this.methods[i];
+            const access = method.getAccessType();
+            const isStatic = method.isStatic();
+            if (access == "public") {
+                isStatic ? publicStatics.push(method) : publicMethods.push(method);
+            } else {
+                isStatic ? privatestatics.push(method) : privateMethods.push(method);
+            }
+        }
+        publicStatics.sort(methodCompare);
+        privatestatics.sort(methodCompare);
+        publicMethods.sort(methodCompare);
+        privateMethods.sort(methodCompare);
+        return publicStatics.concat(privatestatics).concat([this.constructorMethod]).concat(publicMethods).concat(privateMethods);
+        function methodCompare(a: MethodGen, b: MethodGen) {
+            return a.name > b.name ? 1 : -1;
+        }
     }
 }

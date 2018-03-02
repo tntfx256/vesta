@@ -24,15 +24,6 @@ interface IFields {
 }
 
 export class ModelGen {
-    private static isModelGenerated = false;
-    private static modelsMeta: { [name: string]: IFieldMeta } = {};
-    private static modelStorage: Array<IModel> = [];
-    private fields: IFields = {};
-    private modelClass: ClassGen;
-    private modelFile: TsFileGen;
-    private modelInterface: InterfaceGen;
-    private path: string = "src/cmn/models";
-    private vesta: Vesta;
 
     public static getModelsList(): any {
         const modelDirectory = join(process.cwd(), Vesta.getInstance().isApiServer ? "src/cmn/models" : "src/client/app/cmn/models");
@@ -104,7 +95,9 @@ export class ModelGen {
     }
 
     public static getUniqueFieldNameOfRelatedModel(field: Field): string {
-        if (!field.properties.relation) { throw new Err(Err.Code.WrongInput, `${field.fieldName} is not of type Relationship`); }
+        if (!field.properties.relation) {
+            throw new Err(Err.Code.WrongInput, `${field.fieldName} is not of type Relationship`);
+        }
         const targetFields = field.properties.relation.model.schema.getFields();
         const names = Object.keys(targetFields);
         let candidate = "name";
@@ -193,6 +186,10 @@ export class ModelGen {
         model.generate();
     }
 
+    private static isModelGenerated = false;
+    private static modelsMeta: { [name: string]: IFieldMeta } = {};
+    private static modelStorage: Array<IModel> = [];
+
     private static compileModelAndGetPath() {
         if (Vesta.getInstance().isApiServer) {
             return "vesta/server/cmn/models/";
@@ -202,8 +199,15 @@ export class ModelGen {
             execSync(`"node_modules/.bin/gulp" model:compile`, { stdio: "inherit" });
             ModelGen.isModelGenerated = true;
         }
-        return "vesta/tmp/cmn/model/models";
+        return "vesta/tmp/cmn/models";
     }
+
+    private fields: IFields = {};
+    private modelClass: ClassGen;
+    private modelFile: TsFileGen;
+    private modelInterface: InterfaceGen;
+    private path: string = "src/cmn/models";
+    private vesta: Vesta;
 
     constructor(private config: IModelGenConfig) {
         this.vesta = Vesta.getInstance();
@@ -219,10 +223,7 @@ export class ModelGen {
     private initModel(modelName) {
         modelName = pascalCase(modelName);
         this.modelFile = new TsFileGen(modelName);
-        this.modelFile.addImport(["Model"], "../core/Model");
-        this.modelFile.addImport(["Schema"], "../core/Schema");
-        this.modelFile.addImport(["Database"], "../core/Database");
-        this.modelFile.addImport(["FieldType"], "../core/Field");
+        this.modelFile.addImport(["Model", "Schema", "Database", "FieldType"], "../../medium");
         this.modelInterface = this.modelFile.addInterface(`I${this.modelFile.name}`);
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass("Model");
@@ -236,16 +237,16 @@ export class ModelGen {
 
         this.modelClass.addProperty({
             access: ClassGen.Access.Public,
-            defaultValue: `new Schema('${modelName}')`,
-            isStatic: true,
-            name: "schema",
-            type: "Schema",
-        });
-        this.modelClass.addProperty({
-            access: ClassGen.Access.Public,
             isStatic: true,
             name: "database",
             type: "Database",
+        });
+        this.modelClass.addProperty({
+            access: ClassGen.Access.Public,
+            defaultValue: `new Schema("${modelName}")`,
+            isStatic: true,
+            name: "schema",
+            type: "Schema",
         });
         if (!this.vesta.isApiServer) {
             this.path = "src/client/app/cmn/models";

@@ -40,35 +40,35 @@ export class ListComponentGen {
         // imports
         listFile.addImport(["React"], "react", true);
         listFile.addImport(["Link"], "react-router-dom");
-        listFile.addImport(["PageComponent", "PageComponentProps", "FetchAll"], genRelativePath(path, "src/client/app/components/PageComponent"));
+        listFile.addImport(["PageComponent", "IPageComponentProps", "FetchAll"], genRelativePath(path, "src/client/app/components/PageComponent"));
         listFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
-        listFile.addImport(["Column", "DataTable", "IDataTableQueryOption"], genRelativePath(path, "src/client/app/components/general/DataTable"));
-        listFile.addImport(["IDeleteResult"], genRelativePath(path, "src/client/app/cmn/core/ICRUDResult"));
+        listFile.addImport(["IColumn", "DataTable", "IDataTableQueryOption"], genRelativePath(path, "src/client/app/components/general/DataTable"));
+        listFile.addImport(["IDeleteResult"], genRelativePath(path, "src/client/app/medium"));
         listFile.addImport(["IAccess"], genRelativePath(path, "src/client/app/service/AuthService"));
         listFile.addImport(["DataTableOperations"], genRelativePath(path, "src/client/app/components/general/DataTableOperations"));
         // params
-        listFile.addInterface(`${this.className}Params`);
-        const listProps = listFile.addInterface(`${this.className}Props`);
+        listFile.addInterface(`I${this.className}Params`);
         // props
-        listProps.setParentClass(`PageComponentProps<${this.className}Params>`);
+        const listProps = listFile.addInterface(`I${this.className}Props`);
+        listProps.setParentClass(`IPageComponentProps<I${this.className}Params>`);
         listProps.addProperty({ name: pluralModel, type: `Array<${model.interfaceName}>` });
         listProps.addProperty({ name: "access", type: "IAccess" });
         listProps.addProperty({ name: "onFetch", type: `FetchAll<${model.interfaceName}>` });
         listProps.addProperty({ name: "queryOption", type: `IDataTableQueryOption<${model.interfaceName}>` });
         // state
-        const listState = listFile.addInterface(`${this.className}State`);
+        const listState = listFile.addInterface(`I${this.className}State`);
         listState.addProperty({ name: pluralModel, type: `Array<I${model.originalClassName}>` });
         // class
         const listClass = listFile.addClass(this.className);
-        listClass.setParentClass(`PageComponent<${this.className}Props, ${this.className}State>`);
-        listClass.addProperty({ name: "columns", type: `Array<Column<I${model.originalClassName}>>`, access: "private" });
+        listClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
+        listClass.addProperty({ name: "columns", type: `Array<IColumn<I${model.originalClassName}>>`, access: "private" });
         const { column, code } = this.getColumnsData(listFile);
         // constructor
         listClass.setConstructor();
         listClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
         let dateTimeCode = "";
         if (this.hasFieldOfType(FieldType.Timestamp)) {
-            listFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/cmn/core/Culture"));
+            listFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/medium"));
             dateTimeCode = `\n\t\tconst dateTime = Culture.getDateTimeInstance();
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
         }
@@ -76,33 +76,33 @@ export class ListComponentGen {
         this.state = {${pluralModel}: []};${dateTimeCode}
         this.columns = [${column}
             {
+                render: r => <DataTableOperations access={props.access} id={r.id} onDelete={this.onDelete} path="${stateName}"/>,
                 title: this.tr('operations'),
-                render: r => <DataTableOperations access={props.access} id={r.id} onDelete={this.onDelete} path="${stateName}"/>
             }
         ];`);
         // fetch
         listClass.addMethod("componentDidMount").setContent(`this.props.onFetch(this.props.queryOption);`);
         // delete action
-        const delMethod = listClass.addMethod("onDelete");
+        const delMethod = listClass.addMethod("onDelete", "private");
         delMethod.addParameter({ name: "id" });
         delMethod.setAsArrowFunction(true);
         delMethod.setContent(`this.api.del<IDeleteResult>(\`${model.instanceName}/\${id}\`)
-            .then(response => {
-                this.notif.success(this.tr('info_delete_record'));
+            .then((response) => {
+                this.notif.success(this.tr("info_delete_record"));
                 this.props.onFetch(this.props.queryOption);
             })
-            .catch(error => {
+            .catch((error) => {
                 this.notif.error(error.message);
-            })`);
+            });`);
         // render method
-        listClass.addMethod("render").setContent(`const {queryOption, onFetch, ${pluralModel}} = this.props;${code}
+        listClass.addMethod("render").setContent(`const { queryOption, onFetch, ${pluralModel} } = this.props;${code}
 
         return (
             <div className="crud-page">
-                <DataTable columns={this.columns} records={${pluralModel}} queryOption={queryOption} fetch={onFetch}
-                           pagination={true}/>
+                <DataTable columns={this.columns} records={${pluralModel}} queryOption={queryOption}
+                    fetch={onFetch} pagination={true}/>
             </div>
-        )`);
+        );`);
         return listFile.generate();
         // <h1>${plural(model.originalClassName)}'s List</h1>
     }
@@ -157,7 +157,7 @@ export class ListComponentGen {
             case FieldType.Timestamp:
                 if (!this.writtenOnce.dateTime) {
                     this.writtenOnce.dateTime = true;
-                    //             file.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/cmn/core/Culture'));
+                    //             file.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/medium'));
                     //             code = `const dateTime = Culture.getDateTimeInstance();
                     // const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
                 }
