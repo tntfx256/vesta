@@ -16,7 +16,7 @@ export interface IStructureProperty {
 
 export abstract class AbstractStructureGen {
     public name: string;
-    protected shouldBeExported: boolean = true;
+    protected shouldBeExported: boolean = false;
     protected methods: Array<MethodGen> = [];
     protected properties: Array<IStructureProperty> = [];
     protected parentClass: string;

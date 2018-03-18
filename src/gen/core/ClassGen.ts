@@ -69,9 +69,11 @@ export class ClassGen extends AbstractStructureGen {
         //     code += `\n${staticMethods[i].generate()}`;
         // }
         const sortedMethods = this.sortMethods();
+        const sortedMethodsCodes = [];
         for (let i = 0, il = sortedMethods.length; i < il; ++i) {
-            code += `\n${sortedMethods[i].generate()}`;
+            sortedMethodsCodes.push(sortedMethods[i].generate());
         }
+        code += sortedMethodsCodes.join("\n");
         this.mixins.forEach((mixin) => {
             code += mixin.code;
         });

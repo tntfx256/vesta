@@ -327,7 +327,7 @@ Example:
         mkdir(path);
         const className = kebabCase(this.className).toLowerCase();
         writeFileSync(`${path}/_${className}.scss`, `.${className}${this.config.isPage ? "-page" : ""} {\n\n}`, { encoding: "utf8" });
-        const importStatement = `@import "${relPath}/${className}";`;
+        const importStatement = `@import '${relPath}/${className}';`;
         const replace = this.config.isPage ? "///<vesta:scssPageComponent/>" : "///<vesta:scssComponent/>";
         findInFileAndReplace("src/client/scss/_common.scss", { [replace]: `${importStatement}\n${replace}` }, (code) => code.indexOf(importStatement) < 0);
     }
@@ -341,7 +341,7 @@ Example:
         }
         // props
         const propsInterface = componentFile.addInterface(`I${this.className}Props`);
-        propsInterface.setParentClass(this.config.isPage ? `IPageComponentProps${params}` : `BaseComponentProps${params}`);
+        propsInterface.setParentClass(this.config.isPage ? `IPageComponentProps${params}` : `IBaseComponentProps${params}`);
         // state
         const stateInterface = componentFile.addInterface(`I${this.className}State`);
         if (this.config.model) {
@@ -369,6 +369,7 @@ Example:
         }
         // component class
         const componentClass = componentFile.addClass(this.className);
+        componentClass.shouldExport(true);
         componentClass.setParentClass(`${this.config.isPage ? "PageComponent" : "Component"}<${propsInterface.name}, ${stateInterface.name}>`);
         if (this.config.model) {
             componentClass.addProperty({ name: "access", type: "IAccess", access: "private" });
@@ -390,7 +391,7 @@ Example:
             componentFile.addImport(["PageComponent", "IPageComponentProps"], genRelativePath(this.path, "src/client/app/components/PageComponent"));
         } else {
             componentFile.addImport(["Component"], "react");
-            componentFile.addImport(["BaseComponentProps"], genRelativePath(this.path, "src/client/app/components/BaseComponent"));
+            componentFile.addImport(["IBaseComponentProps"], genRelativePath(this.path, "src/client/app/components/BaseComponent"));
         }
         if (this.config.model || this.config.isPage) {
             componentFile.addImport(["Navbar"], genRelativePath(this.path, "src/client/app/components/general/Navbar"), true);
@@ -425,11 +426,11 @@ Example:
         const cmpName = camelCase(this.className);
         const className = kebabCase(cmpName).toLowerCase();
         const importPath = genRelativePath(this.path, "src/client/app/components/BaseComponent");
-        const params = this.config.noParams ? "" : `\n\nexport interface I${this.className}Params {\n}`;
+        const params = this.config.noParams ? "" : `\n\ninterface I${this.className}Params {\n}`;
         return `import React from "react";
-import { BaseComponentProps } from "${importPath}";${params}
+import { IBaseComponentProps } from "${importPath}";${params}
 
-export interface I${this.className}Props extends BaseComponentProps${params ? `<I${this.className}Params>` : ""} {
+interface I${this.className}Props extends IBaseComponentProps${params ? `<I${this.className}Params>` : ""} {
 }
 
 export const ${this.className} = (props: I${this.className}Props) => {

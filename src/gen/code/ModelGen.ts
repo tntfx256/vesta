@@ -124,23 +124,36 @@ export class ModelGen {
 
     public static getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
         const key = `${modelName}-${fieldName}`;
-        if (!ModelGen.modelsMeta[key]) {
-            const tsModelFile = `src${Vesta.getInstance().isApiServer ? "" : "/client/app"}/cmn/models/${modelName}.ts`;
-            const content = readFileSync(tsModelFile, "utf8");
-            const regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, "i");
-            const json = content.match(regExp);
-            let meta: IFieldMeta = { form: true, list: true };
-            if (json) {
-                try {
-                    const parsedMeta: IFieldMeta = JSON.parse(json[1]);
-                    meta = Object.assign(meta, parsedMeta);
-                } catch (e) {
-                    Log.error(`Error parsing model meta for '${modelName}'\n${json[1]}\n`);
-                    ModelGen.modelsMeta[key] = {};
-                }
-            }
-            ModelGen.modelsMeta[key] = meta;
+        if (ModelGen.modelsMeta[key]) {
+            return ModelGen.modelsMeta[key];
         }
+        const model = ModelGen.getModel(modelName);
+        const field = model.schema.getField(fieldName);
+        const tsModelFile = `src${Vesta.getInstance().isApiServer ? "" : "/client/app"}/cmn/models/${modelName}.ts`;
+        const content = readFileSync(tsModelFile, "utf8");
+        let meta: IFieldMeta = { form: true, list: true };
+        switch (field.properties.type) {
+            case FieldType.Enum:
+                const enumRegex = new RegExp(`schema.addField("${fieldName}").*\.enum\(([^)]+))`, "i");
+                console.log(enumRegex.exec(content));
+                // find enum path
+                break;
+            case FieldType.Relation:
+                // find model & path
+                break;
+        }
+        const regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, "i");
+        const json = content.match(regExp);
+        if (json) {
+            try {
+                const parsedMeta: IFieldMeta = JSON.parse(json[1]);
+                meta = Object.assign(meta, parsedMeta);
+            } catch (e) {
+                Log.error(`Error parsing model meta for '${modelName}'\n${json[1]}\n`);
+                ModelGen.modelsMeta[key] = {};
+            }
+        }
+        ModelGen.modelsMeta[key] = meta;
         return ModelGen.modelsMeta[key];
     }
 
