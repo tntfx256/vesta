@@ -230,7 +230,7 @@ export class TsFileGen {
             }
             if (modulars.length) {
                 modulars.sort();
-                code += `${code ? ", " : ""}{${modulars.join(", ")}}`;
+                code += `${code ? ", " : ""}{ ${modulars.join(", ")} }`;
             }
             codes.push(`import ${code} from "${sortedPath[i]}";`);
         }

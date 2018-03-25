@@ -42,8 +42,6 @@
   "devDependencies": {
     "@types/fs-extra": "^5.0.0",
     "@types/inquirer": "0.0.36",
-    "@types/shelljs": "^0.7.7",
-    "@types/underscore": "^1.8.7",
     "tslint": "^5.9.1"
   }
 }
