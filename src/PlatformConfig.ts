@@ -11,16 +11,16 @@ export interface IPlatformConfig {
 }
 
 export class PlatformConfig {
-    private static config: IPlatformConfig;
 
-    private constructor() {
+    public static getRepository() {
+        return PlatformConfig.config.repository;
     }
 
-    static init(config?: IPlatformConfig) {
+    public static init(config?: IPlatformConfig) {
         PlatformConfig.config = config;
     }
 
-    static getRepository() {
-        return PlatformConfig.config.repository;
-    }
+    private static config: IPlatformConfig;
+
+    private constructor() { }
 }

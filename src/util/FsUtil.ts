@@ -1,21 +1,21 @@
 import * as fse from "fs-extra";
-import {Log} from "./Log";
-import {relative} from "path";
+import { relative } from "path";
+import { Log } from "./Log";
 
 export function mkdir(...dirs: Array<string>): void {
-    dirs.forEach(dir => {
+    dirs.forEach((dir) => {
         // Log.info(`./> mkdir -p ${dir}`);
         try {
             fse.mkdirpSync(dir);
         } catch (e) {
             Log.error(`mkdir: ${e.message}`);
         }
-    })
+    });
 }
 
 export function readJsonFile<T>(path: string) {
     try {
-        return <T>JSON.parse(fse.readFileSync(path, {encoding: 'utf8'}));
+        return JSON.parse(fse.readFileSync(path, { encoding: "utf8" })) as T;
     } catch (e) {
         Log.error(`Invalid json file: ${path}`);
         return null;
@@ -49,24 +49,24 @@ export function rename(src: string, dest: string) {
 }
 
 export function remove(...path: Array<string>) {
-    path.forEach(p => {
+    path.forEach((p) => {
         Log.info(`./> rm -rf ${p}`);
         try {
             fse.removeSync(p);
         } catch (e) {
             Log.error(`remove: ${e.message}`);
         }
-    })
+    });
 }
 
 export function unixPath(path: string) {
-    return path.replace(/\\/g, '/');
+    return path.replace(/\\/g, "/");
 }
 
 export function genRelativePath(from: string, to: string): string {
-    let relPath = relative(from, to).replace(/\\/g, '/').replace(/\.ts$/, '');
-    if (relPath.charAt(0) != '.') {
-        relPath = './' + relPath;
+    let relPath = relative(from, to).replace(/\\/g, "/").replace(/\.ts$/, "");
+    if (relPath.charAt(0) != ".") {
+        relPath = "./" + relPath;
     }
     return relPath;
 }

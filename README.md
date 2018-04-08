@@ -29,31 +29,29 @@ This command is used to initiate your dedicated server or VPS by (**Ubuntu**):
 ### `vesta create`
 This command will create a project using below scaffolding templates and the options you provide [use `vesta create --help`]:
 * Server side
-  * [Express REST Api](https://github.com/hbtb/vesta-template-api) RESTfull backend on Express framework
+  * [RESTful Api](https://github.com/VestarayanAfzar/vesta-template-api) Backend application based on Express framework
 * Client side
-  * [Client Application](https://github.com/hbtb/material-template-client) This project contains build process for any of Web, Cordova, Electron targets
-  * [Admin Panel](https://github.com/hbtb/material-template-admin) Same as client project but specifically coded for control panels
+  * [Client Application](https://github.com/VestarayanAfzar/vesta-template-client) This project contains build process for any of Web, Cordova, Electron targets
+  * [Admin Panel](https://github.com/VestarayanAfzar/vesta-template-admin) Same as client project but contains extra features for admins (Only for web)
 
-All these project are common in some files which are exported to a new project ([commonCodeTemplate](https://github.com/hbtb/vesta-template-cmn)) 
+All these project are common in some files which are exported to a new project ([Common](https://github.com/VestarayanAfzar/vesta-template-cmn)) 
 which will be copied/submoduled  into a sub directory of generated project.
 
-If you want to init git repository you have to create them on your remote git repository server before using `vesta create`. 
-The most important repository is the commonCode repository. 
+If you want to init git repository you have to create them on your remote git repository server before using `vesta create`.
 
 ### `vesta gen`
 Generate each of the below items  [use `vesta gen --help`]:
-* **sass** `vesta gen sass (font|component|directive|page) name`
-* **model** `vesta gen model name` Creates a model step by step by asking several questions
-* **controller** `vesta gen controller name` Based on the type of project this will generate a server side (express) or 
-    client side (angular) controller
-* **directive** `vesta gen directive name` Generates an angular directive
-* **filter** `vesta gen filter name` Generates an angular filter
-
+```vesta
+sass            [Client]
+model           [Client, Server]
+controller      [Server]
+component       [Client]
+```
 For getting help on any of the above items you may use `vesta gen <item> --help`
 
 ### `vesta update`
 This command will update all `vesta-*` packages that are installed in your project and listed in `package.json`
-* `vesta update` will only update all vesta packages
+* `vesta update` will only update all vesta packages (prefixed with `@vesta`)
 * `vesta update --all` will update all packages mentioned at `dependencies` 
 * `vesta update --dev` will update all packages mentioned at `devDependencies` 
 
@@ -65,7 +63,7 @@ These npm modules should be installed globally on the deploy server: `gulp-cli`,
 Any `ext params` of any kind provided to the commend will be passed to `deploy.sh` script respectively after `CLONE_PATH` and `DEPLOY_PATH`,
  so it will be like `/path/to/deploy.sh CLONE_PATH DEPLY_PATH ext params`
 
-### `vesta docker COMMAND [options...] [PATH]` 
+### `vesta docker COMMAND [options...] [PATH]` __experimental__
 **Manage docker relevant operations**
 * COMMAND
   * `clean` Removes all orphan volumes and networks. And also images without name

@@ -48,6 +48,7 @@ export function finalizeClonedTemplate(root: string, newName: string = "") {
             writeFileSync(packageFile, JSON.stringify(packageContent, null, 2));
         }
     } else {
+        // this is the cmn project
         remove(packageFile);
     }
     [".git", "CHANGELOG.md", "LICENSE", "README.md"].forEach((file) => remove(`${root}/${file}`));

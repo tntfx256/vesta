@@ -15,6 +15,7 @@ export const enum ProjectType { ClientApplication = 1, AdminPanel, ApiServer }
 
 export interface IProjectConfig {
     client?: IClientAppConfig;
+    createCmn?: boolean;
     i18n?: I18nConfig;
     repository?: IRepositoryConfig;
     server?: IServerAppConfig;
@@ -48,19 +49,19 @@ export class ProjectGen {
 
     public generate() {
         const isClientSideProject = this.config.type != ProjectType.ApiServer;
-        const dir = this.config.name;
+        const projectName = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
         const projectTemplateName = GitGen.getRepoName(isClientSideProject ? (this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client) : templateRepo.api);
         const repoInfo = this.config.repository;
         const replacement = { [projectTemplateName]: kebabCase(this.config.name) };
-        const execOption: IExecOptions = { cwd: dir };
-        mkdir(dir);
+        const execOption: IExecOptions = { cwd: projectName };
+        mkdir(projectName);
         // having the client or server to generate it's projects
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
-        this.vesta.generate(dir);
-        finalizeClonedTemplate(dir, kebabCase(this.config.name));
-        findInFileAndReplace(`${dir}/resources/ci/deploy.sh`, replacement);
+        this.vesta.generate(projectName);
+        finalizeClonedTemplate(projectName, kebabCase(projectName));
+        findInFileAndReplace(`${projectName}/resources/ci/deploy.sh`, replacement);
         if (!repoInfo || !repoInfo.main) {
             this.commonApp.generate();
             return;
