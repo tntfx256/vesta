@@ -17,12 +17,13 @@ export class ClassGen extends AbstractStructureGen {
         Protected: "protected",
         Public: "public",
     };
-    private mixins: Array<IMixin> = [];
+    private mixins: IMixin[] = [];
 
     constructor(public name: string, public isAbstract: boolean = false) {
         super(name);
     }
 
+    // tslint:disable-next-line:max-line-length
     public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false, isAsync: boolean = false): MethodGen {
         const method = super.addMethod(name);
         method.setAccessType(access);
@@ -71,6 +72,7 @@ export class ClassGen extends AbstractStructureGen {
         const sortedMethods = this.sortMethods();
         const sortedMethodsCodes = [];
         for (let i = 0, il = sortedMethods.length; i < il; ++i) {
+            if (!sortedMethods[i]) { continue; }
             sortedMethodsCodes.push(sortedMethods[i].generate());
         }
         code += sortedMethodsCodes.join("\n");
@@ -109,7 +111,7 @@ export class ClassGen extends AbstractStructureGen {
             const method = this.methods[i];
             const access = method.getAccessType();
             const isStatic = method.isStatic();
-            if (access == "public") {
+            if (access === "public") {
                 isStatic ? publicStatics.push(method) : publicMethods.push(method);
             } else {
                 isStatic ? privatestatics.push(method) : privateMethods.push(method);
@@ -119,7 +121,8 @@ export class ClassGen extends AbstractStructureGen {
         privatestatics.sort(methodCompare);
         publicMethods.sort(methodCompare);
         privateMethods.sort(methodCompare);
-        return publicStatics.concat(privatestatics).concat([this.constructorMethod]).concat(publicMethods).concat(privateMethods);
+        return publicStatics.concat(privatestatics).concat([this.constructorMethod])
+            .concat(publicMethods).concat(privateMethods);
         function methodCompare(a: MethodGen, b: MethodGen) {
             return a.name > b.name ? 1 : -1;
         }

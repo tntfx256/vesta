@@ -51,11 +51,11 @@ Options:
     }
 
     private apiVersion: string;
-    private confidentialFields: Array<string> = [];
+    private confidentialFields: string[] = [];
     private controllerClass: ClassGen;
     private controllerFile: TsFileGen;
     private filesFields: IModelFields = null;
-    private ownerVerifiedFields: Array<string> = [];
+    private ownerVerifiedFields: string[] = [];
     private path: string = "src/api";
     private rawName: string;
     private relationsFields: IModelFields = null;
@@ -105,7 +105,8 @@ Options:
             this.controllerFile.addImport(["join"], "path");
         }
         this.controllerFile.addImport(["NextFunction", "Response", "Router"], "express");
-        this.controllerFile.addImport(["BaseController", "IExtRequest"], genRelativePath(this.path, "src/api/BaseController"));
+        this.controllerFile.addImport(["BaseController", "IExtRequest"],
+            genRelativePath(this.path, "src/api/BaseController"));
         this.controllerClass.setParentClass("BaseController");
         this.routeMethod = this.controllerClass.addMethod("route");
         this.routeMethod.addParameter({ name: "router", type: "Router" });
@@ -118,7 +119,7 @@ Options:
     }
 
     private addResponseMethod(name: string) {
-        const method = this.controllerClass.addMethod(name, ClassGen.Access.Public, false, false, true);
+        const method = this.controllerClass.addMethod(name, ClassGen.Access.Private, false, false, true);
         method.addParameter({ name: "req", type: "IExtRequest" });
         method.addParameter({ name: "res", type: "Response" });
         method.addParameter({ name: "next", type: "NextFunction" });
@@ -134,45 +135,53 @@ Options:
         this.ownerVerifiedFields = ModelGen.getOwnerVerifiedFields(this.config.model);
         this.confidentialFields = ModelGen.getConfidentialFields(this.config.model);
         this.controllerFile.addImport(["Err", "DatabaseError", "ValidationError"], "@vesta/core");
-        this.controllerFile.addImport([modelClassName, `I${modelClassName}`], genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
+        this.controllerFile.addImport([modelClassName, `I${modelClassName}`],
+            genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
         this.controllerFile.addImport(["AclAction"], genRelativePath(this.path, `src/cmn/enum/Acl`));
         let acl = this.routingPath.replace(/\/+/g, ".");
-        acl = acl[0] == "." ? acl.slice(1) : acl;
-        const middleWares = ` this.checkAcl('${acl}', __ACTION__),`;
+        acl = acl[0] === "." ? acl.slice(1) : acl;
+        const middleWares = ` this.checkAcl("${acl}", __ACTION__),`;
         // count operation
         let methodName = `get${modelClassName}Count`;
         let methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Read");
         this.addResponseMethod(methodName).setContent(this.getCountCode());
-        this.routeMethod.appendContent(`router.get('${this.routingPath}/count',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
+        // tslint:disable-next-line:max-line-length
+        this.routeMethod.appendContent(`router.get("${this.routingPath}/count",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "get" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Read");
         this.addResponseMethod(methodName).setContent(this.getQueryCode(true));
-        this.routeMethod.appendContent(`router.get('${this.routingPath}/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
+        // tslint:disable-next-line:max-line-length
+        this.routeMethod.appendContent(`router.get("${this.routingPath}/:id",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "get" + plural(modelClassName);
         this.addResponseMethod(methodName).setContent(this.getQueryCode(false));
-        this.routeMethod.appendContent(`router.get('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
+        // tslint:disable-next-line:max-line-length
+        this.routeMethod.appendContent(`router.get("${this.routingPath}",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "add" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Add");
         this.addResponseMethod(methodName).setContent(this.getInsertCode());
-        this.routeMethod.appendContent(`router.post('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
+        // tslint:disable-next-line:max-line-length
+        this.routeMethod.appendContent(`router.post("${this.routingPath}",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "update" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Edit");
         this.addResponseMethod(methodName).setContent(this.getUpdateCode());
-        this.routeMethod.appendContent(`router.put('${this.routingPath}',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
+        // tslint:disable-next-line:max-line-length
+        this.routeMethod.appendContent(`router.put("${this.routingPath}",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "remove" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Delete");
         this.addResponseMethod(methodName).setContent(this.getDeleteCode());
-        this.routeMethod.appendContent(`router.delete('${this.routingPath}/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
+        // tslint:disable-next-line:max-line-length
+        this.routeMethod.appendContent(`router.delete("${this.routingPath}/:id",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         // file upload
         if (this.filesFields) {
             methodName = "upload";
             methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Edit");
             this.addResponseMethod(methodName).setContent(this.getUploadCode());
+            // tslint:disable-next-line:max-line-length
             this.routeMethod.appendContent(`router.post('${this.routingPath}/file/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         }
     }
@@ -180,7 +189,7 @@ Options:
     private normalizeRoutingPath(): void {
         const edge = camelCase(this.config.name);
         this.routingPath = `${this.config.route}`;
-        if (this.routingPath.charAt(0) != "/") {
+        if (this.routingPath.charAt(0) !== "/") {
             this.routingPath = `/${this.routingPath}`;
         }
         this.routingPath += `/${edge}`;
@@ -208,9 +217,11 @@ Options:
                 const extPath = meta.relation.path ? `/${meta.relation.path}` : "";
                 const relConfFields = ModelGen.getConfidentialFields(meta.relation.model);
                 if (relConfFields.length) {
-                    this.controllerFile.addImport([`I${meta.relation.model}`], genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`));
+                    this.controllerFile.addImport([`I${meta.relation.model}`],
+                        genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`));
                     for (let j = relConfFields.length; j--;) {
-                        confRemovers.push(`delete (<I${meta.relation.model}>result.items[${index}].${relationFieldsNames[i]}).${relConfFields[j]};`);
+                        // tslint:disable-next-line:max-line-length
+                        confRemovers.push(`delete (result.items[${index}].${relationFieldsNames[i]} as I${meta.relation.model}).${relConfFields[j]};`);
                     }
                 }
             }
@@ -235,16 +246,19 @@ Options:
             const meta = ModelGen.getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
             if (meta.relation) {
                 const extPath = meta.relation.path ? `/${meta.relation.path}` : "";
-                this.controllerFile.addImport([`I${meta.relation.model}`], genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`));
-                ownerChecks.push(`(<I${meta.relation.model}>result.items[0].${this.ownerVerifiedFields}).id != authUser.id`);
+                this.controllerFile.addImport([`I${meta.relation.model}`],
+                    genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`));
+                // tslint:disable-next-line:max-line-length
+                ownerChecks.push(`(result.items[0].${this.ownerVerifiedFields} as I${meta.relation.model}).id !== authUser.id`);
             } else {
-                ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} != authUser.id`);
+                ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} !== authUser.id`);
             }
         }
         const ownerCheckCode = ownerChecks.length ? ` || (!isAdmin && (${ownerChecks.join(" || ")}))` : "";
-        const relationFields = this.relationsFields ? `, {relations: ['${Object.keys(this.relationsFields).join("', '")}']}` : "";
+        const relationFields = this.relationsFields ?
+            `, { relations: ["${Object.keys(this.relationsFields).join(`", "`)}"] }` : "";
         return `${this.getAuthUserCode()}const id = this.retrieveId(req);
-        let result = await ${modelName}.find<I${modelName}>(id${relationFields});
+        const result = await ${modelName}.find<I${modelName}>(id${relationFields});
         if (!result.items.length${ownerCheckCode}) {
             throw new DatabaseError(Err.Code.DBNoRecord, null);
         }${this.getConfFieldRemovingCode(true)}
@@ -260,16 +274,16 @@ Options:
         const ownerQueriesCode = ownerQueries.length ? `\n\t\tif (!isAdmin) {
             query.filter({${ownerQueries.join(", ")}});
         }` : "";
-        return `${this.getAuthUserCode()}let query = this.query2vql(${modelName}, req.query);${ownerQueriesCode}
-        let result = await ${modelName}.find<I${modelName}>(query);${this.getConfFieldRemovingCode()}
+        return `${this.getAuthUserCode()}const query = this.query2vql(${modelName}, req.query);${ownerQueriesCode}
+        const result = await ${modelName}.find<I${modelName}>(query);${this.getConfFieldRemovingCode()}
         res.json(result);`;
     }
 
     private getCountCode(): string {
         const modelName = ModelGen.extractModelName(this.config.model);
         // let modelInstanceName = camelCase(modelName);
-        return `let query = this.query2vql(${modelName}, req.query, true);
-        let result = await ${modelName}.count<I${modelName}>(query);
+        return `const query = this.query2vql(${modelName}, req.query, true);
+        const result = await ${modelName}.count<I${modelName}>(query);
         res.json(result);`;
     }
 
@@ -287,12 +301,12 @@ Options:
         const ownerAssignCode = ownerAssigns.length ? `\n\t\tif (!isAdmin) {
             ${ownerAssigns.join("\n\t\t")}
         }` : "";
-        return `${this.getAuthUserCode()}let ${modelInstanceName} = new ${modelName}(req.body);${ownerAssignCode}
-        let validationError = ${modelInstanceName}.validate();
+        return `${this.getAuthUserCode()}const ${modelInstanceName} = new ${modelName}(req.body);${ownerAssignCode}
+        const validationError = ${modelInstanceName}.validate();
         if (validationError) {
             throw new ValidationError(validationError);
         }
-        let result = await ${modelInstanceName}.insert<I${modelName}>();${this.getConfFieldRemovingCode(true)}
+        const result = await ${modelInstanceName}.insert<I${modelName}>();${this.getConfFieldRemovingCode(true)}
         res.json(result);`;
     }
 
@@ -304,20 +318,22 @@ Options:
         for (let i = this.ownerVerifiedFields.length; i--;) {
             ownerChecks.push(`${modelInstanceName}.${this.ownerVerifiedFields[i]} = authUser.id;`);
             // check owner of record after finding the record based on recordId
-            ownerInlineChecks.push(`${modelInstanceName}.${this.ownerVerifiedFields[i]} != authUser.id`);
+            ownerInlineChecks.push(`${modelInstanceName}.${this.ownerVerifiedFields[i]} !== authUser.id`);
         }
-        const ownerCheckCode = ownerChecks.length ? `\n\t\tif (!isAdmin) {\n\t\t\t${ownerChecks.join("\n\t\t\t")}\n\t\t}` : "";
-        const ownerCheckInlineCode = ownerInlineChecks.length ? ` || (!isAdmin && (${ownerInlineChecks.join(" || ")}))` : "";
-        return `${this.getAuthUserCode()}let ${modelInstanceName} = new ${modelName}(req.body);${ownerCheckCode}
-        let validationError = ${modelInstanceName}.validate();
+        const ownerCheckCode = ownerChecks.length ?
+            `\n\t\tif (!isAdmin) {\n\t\t\t${ownerChecks.join("\n\t\t\t")}\n\t\t}` : "";
+        const ownerCheckInlineCode = ownerInlineChecks.length ?
+            ` || (!isAdmin && (${ownerInlineChecks.join(" || ")}))` : "";
+        return `${this.getAuthUserCode()}const ${modelInstanceName} = new ${modelName}(req.body);${ownerCheckCode}
+        const validationError = ${modelInstanceName}.validate();
         if (validationError) {
             throw new ValidationError(validationError);
         }
-        let result = await ${modelName}.find<I${modelName}>(${modelInstanceName}.id);
+        const result = await ${modelName}.find<I${modelName}>(${modelInstanceName}.id);
         if (!result.items.length${ownerCheckInlineCode}) {
             throw new DatabaseError(Err.Code.DBNoRecord, null);
         }
-        let uResult = await ${modelInstanceName}.update<I${modelName}>();${this.getConfFieldRemovingCode(true)}
+        const uResult = await ${modelInstanceName}.update<I${modelName}>();${this.getConfFieldRemovingCode(true)}
         res.json(uResult);`;
     }
 
@@ -327,7 +343,7 @@ Options:
         const ownerChecks = [];
         if (this.ownerVerifiedFields.length) {
             for (let i = this.ownerVerifiedFields.length; i--;) {
-                ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} != authUser.id`);
+                ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} !== authUser.id`);
             }
         }
         const fieldsOfTypeFile = ModelGen.getFieldsByType(modelName, FieldType.File);
@@ -335,16 +351,18 @@ Options:
 
         if (fieldsOfTypeFile) {
             this.controllerFile.addImport(["LogLevel"], genRelativePath(this.path, "src/cmn/models/Log"));
+            // tslint:disable-next-line:max-line-length
             deleteFileCode = ["\n\t\tconst filesToBeDeleted = [];", `const baseDirectory = \`\${this.config.dir.upload}/${modelInstanceName}\`;`];
             for (const fields = Object.keys(fieldsOfTypeFile), i = 0, il = fields.length; i < il;) {
                 const field = fieldsOfTypeFile[fields[i]];
-                if (field.properties.type == FieldType.List) {
+                if (field.properties.type === FieldType.List) {
                     deleteFileCode.push(`if (${modelInstanceName}.${field.fieldName}) {
             for (let i = ${modelInstanceName}.${field.fieldName}.length; i--; ) {
                 filesToBeDeleted.push(\'\${baseDirectory}/\${${modelInstanceName}.${field.fieldName}[i]}\');
             }
         }`);
                 } else {
+                    // tslint:disable-next-line:max-line-length
                     deleteFileCode.push(`filesToBeDeleted.push(\`\${baseDirectory}/\${${modelInstanceName}.${field.fieldName}\`);`);
                 }
             }
@@ -362,47 +380,47 @@ Options:
         }` : "";
         return `${this.getAuthUserCode()}const id = this.retrieveId(req);
         const result = await ${modelName}.find<I${modelName}>(id);${ownerCheckCode}
-        let ${modelInstanceName} = new ${modelName}(result.items[0]);${deleteFileCode.join("\n\t\t")}
-        let dResult = await ${modelInstanceName}.remove();
+        const ${modelInstanceName} = new ${modelName}(result.items[0]);${deleteFileCode.join("\n\t\t")}
+        const dResult = await ${modelInstanceName}.remove();
         res.json(dResult);`;
     }
 
     private getUploadCode(): string {
-        //todo add conf & owner
+        // todo add conf & owner
         this.controllerFile.addImport(["FileUploader"], genRelativePath(this.path, "src/helpers/FileUploader"));
         const modelName = ModelGen.extractModelName(this.config.model);
         const modelInstanceName = camelCase(modelName);
         let code = "";
         const fileNames = Object.keys(this.filesFields);
-        if (fileNames.length == 1) {
+        if (fileNames.length === 1) {
             code = `let oldFileName = ${modelInstanceName}.${fileNames[0]};
         ${modelInstanceName}.${fileNames[0]} = upl.${fileNames[0]};
         await FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
         } else {
-            code = `let delList:Array<Promise<string>> = [];`;
+            code = `const delList:Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
                 const oldName = `old${fcUpper(fileNames[i])}`;
                 code += `
         if (upl.${fileNames[i]}) {
-            let ${oldName} = ${modelInstanceName}.${fileNames[i]};
+            const ${oldName} = ${modelInstanceName}.${fileNames[i]};
             delList.push(FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${${oldName}}\`)
-                .then(() => ${modelInstanceName}.${fileNames[i]} = <string>upl.${fileNames[i]}));
+                .then(() => ${modelInstanceName}.${fileNames[i]} = upl.${fileNames[i]} as string));
         }`;
             }
             code += `
         await Promise.all(delList);`;
         }
         return `const id = this.retrieveId(req);
-        let ${modelInstanceName}: ${modelName};
-        let destDirectory = join(this.config.dir.upload, '${modelInstanceName}');
-        let result = await ${modelName}.find<I${modelName}>(id);
-        if (result.items.length != 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
+        const ${modelInstanceName}: ${modelName};
+        const destDirectory = join(this.config.dir.upload, '${modelInstanceName}');
+        const result = await ${modelName}.find<I${modelName}>(id);
+        if (result.items.length !== 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
         ${modelInstanceName} = new ${modelName}(result.items[0]);
-        let uploader = new FileUploader<I${modelName}>(true);
+        const uploader = new FileUploader<I${modelName}>(true);
         await uploader.parse(req);
-        let upl = await uploader.upload(destDirectory);
+        const upl = await uploader.upload(destDirectory);
         ${code}
-        let uResult = await ${modelInstanceName}.update();
+        const uResult = await ${modelInstanceName}.update();
         res.json(uResult);`;
     }
 }

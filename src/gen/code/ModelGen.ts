@@ -1,4 +1,4 @@
-import { Err, Field, FieldType, IModel, IModelFields, Schema } from "@vesta/core";
+import { Err, Field, FieldType, IModel, IModelFields, Schema, RelationType } from "@vesta/core";
 import { execSync } from "child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { Question } from "inquirer";
@@ -26,7 +26,8 @@ interface IFields {
 export class ModelGen {
 
     public static getModelsList(): any {
-        const modelDirectory = join(process.cwd(), Vesta.getInstance().isApiServer ? "src/cmn/models" : "src/client/app/cmn/models");
+        const modelPath = Vesta.getInstance().isApiServer ? "src/cmn/models" : "src/client/app/cmn/models";
+        const modelDirectory = join(process.cwd(), modelPath);
         const models = {};
         try {
             const modelFiles = readdirSync(modelDirectory);
@@ -39,7 +40,8 @@ export class ModelGen {
                     const subModelDirectory = join(modelDirectory, modelFile);
                     const subModelFile = readdirSync(subModelDirectory);
                     subModelFile.forEach((mFile) => {
-                        models[dir + "/" + mFile.substr(0, mFile.length - 3)] = unixPath(join(subModelDirectory, mFile));
+                        const modelKey = `${dir}/${mFile.substr(0, mFile.length - 3)}`;
+                        models[modelKey] = unixPath(join(subModelDirectory, mFile));
                     });
 
                 }
@@ -52,13 +54,13 @@ export class ModelGen {
 
     public static getModel(modelName: string): IModel {
         // modelName this might also contains the path to the model
-        const possiblePath = ModelGen.compileModelAndGetPath();
-        if (ModelGen.modelStorage[modelName]) {
+        const relativePath = ModelGen.compileModelAndGetPath();
+        if (modelName in ModelGen.modelStorage) {
             return ModelGen.modelStorage[modelName];
         }
         const pathToModel = `${modelName}.js`;
         const className = ModelGen.extractModelName(pathToModel);
-        const modelFile = join(process.cwd(), possiblePath, pathToModel);
+        const modelFile = join(process.cwd(), relativePath, pathToModel);
         if (existsSync(modelFile)) {
             const module = require(modelFile);
             if (module[className]) {
@@ -67,7 +69,9 @@ export class ModelGen {
                 return module[className];
             }
         }
-        Log.error(`${modelName} was not found. Please make sure your Gulp task is running!`);
+        Log.error(`${modelName} was not found at:\n ${modelFile}\nPlease make sure your Gulp task is running!`);
+        // preventing display the same error message
+        ModelGen.modelStorage[modelName] = null;
         return null;
     }
 
@@ -78,12 +82,12 @@ export class ModelGen {
         const fields: IModelFields = (model.schema as Schema).getFields();
         for (let names = Object.keys(fields), i = 0, il = names.length; i < il; ++i) {
             const field = fields[names[i]];
-            if (field.properties.type == fieldType) {
+            if (field.properties.type === fieldType) {
                 if (!fieldsOfType) {
                     fieldsOfType = {};
                 }
                 fieldsOfType[names[i]] = field;
-            } else if (field.properties.type == FieldType.List && field.properties.list == fieldType) {
+            } else if (field.properties.type === FieldType.List && field.properties.list === fieldType) {
                 fieldsOfType[names[i]] = field;
             }
         }
@@ -102,7 +106,7 @@ export class ModelGen {
         const names = Object.keys(targetFields);
         let candidate = "name";
         for (let i = names.length; i--;) {
-            if (targetFields[names[i]].properties.type == FieldType.String) {
+            if (targetFields[names[i]].properties.type === FieldType.String) {
                 if (targetFields[names[i]].properties.unique) { return names[i]; }
                 candidate = names[i];
             }
@@ -117,29 +121,57 @@ export class ModelGen {
         if ("title" in fields) { return "title"; }
         for (let i = 0, fieldNames = Object.keys(fields), il = fieldNames.length; i < il; ++i) {
             const field = fields[fieldNames[i]];
-            if (field.properties.type == FieldType.String) { return fieldNames[i]; }
+            if (field.properties.type === FieldType.String) { return fieldNames[i]; }
         }
         return null;
     }
 
     public static getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
         const key = `${modelName}-${fieldName}`;
-        if (ModelGen.modelsMeta[key]) {
+        if (key in ModelGen.modelsMeta) {
             return ModelGen.modelsMeta[key];
         }
         const model = ModelGen.getModel(modelName);
+        if (!model) {
+            ModelGen.modelsMeta[key] = null;
+            return null;
+        }
         const field = model.schema.getField(fieldName);
+        if (!field) {
+            ModelGen.modelsMeta[key] = null;
+            return null;
+        }
         const tsModelFile = `src${Vesta.getInstance().isApiServer ? "" : "/client/app"}/cmn/models/${modelName}.ts`;
         const content = readFileSync(tsModelFile, "utf8");
         let meta: IFieldMeta = { form: true, list: true };
+        const fieldStartIndex = content.indexOf(`schema.addField("${fieldName}")`);
         switch (field.properties.type) {
             case FieldType.Enum:
-                const enumRegex = new RegExp(`schema.addField("${fieldName}").*\.enum\(([^)]+))`, "i");
-                console.log(enumRegex.exec(content));
+                const enumStartIndex = content.indexOf("enum(", fieldStartIndex) + 5;
+                const enumEndIndex = content.indexOf(")", enumStartIndex);
+                const options = content.substring(enumStartIndex, enumEndIndex).split(",")
+                    .map((str) => str.replace(/\s+/g, ""));
+                meta.enum = { options };
                 // find enum path
+                const enumName = options[0].split(".")[0];
+                const enumImportRegex = new RegExp(`import.+${enumName}.+"([^"]+)";`);
+                const enumImportResult = enumImportRegex.exec(content);
+                if (enumImportResult) {
+                    // todo check
+                    meta.enum.path = enumImportResult[1];
+                }
                 break;
             case FieldType.Relation:
-                // find model & path
+                meta.relation = { model: field.properties.relation.model.schema.name };
+                // find path
+                const relImportRegex = new RegExp(`import.+${meta.relation.model}.+"([^"]+)";`, "i");
+                const relImportResult = relImportRegex.exec(content);
+                if (relImportResult) {
+                    const relPath = relImportResult[1].replace(meta.relation.model, "");
+                    if (relPath !== "./") {
+                        meta.relation.path = relPath;
+                    }
+                }
                 break;
         }
         const regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, "i");
@@ -157,7 +189,7 @@ export class ModelGen {
         return ModelGen.modelsMeta[key];
     }
 
-    public static getConfidentialFields(modelName: string): Array<string> {
+    public static getConfidentialFields(modelName: string): string[] {
         const model = ModelGen.getModel(modelName);
         if (!model) { return []; }
         const confidentials = [];
@@ -172,7 +204,7 @@ export class ModelGen {
         return confidentials;
     }
 
-    public static getOwnerVerifiedFields(modelName: string): Array<string> {
+    public static getOwnerVerifiedFields(modelName: string): string[] {
         const model = ModelGen.getModel(modelName);
         if (!model) { return []; }
         const confidentials = [];
@@ -201,7 +233,7 @@ export class ModelGen {
 
     private static isModelGenerated = false;
     private static modelsMeta: { [name: string]: IFieldMeta } = {};
-    private static modelStorage: Array<IModel> = [];
+    private static modelStorage: IModel[] = [];
 
     private static compileModelAndGetPath() {
         if (Vesta.getInstance().isApiServer) {
@@ -298,6 +330,7 @@ export class ModelGen {
         }
         for (let i = 0, il = fieldNames.length; i < il; ++i) {
             this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
+            // tslint:disable-next-line:max-line-length
             const { fieldName, fieldType, interfaceFieldType, defaultValue } = this.fields[fieldNames[i]].getNameTypePair();
             const property: IStructureProperty = {
                 access: ClassGen.Access.Public,

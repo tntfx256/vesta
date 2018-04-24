@@ -3,13 +3,6 @@
     "tslint:recommended"
   ],
   "rules": {
-    "max-line-length": false,
-    "array-type": [
-      true,
-      "generic"
-    ],
-    "comment-format": false,
-    "no-empty-interface": false,
-    "triple-equals": false
+    "no-empty-interface": false
   }
 }

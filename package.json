@@ -21,7 +21,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsc -w -p ."
+    "start": "tsc -w -p ."
   },
   "repository": "https://github.com/VestaRayanAfzar/vesta.git",
   "bugs": {
