@@ -33,9 +33,11 @@ export class EditComponentGen {
         // imports
         editFile.addImport(["React"], "react", true);
         editFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/medium"));
-        editFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
+        editFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"],
+            genRelativePath(path, "src/client/app/components/PageComponent"));
         editFile.addImport([formClassName], `./${formClassName}`);
-        editFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        editFile.addImport([model.interfaceName],
+            genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         editFile.addInterface(`I${this.className}Params`).addProperty({ name: "id", type: "number" });
         // props
@@ -50,8 +52,9 @@ export class EditComponentGen {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
-                editFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type !== RelationType.Many2Many;
+                editFile.addImport([`I${meta.relation.model}`],
+                    genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 editProps.addProperty({
                     name: pluralName,
@@ -69,13 +72,15 @@ export class EditComponentGen {
         const editClass = editFile.addClass(this.className);
         editClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // render method
-        editClass.addMethod("render").setContent(`const { onSave, onFetch, validationErrors${extPropsCode}, history } = this.props;
+        editClass.addMethod("render")
+            .setContent(`const { onSave, onFetch, validationErrors${extPropsCode}, history } = this.props;
         const id = +this.props.match.params.id;
 
         return (
             <div className="crud-page">
                 <h2>{this.tr("title_record_edit", this.tr("${model.originalClassName.toLowerCase()}"))}</h2>
-                <${formClassName} id={id} onFetch={onFetch} onSave={onSave} validationErrors={validationErrors}${extPassedPropsCode}>
+                <${formClassName} id={id} onFetch={onFetch} onSave={onSave}
+                    validationErrors={validationErrors}${extPassedPropsCode}>
                     <div className="btn-group">
                         <button className="btn btn-primary" type="submit">{this.tr("save")}</button>
                         <button className="btn btn-outline" type="button"

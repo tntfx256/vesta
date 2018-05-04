@@ -1,17 +1,12 @@
 export class Placeholder {
-    static Import = '///<vesta:import/>';
-    static ExpressController = '///<vesta:expressController/>';
-    static ModelDefinition = '///<vesta:modelDefinition/>';
-    static ModelRelation = '///<vesta:modelRelation/>';
-    static NGController = '///<vesta:ngController/>';
-    static NGService = '///<vesta:ngService/>';
-    static NGDirective = '///<vesta:ngDirective/>';
-    static NGRouter = '///<vesta:ngRouter/>';
-    static NGFilter = '///<vesta:ngFilter/>';
-    static SassFont = '///<vesta:scssFont/>';
-    static SassLibrary = '///<vesta:scssLibrary/>';
-    static SassElement = '///<vesta:scssElement/>';
-    static SassComponent = '///<vesta:scssComponent/>';
-    static SassDirective = '///<vesta:scssDirective/>';
-    static SassPage = '///<vesta:scssPage/>';
+    public static Import = "// <vesta:import/>";
+    public static ExpressController = "// <vesta:expressController/>";
+    public static ModelDefinition = "// <vesta:modelDefinition/>";
+    public static ModelRelation = "// <vesta:modelRelation/>";
+    public static SassFont = "// <vesta:scssFont/>";
+    public static SassLibrary = "// <vesta:scssLibrary/>";
+    public static SassElement = "// <vesta:scssElement/>";
+    public static SassComponent = "// <vesta:scssComponent/>";
+    public static SassDirective = "// <vesta:scssDirective/>";
+    public static SassPage = "// <vesta:scssPage/>";
 }

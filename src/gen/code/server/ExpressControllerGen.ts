@@ -78,7 +78,7 @@ Options:
         let code = readFileSync(filePath, { encoding: "utf8" });
         if (code.search(Placeholder.ExpressController)) {
             const relPath = genRelativePath(`src/api/${apiVersion}`, this.path);
-            const importCode = `import {${this.controllerClass.name}} from '${relPath}/${this.controllerClass.name}';`;
+            const importCode = `import {${this.controllerClass.name}} from "${relPath}/${this.controllerClass.name}";`;
             if (code.indexOf(importCode) >= 0) { return; }
             const embedCode = `${camelCase(this.config.name)}: ${this.controllerClass.name},`;
             code = code.replace(Placeholder.Import, `${importCode}\n${Placeholder.Import}`);
@@ -98,6 +98,7 @@ Options:
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
+        this.controllerClass.shouldExport(true);
         if (this.config.model) {
             this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
         }

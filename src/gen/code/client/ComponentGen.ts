@@ -326,9 +326,11 @@ Example:
         const path = `src/client/scss/${relPath}`;
         mkdir(path);
         const className = kebabCase(this.className).toLowerCase();
+        // tslint:disable-next-line:max-line-length
         writeFileSync(`${path}/_${className}.scss`, `.${className}${this.config.isPage ? "-page" : ""} {\n\n}`, { encoding: "utf8" });
         const importStatement = `@import '${relPath}/${className}';`;
-        const replace = this.config.isPage ? "///<vesta:scssPageComponent/>" : "///<vesta:scssComponent/>";
+        const replace = this.config.isPage ? "// <vesta:scssPageComponent/>" : "// <vesta:scssComponent/>";
+        // tslint:disable-next-line:max-line-length
         findInFileAndReplace("src/client/scss/_common.scss", { [replace]: `${importStatement}\n${replace}` }, (code) => code.indexOf(importStatement) < 0);
     }
 

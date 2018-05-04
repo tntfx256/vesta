@@ -17,10 +17,10 @@ export interface IStructureProperty {
 export abstract class AbstractStructureGen {
     public name: string;
     protected shouldBeExported: boolean = false;
-    protected methods: Array<MethodGen> = [];
-    protected properties: Array<IStructureProperty> = [];
+    protected methods: MethodGen[] = [];
+    protected properties: IStructureProperty[] = [];
     protected parentClass: string;
-    protected implementations: Array<string> = [];
+    protected implementations: string[] = [];
     protected constructorMethod: MethodGen;
 
     constructor(name: string) {
@@ -41,7 +41,7 @@ export abstract class AbstractStructureGen {
 
     public addMethod(name: string): MethodGen {
         for (let i = this.methods.length; i--;) {
-            if (this.methods[i].name == name) {
+            if (this.methods[i].name === name) {
                 return this.methods[i];
             }
         }
@@ -53,7 +53,7 @@ export abstract class AbstractStructureGen {
     public getMethod(name: string): MethodGen {
         name = camelCase(name);
         for (let i = this.methods.length; i--;) {
-            if (this.methods[i].name == name) {
+            if (this.methods[i].name === name) {
                 return this.methods[i];
             }
         }
@@ -68,7 +68,7 @@ export abstract class AbstractStructureGen {
         this.parentClass = className;
     }
 
-    public addImplements(...interfaces: Array<string>) {
+    public addImplements(...interfaces: string[]) {
         interfaces.forEach((intfc) => {
             if (this.implementations.indexOf(intfc) < 0) {
                 this.implementations.push(intfc);
@@ -78,7 +78,7 @@ export abstract class AbstractStructureGen {
 
     public addProperty(property: IStructureProperty) {
         for (let i = this.properties.length; i--;) {
-            if (this.properties[i].name == property.name) {
+            if (this.properties[i].name === property.name) {
                 return;
             }
         }

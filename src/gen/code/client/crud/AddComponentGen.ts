@@ -33,9 +33,11 @@ export class AddComponentGen {
         // imports
         addFile.addImport(["React"], "react", true);
         addFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/medium"));
-        addFile.addImport(["PageComponent", "IPageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
+        addFile.addImport(["PageComponent", "IPageComponentProps", "Save"],
+            genRelativePath(path, "src/client/app/components/PageComponent"));
         addFile.addImport([formClassName], `./${formClassName}`);
-        addFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        addFile.addImport([model.interfaceName],
+            genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
         // params
         addFile.addInterface(`I${this.className}Params`);
         // props
@@ -50,7 +52,8 @@ export class AddComponentGen {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
-                addFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                addFile.addImport([`I${meta.relation.model}`],
+                    genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 addProps.addProperty({
                     name: pluralName,
@@ -68,12 +71,14 @@ export class AddComponentGen {
         const addClass = addFile.addClass(this.className);
         addClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // render method
-        addClass.addMethod("render").setContent(`const { onSave, validationErrors${extPropsCode}, history } = this.props;
+        addClass.addMethod("render")
+            .setContent(`const { onSave, validationErrors${extPropsCode}, history } = this.props;
 
         return (
             <div className="crud-page">
                 <h1>{this.tr("title_record_add", this.tr("${model.originalClassName.toLowerCase()}"))}</h1>
-                <${formClassName} onSave={onSave} validationErrors={validationErrors}${extPassedPropsCode}>
+                <${formClassName} onSave={onSave}
+                    validationErrors={validationErrors}${extPassedPropsCode}>
                     <div className="btn-group">
                         <button className="btn btn-primary" type="submit">{this.tr("add")}</button>
                         <button className="btn btn-outline" type="button"

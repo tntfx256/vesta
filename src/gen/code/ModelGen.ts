@@ -270,8 +270,10 @@ export class ModelGen {
         this.modelFile = new TsFileGen(modelName);
         this.modelFile.addImport(["Model", "Schema", "Database", "FieldType"], "../../medium");
         this.modelInterface = this.modelFile.addInterface(`I${this.modelFile.name}`);
+        this.modelInterface.shouldExport(true);
         this.modelClass = this.modelFile.addClass();
         this.modelClass.setParentClass("Model");
+        this.modelClass.shouldExport(true);
         this.modelClass.addImplements(this.modelInterface.name);
 
         const cm = this.modelClass.setConstructor();

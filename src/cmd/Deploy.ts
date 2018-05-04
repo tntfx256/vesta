@@ -45,8 +45,8 @@ Options:
         }
         (new Deployer(config)).deploy();
         // saving config file
-        const date = Culture.getDateTimeInstance();
-        config.history.push({ date: date.format("Y/m/d H:i:s"), type: "deploy", branch: config.branch });
+        const date = new Date();
+        config.history.push({ date: date.toISOString(), type: "deploy", branch: config.branch });
         writeFile(`${config.projectName}.json`, JSON.stringify(config, null, 2));
     }
 
