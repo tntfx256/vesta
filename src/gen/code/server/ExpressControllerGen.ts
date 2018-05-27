@@ -183,7 +183,7 @@ Options:
             methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Edit");
             this.addResponseMethod(methodName).setContent(this.getUploadCode());
             // tslint:disable-next-line:max-line-length
-            this.routeMethod.appendContent(`router.post('${this.routingPath}/file/:id',${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
+            this.routeMethod.appendContent(`router.post("${this.routingPath}/file/:id",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         }
     }
 
@@ -354,7 +354,7 @@ Options:
             this.controllerFile.addImport(["LogLevel"], genRelativePath(this.path, "src/cmn/models/Log"));
             // tslint:disable-next-line:max-line-length
             deleteFileCode = ["\n\t\tconst filesToBeDeleted = [];", `const baseDirectory = \`\${this.config.dir.upload}/${modelInstanceName}\`;`];
-            for (const fields = Object.keys(fieldsOfTypeFile), i = 0, il = fields.length; i < il;) {
+            for (let fields = Object.keys(fieldsOfTypeFile), i = 0, il = fields.length; i < il; i++) {
                 const field = fieldsOfTypeFile[fields[i]];
                 if (field.properties.type === FieldType.List) {
                     deleteFileCode.push(`if (${modelInstanceName}.${field.fieldName}) {
@@ -364,14 +364,14 @@ Options:
         }`);
                 } else {
                     // tslint:disable-next-line:max-line-length
-                    deleteFileCode.push(`filesToBeDeleted.push(\`\${baseDirectory}/\${${modelInstanceName}.${field.fieldName}\`);`);
+                    deleteFileCode.push(`filesToBeDeleted.push(\`\${baseDirectory}/\${${modelInstanceName}.${field.fieldName}}\`);`);
                 }
             }
             deleteFileCode.push(`for (let i = filesToBeDeleted.length; i--;) {
             try {
                 await FileUploader.checkAndDeleteFile(filesToBeDeleted[i]);
-            } catch (e) {
-                req.log(LogLevel.Warn, error.message, 'remove${modelName}', '${modelName}Controller');
+            } catch (error) {
+                req.log(LogLevel.Warn, error.message, "remove${modelName}", "${modelName}Controller");
             }
         }`);
         }
@@ -394,11 +394,13 @@ Options:
         let code = "";
         const fileNames = Object.keys(this.filesFields);
         if (fileNames.length === 1) {
-            code = `let oldFileName = ${modelInstanceName}.${fileNames[0]};
+            code = `const oldFileName = ${modelInstanceName}.${fileNames[0]};
         ${modelInstanceName}.${fileNames[0]} = upl.${fileNames[0]};
-        await FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);`;
+        if (oldFileName) {
+            await FileUploader.checkAndDeleteFile(\`\${destDirectory}/\${oldFileName}\`);
+        }`;
         } else {
-            code = `const delList:Array<Promise<string>> = [];`;
+            code = `const delList: Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
                 const oldName = `old${fcUpper(fileNames[i])}`;
                 code += `
@@ -412,11 +414,12 @@ Options:
         await Promise.all(delList);`;
         }
         return `const id = this.retrieveId(req);
-        const ${modelInstanceName}: ${modelName};
-        const destDirectory = join(this.config.dir.upload, '${modelInstanceName}');
+        const destDirectory = join(this.config.dir.upload, "${modelInstanceName}");
         const result = await ${modelName}.find<I${modelName}>(id);
-        if (result.items.length !== 1) throw new Err(Err.Code.DBRecordCount, '${modelName} not found');
-        ${modelInstanceName} = new ${modelName}(result.items[0]);
+        if (result.items.length !== 1) {
+            throw new Err(Err.Code.DBRecordCount, "${modelName} not found");
+        }
+        const ${modelInstanceName} = new ${modelName}(result.items[0]);
         const uploader = new FileUploader<I${modelName}>(true);
         await uploader.parse(req);
         const upl = await uploader.upload(destDirectory);
