@@ -4,6 +4,7 @@ import { genRelativePath, mkdir } from "../../../../util/FsUtil";
 import { Log } from "../../../../util/Log";
 import { camelCase, fcUpper, pascalCase } from "../../../../util/StringUtil";
 import { TsFileGen } from "../../../core/TSFileGen";
+import { Vesta } from "../../../file/Vesta";
 import { IFieldMeta } from "../../FieldGen";
 import { ModelGen } from "../../ModelGen";
 import { ICrudComponentGenConfig } from "../ComponentGen";
@@ -34,12 +35,15 @@ export class DetailComponentGen {
     private genCrudDetailComponent() {
         const model = this.config.modelConfig;
         const path = this.config.path;
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         // ts file
         const detailFile = new TsFileGen(this.className);
         // imports
         detailFile.addImport(["React"], "react", true);
-        detailFile.addImport(["FetchById", "PageComponent", "IPageComponentProps"], genRelativePath(path, "src/client/app/components/PageComponent"));
-        detailFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        detailFile.addImport(["FetchById", "PageComponent", "IPageComponentProps"],
+            genRelativePath(path, `${appDir}/components/PageComponent`));
+        detailFile.addImport([`I${model.originalClassName}`],
+            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
         // params
         detailFile.addInterface(`I${this.className}Params`).addProperty({ name: "id", type: "number" });
         // props
@@ -99,9 +103,10 @@ export class DetailComponentGen {
 
     private getFieldData(detailsFile: TsFileGen, modelName: string, field: Field): IDetailFieldData {
         const fieldName = field.fieldName;
-        if (fieldName == "id") { return null as IDetailFieldData; }
+        if (fieldName === "id") { return null as IDetailFieldData; }
         const props: IFieldProperties = field.properties;
         const modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         const label = fcUpper(fieldName);
         const instanceName = camelCase(modelName);
         let details = "";
@@ -122,13 +127,13 @@ export class DetailComponentGen {
             case FieldType.Password:
                 break;
             case FieldType.File:
-                detailsFile.addImport(["getFileUrl"], genRelativePath(this.config.path, "src/client/app/util/Util"));
+                detailsFile.addImport(["getFileUrl"], genRelativePath(this.config.path, `${appDir}/util/Util`));
                 code = `const ${instanceName}${pascalCase(fieldName)} = getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
                 value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
                 break;
             case FieldType.Timestamp:
                 if (!this.writtenOnce.dateTime) {
-                    detailsFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/medium"));
+                    detailsFile.addImport(["Culture"], genRelativePath(this.config.path, `${appDir}/medium`));
                     this.writtenOnce.dateTime = true;
                     code = `const dateTime = Culture.getDateTimeInstance();
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;

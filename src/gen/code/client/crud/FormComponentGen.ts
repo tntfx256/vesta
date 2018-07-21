@@ -2,9 +2,10 @@ import { Field, FieldType, IFieldProperties, IModelFields, RelationType, Schema 
 import { writeFileSync } from "fs";
 import { genRelativePath, mkdir } from "../../../../util/FsUtil";
 import { Log } from "../../../../util/Log";
-import { camelCase, pascalCase, plural, strRepeat } from "../../../../util/StringUtil";
+import { camelCase, pascalCase, plural } from "../../../../util/StringUtil";
 import { ClassGen } from "../../../core/ClassGen";
 import { TsFileGen } from "../../../core/TSFileGen";
+import { Vesta } from "../../../file/Vesta";
 import { IFieldMeta } from "../../FieldGen";
 import { ModelGen } from "../../ModelGen";
 import { IFormGenConfig } from "../FormGen";
@@ -12,7 +13,7 @@ import { IFormGenConfig } from "../FormGen";
 interface IFormFieldData {
     code: string;
     form: string;
-    imports?: Array<string>;
+    imports?: string[];
 }
 
 export class FormComponentGen {
@@ -40,15 +41,20 @@ export class FormComponentGen {
         const model = this.config.modelConfig;
         const path = this.config.path;
         const modelObject = ModelGen.getModel(model.originalClassName);
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         // ts file
         const formFile = new TsFileGen(this.className);
         // imports
         formFile.addImport(["React"], "react", true);
-        formFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"], genRelativePath(path, "src/client/app/components/PageComponent"));
-        formFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/medium"));
-        formFile.addImport(["IModelValidationMessage", "validationMessage"], genRelativePath(path, "src/client/app/util/Util"));
-        formFile.addImport(["FormWrapper", this.hasFieldOfType(FieldType.Enum) ? "FormOption" : null], genRelativePath(path, "src/client/app/components/general/form/FormWrapper"));
-        formFile.addImport([model.interfaceName], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+        formFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"],
+            genRelativePath(path, `${appDir}/components/PageComponent`));
+        formFile.addImport(["IValidationError"], genRelativePath(path, `${appDir}/medium`));
+        formFile.addImport(["IModelValidationMessage", "validationMessage"],
+            genRelativePath(path, `${appDir}/util/Util`));
+        formFile.addImport(["FormWrapper", this.hasFieldOfType(FieldType.Enum) ? "FormOption" : null],
+            genRelativePath(path, `${appDir}/components/general/form/FormWrapper`));
+        formFile.addImport([model.interfaceName],
+            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
         // params
         formFile.addInterface(`I${this.className}Params`);
         // props
@@ -63,8 +69,9 @@ export class FormComponentGen {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
-                formFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type !== RelationType.Many2Many;
+                formFile.addImport([`I${meta.relation.model}`],
+                    genRelativePath(path, `${appDir}/cmn/models/${meta.relation.model}`));
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 formProps.addProperty({
                     name: pluralName,
@@ -97,7 +104,7 @@ export class FormComponentGen {
                 }`);
         }
         if (filesCode.length) {
-            formFile.addImport(["getFileUrl"], genRelativePath(path, "src/client/app/util/Util"));
+            formFile.addImport(["getFileUrl"], genRelativePath(path, `${appDir}/util/Util`));
             finalCode = `{
                 ${filesCode.join("\n\t\t\t\t")}
                 ${finalCode};
@@ -137,9 +144,10 @@ export class FormComponentGen {
 
     private getFieldData(formFile: TsFileGen, modelName: string, field: Field): IFormFieldData {
         const fieldName = field.fieldName;
-        if (fieldName == "id") { return null as IFormFieldData; }
+        if (fieldName === "id") { return null as IFormFieldData; }
         const props: IFieldProperties = field.properties;
         const modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         if (!modelMeta.form) { return null as IFormFieldData; }
         const instanceName = camelCase(modelName);
         let form = "";
@@ -203,9 +211,11 @@ export class FormComponentGen {
                 if (modelMeta.enum) {
                     const enumName = modelMeta.enum.options[0].split(".")[0];
                     if (modelMeta.enum.path) {
-                        formFile.addImport([enumName], genRelativePath(this.config.path, `src/client/app/cmn/${modelMeta.enum.path}`));
+                        formFile.addImport([enumName],
+                            genRelativePath(this.config.path, `${appDir}/cmn/${modelMeta.enum.path}`));
                     } else {
-                        formFile.addImport([enumName], genRelativePath(this.config.path, `src/client/app/cmn/models/${modelName}`));
+                        formFile.addImport([enumName],
+                            genRelativePath(this.config.path, `${appDir}/cmn/models/${modelName}`));
                     }
                     const options = modelMeta.enum.options.map((option, index) => `{id: ${option}, title: this.tr("enum_${option.split(".")[1].toLowerCase()}")}`);
                     const optionName = `${fieldName}Options`;
@@ -224,7 +234,7 @@ export class FormComponentGen {
                 const relModelName = modelMeta.relation.model;
                 const searchableField = ModelGen.getFieldForFormSelect(relModelName);
                 const relInstanceName = camelCase(relModelName);
-                const isMulti = props.relation.type == RelationType.Many2Many;
+                const isMulti = props.relation.type === RelationType.Many2Many;
                 properties.push(`titleKey="${searchableField}"`);
                 const pluralName = isMulti ? fieldName : plural(fieldName);
                 if (modelMeta.relation.showAllOptions) {
@@ -232,7 +242,8 @@ export class FormComponentGen {
                     properties.push(`options={${pluralName}}`);
                 } else {
                     // import relational model
-                    formFile.addImport([`I${relModelName}`], genRelativePath(this.config.path, `src/client/app/cmn/models/${relModelName}`));
+                    formFile.addImport([`I${relModelName}`],
+                        genRelativePath(this.config.path, `${appDir}/cmn/models/${relModelName}`));
                     const methodName = `search${pascalCase(pluralName)}`;
                     const method = formFile.getClass().addMethod(methodName, ClassGen.Access.Private);
                     method.setAsArrowFunction();
@@ -267,7 +278,7 @@ export class FormComponentGen {
     }
 
     private getFieldErrorMessages(field: Field) {
-        if (field.fieldName == "id") { return null; }
+        if (field.fieldName === "id") { return null; }
         const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.modelConfig.originalClassName, field.fieldName);
         if (!meta.form) { return; }
         const messages: any = {};
@@ -341,6 +352,7 @@ export class FormComponentGen {
 
     private getFormData(formFile: TsFileGen): IFormFieldData {
         const fields = this.schema.getFields();
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         let formComponents = "";
         let formComponentsToImport = [];
         const codes = [];
@@ -356,7 +368,7 @@ export class FormComponentGen {
         const importedComponents = [];
         formComponentsToImport.forEach((component) => {
             if (importedComponents.indexOf(component) >= 0) { return; }
-            formFile.addImport([component], genRelativePath(this.config.path, `src/client/app/components/general/form/${component}`));
+            formFile.addImport([component], genRelativePath(this.config.path, `${appDir}/components/general/form/${component}`));
         });
         return { form: formComponents, code: codes.join("\n\t\t") };
     }
@@ -379,7 +391,7 @@ export class FormComponentGen {
     private hasFieldOfType(type: FieldType) {
         const fields = this.schema.getFields();
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
-            if (fields[fieldsName[i]].properties.type == type) { return true; }
+            if (fields[fieldsName[i]].properties.type === type) { return true; }
         }
         return false;
     }

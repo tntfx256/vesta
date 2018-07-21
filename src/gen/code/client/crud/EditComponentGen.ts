@@ -3,6 +3,7 @@ import { writeFileSync } from "fs";
 import { genRelativePath, mkdir } from "../../../../util/FsUtil";
 import { plural } from "../../../../util/StringUtil";
 import { TsFileGen } from "../../../core/TSFileGen";
+import { Vesta } from "../../../file/Vesta";
 import { IFieldMeta } from "../../FieldGen";
 import { ModelGen } from "../../ModelGen";
 import { ICrudComponentGenConfig } from "../ComponentGen";
@@ -28,16 +29,17 @@ export class EditComponentGen {
         const path = this.config.path;
         const modelObject = ModelGen.getModel(this.config.modelConfig.originalClassName);
         const formClassName = `${this.config.modelConfig.originalClassName}Form`;
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         // ts file
         const editFile = new TsFileGen(this.className);
         // imports
         editFile.addImport(["React"], "react", true);
-        editFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/medium"));
+        editFile.addImport(["IValidationError"], genRelativePath(path, `${appDir}/medium`));
         editFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"],
-            genRelativePath(path, "src/client/app/components/PageComponent"));
+            genRelativePath(path, `${appDir}/components/PageComponent`));
         editFile.addImport([formClassName], `./${formClassName}`);
         editFile.addImport([model.interfaceName],
-            genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
         // params
         editFile.addInterface(`I${this.className}Params`).addProperty({ name: "id", type: "number" });
         // props
@@ -52,9 +54,10 @@ export class EditComponentGen {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type !== RelationType.Many2Many;
+                const field = modelObject.schema.getField(fieldNames[i]);
+                const shouldBePlural = field.properties.relation.type !== RelationType.Many2Many;
                 editFile.addImport([`I${meta.relation.model}`],
-                    genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                    genRelativePath(path, `${appDir}/cmn/models/${meta.relation.model}`));
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 editProps.addProperty({
                     name: pluralName,

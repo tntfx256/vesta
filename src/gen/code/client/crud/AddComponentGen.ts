@@ -6,6 +6,7 @@ import { TsFileGen } from "../../../core/TSFileGen";
 import { IFieldMeta } from "../../FieldGen";
 import { ModelGen } from "../../ModelGen";
 import { ICrudComponentGenConfig } from "../ComponentGen";
+import { Vesta } from "../../../file/Vesta";
 
 export class AddComponentGen {
     private className: string;
@@ -28,16 +29,17 @@ export class AddComponentGen {
         const path = this.config.path;
         const modelObject = ModelGen.getModel(this.config.modelConfig.originalClassName);
         const formClassName = `${this.config.modelConfig.originalClassName}Form`;
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         // ts file
         const addFile = new TsFileGen(this.className);
         // imports
         addFile.addImport(["React"], "react", true);
-        addFile.addImport(["IValidationError"], genRelativePath(path, "src/client/app/medium"));
+        addFile.addImport(["IValidationError"], genRelativePath(path, `${appDir}/medium`));
         addFile.addImport(["PageComponent", "IPageComponentProps", "Save"],
-            genRelativePath(path, "src/client/app/components/PageComponent"));
+            genRelativePath(path, `${appDir}/components/PageComponent`));
         addFile.addImport([formClassName], `./${formClassName}`);
         addFile.addImport([model.interfaceName],
-            genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
+            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
         // params
         addFile.addInterface(`I${this.className}Params`);
         // props
@@ -53,7 +55,7 @@ export class AddComponentGen {
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
                 addFile.addImport([`I${meta.relation.model}`],
-                    genRelativePath(path, `src/client/app/cmn/models/${meta.relation.model}`));
+                    genRelativePath(path, `${appDir}/cmn/models/${meta.relation.model}`));
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 addProps.addProperty({
                     name: pluralName,

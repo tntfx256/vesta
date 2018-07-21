@@ -3,6 +3,7 @@ import { writeFileSync } from "fs";
 import { genRelativePath, mkdir } from "../../../../util/FsUtil";
 import { camelCase, plural } from "../../../../util/StringUtil";
 import { TsFileGen } from "../../../core/TSFileGen";
+import { Vesta } from "../../../file/Vesta";
 import { IFieldMeta } from "../../FieldGen";
 import { ModelGen } from "../../ModelGen";
 import { ICrudComponentGenConfig } from "../ComponentGen";
@@ -35,17 +36,24 @@ export class ListComponentGen {
         const path = this.config.path;
         const stateName = camelCase(this.config.name);
         const pluralModel = plural(model.instanceName);
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         // ts file
         const listFile = new TsFileGen(this.className);
         // imports
         listFile.addImport(["React"], "react", true);
         listFile.addImport(["Link"], "react-router-dom");
-        listFile.addImport(["PageComponent", "IPageComponentProps", "FetchAll"], genRelativePath(path, "src/client/app/components/PageComponent"));
-        listFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `src/client/app/cmn/models/${model.originalClassName}`));
-        listFile.addImport(["IColumn", "DataTable", "IDataTableQueryOption"], genRelativePath(path, "src/client/app/components/general/DataTable"));
-        listFile.addImport(["IDeleteResult"], genRelativePath(path, "src/client/app/medium"));
-        listFile.addImport(["IAccess"], genRelativePath(path, "src/client/app/service/AuthService"));
-        listFile.addImport(["DataTableOperations"], genRelativePath(path, "src/client/app/components/general/DataTableOperations"));
+        listFile.addImport(["PageComponent", "IPageComponentProps", "FetchAll"],
+            genRelativePath(path, `${appDir}/components/PageComponent`));
+        listFile.addImport([`I${model.originalClassName}`],
+            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
+        listFile.addImport(["IColumn", "DataTable", "IDataTableQueryOption"],
+            genRelativePath(path, `${appDir}/components/general/DataTable`));
+        listFile.addImport(["IDeleteResult"],
+            genRelativePath(path, `${appDir}/medium`));
+        listFile.addImport(["IAccess"],
+            genRelativePath(path, `${appDir}/service/AuthService`));
+        listFile.addImport(["DataTableOperations"],
+            genRelativePath(path, `${appDir}/components/general/DataTableOperations`));
         // params
         listFile.addInterface(`I${this.className}Params`);
         // props
@@ -68,7 +76,7 @@ export class ListComponentGen {
         listClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
         let dateTimeCode = "";
         if (this.hasFieldOfType(FieldType.Timestamp)) {
-            listFile.addImport(["Culture"], genRelativePath(this.config.path, "src/client/app/medium"));
+            listFile.addImport(["Culture"], genRelativePath(this.config.path, `${appDir}/medium`));
             dateTimeCode = `\n\t\tconst dateTime = Culture.getDateTimeInstance();
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
         }
@@ -157,9 +165,6 @@ export class ListComponentGen {
             case FieldType.Timestamp:
                 if (!this.writtenOnce.dateTime) {
                     this.writtenOnce.dateTime = true;
-                    //             file.addImport(['Culture'], genRelativePath(this.config.path, 'src/client/app/medium'));
-                    //             code = `const dateTime = Culture.getDateTimeInstance();
-                    // const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
                 }
                 isRenderInline = false;
                 render = `dateTime.setTime(r.date);
@@ -197,7 +202,7 @@ export class ListComponentGen {
     private hasFieldOfType(type: FieldType) {
         const fields = this.schema.getFields();
         for (let fieldsName = Object.keys(fields), i = 0, il = fieldsName.length; i < il; ++i) {
-            if (fields[fieldsName[i]].properties.type == type) { return true; }
+            if (fields[fieldsName[i]].properties.type === type) { return true; }
         }
         return false;
     }
