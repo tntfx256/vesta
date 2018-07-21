@@ -3,6 +3,7 @@ import { ArgParser } from "../../../util/ArgParser";
 import { mkdir } from "../../../util/FsUtil";
 import { Log } from "../../../util/Log";
 import { camelCase, fcUpper } from "../../../util/StringUtil";
+import { Vesta } from "../../file/Vesta";
 import { ICrudComponentGenConfig, IModelConfig } from "./ComponentGen";
 import { FormComponentGen } from "./crud/FormComponentGen";
 
@@ -11,8 +12,6 @@ export interface IFormGenConfig extends ICrudComponentGenConfig {
 }
 
 export class FormGen {
-    private className: string;
-    private path = "src/client/app/components/";
 
     public static help() {
         Log.write(`
@@ -55,7 +54,13 @@ Example:
         (new FormGen(config)).generate();
     }
 
+    private className: string;
+    private path = "src/client/app/components/";
+
     constructor(private config: IFormGenConfig) {
+        if (Vesta.getInstance().isNewV2()) {
+            this.path = "src/app/components/";
+        }
         this.path += config.path;
         this.className = fcUpper(config.name);
         mkdir(this.path);
@@ -76,7 +81,7 @@ Example:
 
         const modelClassName = fcUpper(this.config.model.match(/([^\/]+)$/)[1]);
         return {
-            className: modelClassName == this.className ? `${modelClassName}Model` : modelClassName,
+            className: modelClassName === this.className ? `${modelClassName}Model` : modelClassName,
             file: modelFilePath,
             instanceName: camelCase(modelClassName),
             interfaceName: `I${modelClassName}`,

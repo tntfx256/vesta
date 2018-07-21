@@ -1,32 +1,32 @@
-import * as fs from "fs";
-import {Log} from "../util/Log";
-import {ArgParser} from "../util/ArgParser";
-import {readJsonFile} from "../util/FsUtil";
-import {execute} from "../util/CmdUtil";
+import { writeFileSync } from "fs";
+import { ArgParser } from "../util/ArgParser";
+import { execute } from "../util/CmdUtil";
+import { readJsonFile } from "../util/FsUtil";
+import { Log } from "../util/Log";
 
 export class Update {
 
-    static init() {
+    public static init() {
         const argParser = ArgParser.getInstance();
         if (argParser.hasHelp()) {
             return Update.help();
         }
         try {
-            let content = readJsonFile<any>(`package.json`);
-            let isDev = argParser.has('--dev');
-            let pkgKeyName = isDev ? 'devDependencies' : 'dependencies';
-            let allPackages = Object.keys(content[pkgKeyName]);
-            let pkgs = isDev || argParser.has('--all') ? allPackages : allPackages.filter(pkg => pkg.search(/^@?vesta/i) >= 0);
-            console.log(pkgs);
-            pkgs.forEach(pkg => delete content[pkgKeyName][pkg]);
-            fs.writeFileSync(`package.json`, JSON.stringify(content, null, 2), {encoding: 'utf8'});
-            execute(`npm install --save${isDev ? '-dev' : ''} ${pkgs.join(' ')}`);
+            const content = readJsonFile<any>(`package.json`);
+            const isDev = argParser.has("--dev");
+            const pkgKeyName = isDev ? "devDependencies" : "dependencies";
+            const allPackages = Object.keys(content[pkgKeyName]);
+            const pkgs = isDev || argParser.has("--all") ? allPackages :
+                allPackages.filter((pkg) => pkg.search(/^@?vesta/i) >= 0);
+            pkgs.forEach((pkg) => delete content[pkgKeyName][pkg]);
+            writeFileSync(`package.json`, JSON.stringify(content, null, 2), { encoding: "utf8" });
+            execute(`npm install --save${isDev ? "-dev" : ""} ${pkgs.join(" ")}`);
         } catch (err) {
             Log.error(err);
         }
     }
 
-    static help() {
+    public static help() {
         Log.write(`
 Usage: vesta update [options...]
 
@@ -35,7 +35,7 @@ Updates a package to it's latest version
 Options:
     --all   Update all npm packages (dependencies)
     --dev   Update all npm packages (devDependencies)
-    
+
 Without any options, it will only update all vesta packages
 `);
     }

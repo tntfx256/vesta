@@ -3,10 +3,11 @@ import { existsSync, writeFileSync } from "fs";
 import { ArgParser } from "../../../util/ArgParser";
 import { genRelativePath, mkdir } from "../../../util/FsUtil";
 import { Log } from "../../../util/Log";
-import { camelCase, fcUpper, kebabCase, pascalCase, plural, strRepeat } from "../../../util/StringUtil";
+import { camelCase, fcUpper, kebabCase, pascalCase, plural } from "../../../util/StringUtil";
 import { clone, findInFileAndReplace } from "../../../util/Util";
 import { ClassGen } from "../../core/ClassGen";
 import { TsFileGen } from "../../core/TSFileGen";
+import { Vesta } from "../../file/Vesta";
 import { IFieldMeta } from "../FieldGen";
 import { ModelGen } from "../ModelGen";
 import { AddComponentGen } from "./crud/AddComponentGen";
@@ -53,7 +54,7 @@ Options:
     --no-style  Do not generate scss style file
     --page      Adds navbar to component and also change className for page component
     --model     Create CRUD component for specified model
-    --path      Where to save component [default: src/client/component/root]
+    --path      Where to save component [default: src/component/root]
 
 Example:
     vesta gen component test --stateless --no-style --path=general/form
@@ -80,7 +81,8 @@ Example:
             config.isPage = true;
         }
         // if (config.model && config.noParams) {
-        //     Log.error("--model and --partial can not be used together\nSee 'vesta gen component --help' for more information\n");
+        //     Log.error("--model and --partial can not be used together\n
+        // See 'vesta gen component --help' for more information\n");
         //     return;
         // }
         (new ComponentGen(config)).generate();
@@ -92,6 +94,9 @@ Example:
     private relationalFields: IModelFields;
 
     constructor(private config: IComponentGenConfig) {
+        if (Vesta.getInstance().isNewV2()) {
+            this.path = "src/app/components/";
+        }
         this.path += config.path;
         this.className = fcUpper(config.name);
         mkdir(this.path);
@@ -131,7 +136,8 @@ Example:
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 // do not pluralize field names for many2many relationships
-                if (modelObject.schema.getField(fieldNames[i]).properties.relation.type == RelationType.Many2Many) {
+                const field = modelObject.schema.getField(fieldNames[i]);
+                if (field.properties.relation.type === RelationType.Many2Many) {
                     extStates.push(`${fieldNames[i]}: []`);
                 } else {
                     extStates.push(`${plural(fieldNames[i])}: []`);
@@ -145,14 +151,17 @@ Example:
         // fetching relation on component did mount
         const extraProps = [];
         const fetchCallers = [];
+        const cmnDir = Vesta.getInstance().isNewV2() ? "src/app/cmn" : "src/client/app/cmn";
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
+                const field = modelObject.schema.getField(fieldNames[i]);
+                const shouldBePlural = field.properties.relation.type !== RelationType.Many2Many;
                 fetchCallers.push(`this.fetch${pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i])}();`);
                 extraProps.push(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i]);
-                componentFile.addImport([`I${meta.relation.model}`], genRelativePath(this.path, `src/client/app/cmn/models/${meta.relation.model}`));
+                componentFile.addImport([`I${meta.relation.model}`],
+                    genRelativePath(this.path, `${cmnDir}/models/${meta.relation.model}`));
             }
             componentClass.addMethod("componentDidMount").setContent(`this.setState({ showLoader: true });
         ${fetchCallers.join("\n\t\t")}`);
@@ -282,9 +291,12 @@ Example:
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                const field = modelObject.schema.getField(fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
-                const method = componentClass.addMethod(`fetch${pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i])}`);
+                const shouldBePlural = field.properties.relation.type !== RelationType.Many2Many;
+                const methodPostfix = pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i]);
+                const stateVar = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
+                const method = componentClass.addMethod(`fetch${methodPostfix}`);
                 if (meta.relation && meta.relation.model) {
                     const modelName = meta.relation.model;
                     const instanceName = camelCase(modelName);
@@ -292,7 +304,7 @@ Example:
                     method.setContent(`this.setState({showLoader: true});
         this.api.get<I${modelName}>("${instanceName}")
             .then((response) => {
-                this.setState({showLoader: false, ${shouldBePlural ? plural(fieldNames[i]) : fieldNames[i]}: response.items});
+                this.setState({showLoader: false, ${stateVar}: response.items});
             })
             .catch((error) => {
                 this.setState({showLoader: false, validationErrors: error.violations});
@@ -323,7 +335,8 @@ Example:
     private createScss() {
         if (!this.config.hasStyle) { return; }
         const relPath = `components/${this.config.path}`;
-        const path = `src/client/scss/${relPath}`;
+        const scssDir = Vesta.getInstance().isNewV2() ? "src/scss" : "src/client/scss";
+        const path = `${scssDir}/${relPath}`;
         mkdir(path);
         const className = kebabCase(this.className).toLowerCase();
         // tslint:disable-next-line:max-line-length
@@ -331,7 +344,7 @@ Example:
         const importStatement = `@import '${relPath}/${className}';`;
         const replace = this.config.isPage ? "// <vesta:scssPageComponent/>" : "// <vesta:scssComponent/>";
         // tslint:disable-next-line:max-line-length
-        findInFileAndReplace("src/client/scss/_common.scss", { [replace]: `${importStatement}\n${replace}` }, (code) => code.indexOf(importStatement) < 0);
+        findInFileAndReplace(`${scssDir}/_common.scss`, { [replace]: `${importStatement}\n${replace}` }, (code) => code.indexOf(importStatement) < 0);
     }
 
     private genComponentClass(componentFile: TsFileGen): ClassGen {
@@ -343,7 +356,8 @@ Example:
         }
         // props
         const propsInterface = componentFile.addInterface(`I${this.className}Props`);
-        propsInterface.setParentClass(this.config.isPage ? `IPageComponentProps${params}` : `IBaseComponentProps${params}`);
+        const propsParentClass = this.config.isPage ? `IPageComponentProps${params}` : `IBaseComponentProps${params}`;
+        propsInterface.setParentClass(propsParentClass);
         // state
         const stateInterface = componentFile.addInterface(`I${this.className}State`);
         if (this.config.model) {
@@ -362,8 +376,10 @@ Example:
                 for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                     const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                     if (!meta.form || !meta.relation.showAllOptions) { continue; }
+                    const field = modelObject.schema.getField(fieldNames[i]);
+                    const isMany2Many = field.properties.relation.type === RelationType.Many2Many;
                     stateInterface.addProperty({
-                        name: modelObject.schema.getField(fieldNames[i]).properties.relation.type == RelationType.Many2Many ? fieldNames[i] : plural(fieldNames[i]),
+                        name: isMany2Many ? fieldNames[i] : plural(fieldNames[i]),
                         type: `Array<I${meta.relation.model}>`,
                     });
                 }
@@ -372,7 +388,8 @@ Example:
         // component class
         const componentClass = componentFile.addClass(this.className);
         componentClass.shouldExport(true);
-        componentClass.setParentClass(`${this.config.isPage ? "PageComponent" : "Component"}<${propsInterface.name}, ${stateInterface.name}>`);
+        const parentClass = this.config.isPage ? "PageComponent" : "Component";
+        componentClass.setParentClass(`${parentClass}<${propsInterface.name}, ${stateInterface.name}>`);
         if (this.config.model) {
             componentClass.addProperty({ name: "access", type: "IAccess", access: "private" });
         }
@@ -388,27 +405,39 @@ Example:
 
     private genComponentFile(): TsFileGen {
         const componentFile = new TsFileGen(this.className);
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         componentFile.addImport(["React"], "react", true);
         if (this.config.isPage) {
-            componentFile.addImport(["PageComponent", "IPageComponentProps"], genRelativePath(this.path, "src/client/app/components/PageComponent"));
+            componentFile.addImport(["PageComponent", "IPageComponentProps"],
+                genRelativePath(this.path, `${appDir}/components/PageComponent`));
         } else {
             componentFile.addImport(["Component"], "react");
-            componentFile.addImport(["IBaseComponentProps"], genRelativePath(this.path, "src/client/app/components/BaseComponent"));
+            componentFile.addImport(["IBaseComponentProps"],
+                genRelativePath(this.path, `${appDir}/components/BaseComponent`));
         }
         if (this.config.model || this.config.isPage) {
-            componentFile.addImport(["Navbar"], genRelativePath(this.path, "src/client/app/components/general/Navbar"), true);
+            componentFile.addImport(["Navbar"],
+                genRelativePath(this.path, `${appDir}/components/general/Navbar`), true);
         }
         if (this.config.model) {
             const modelClassName = this.model.originalClassName;
             componentFile.addImport(["Route", "Switch"], "react-router");
-            componentFile.addImport(["DynamicRouter", "IValidationError"], genRelativePath(this.path, "src/client/app/medium"));
-            componentFile.addImport(["IDataTableQueryOption"], genRelativePath(this.path, "src/client/app/components/general/DataTable"));
-            componentFile.addImport(["PageTitle"], genRelativePath(this.path, "src/client/app/components/general/PageTitle"));
-            componentFile.addImport(["Preloader"], genRelativePath(this.path, "src/client/app/components/general/Preloader"));
-            componentFile.addImport(["CrudMenu"], genRelativePath(this.path, "src/client/app/components/general/CrudMenu"));
-            componentFile.addImport(["IAccess"], genRelativePath(this.path, "src/client/app/service/AuthService"));
-            const modelImportStatement = modelClassName == this.className ? `${modelClassName} as ${this.model.className}` : this.model.className;
-            componentFile.addImport([`I${modelClassName}`, modelImportStatement], genRelativePath(this.path, this.model.file));
+            componentFile.addImport(["DynamicRouter", "IValidationError"],
+                genRelativePath(this.path, `${appDir}/medium`));
+            componentFile.addImport(["IDataTableQueryOption"],
+                genRelativePath(this.path, `${appDir}/components/general/DataTable`));
+            componentFile.addImport(["PageTitle"],
+                genRelativePath(this.path, `${appDir}/components/general/PageTitle`));
+            componentFile.addImport(["Preloader"],
+                genRelativePath(this.path, `${appDir}/components/general/Preloader`));
+            componentFile.addImport(["CrudMenu"],
+                genRelativePath(this.path, `${appDir}/components/general/CrudMenu`));
+            componentFile.addImport(["IAccess"],
+                genRelativePath(this.path, `${appDir}/service/AuthService`));
+            const modelImportStatement = modelClassName === this.className ?
+                `${modelClassName} as ${this.model.className}` : this.model.className;
+            componentFile.addImport([`I${modelClassName}`, modelImportStatement],
+                genRelativePath(this.path, this.model.file));
             const instanceName = camelCase(this.className);
             componentFile.addImport([`${modelClassName}Add`], `./${instanceName}/${modelClassName}Add`);
             componentFile.addImport([`${modelClassName}Edit`], `./${instanceName}/${modelClassName}Edit`);
@@ -427,7 +456,8 @@ Example:
     private genStateless() {
         const cmpName = camelCase(this.className);
         const className = kebabCase(cmpName).toLowerCase();
-        const importPath = genRelativePath(this.path, "src/client/app/components/BaseComponent");
+        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const importPath = genRelativePath(this.path, `${appDir}/components/BaseComponent`);
         const params = this.config.noParams ? "" : `\n\ninterface I${this.className}Params {\n}`;
         return `import React from "react";
 import { IBaseComponentProps } from "${importPath}";${params}
@@ -445,7 +475,8 @@ export const ${this.className} = (props: I${this.className}Props) => {
     }
 
     private parseModel(): IModelConfig {
-        const modelFilePath = `src/client/app/cmn/models/${this.config.model}.ts`;
+        const cmnDir = Vesta.getInstance().isNewV2() ? "src/app/cmn" : "src/client/app/cmn";
+        const modelFilePath = `${cmnDir}/models/${this.config.model}.ts`;
         if (!existsSync(modelFilePath)) {
             Log.error(`Specified model was not found: '${modelFilePath}'`);
             return null;
@@ -453,7 +484,7 @@ export const ${this.className} = (props: I${this.className}Props) => {
         // todo: require model file
         const modelClassName = fcUpper(this.config.model.match(/([^\/]+)$/)[1]);
         return {
-            className: modelClassName == this.className ? `${modelClassName}Model` : modelClassName,
+            className: modelClassName === this.className ? `${modelClassName}Model` : modelClassName,
             file: modelFilePath,
             instanceName: camelCase(modelClassName),
             interfaceName: `I${modelClassName}`,

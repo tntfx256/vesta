@@ -1,8 +1,8 @@
-import {GitGen} from "./file/GitGen";
-import {PlatformConfig} from "../PlatformConfig";
-import {execute, IExecOptions} from "../util/CmdUtil";
-import {mkdir} from "../util/FsUtil";
-import {findInFileAndReplace} from "../util/Util";
+import { PlatformConfig } from "../PlatformConfig";
+import { execute, IExecOptions } from "../util/CmdUtil";
+import { mkdir } from "../util/FsUtil";
+import { findInFileAndReplace } from "../util/Util";
+import { GitGen } from "./file/GitGen";
 
 export interface IModuleConfig {
     name: string;
@@ -14,11 +14,11 @@ export class ModuleGen {
     }
 
     public generate() {
-        let dir = this.config.name;
-        let templateRepo = PlatformConfig.getRepository().module;
-        let projectTemplateName = GitGen.getRepoName(templateRepo);
-        let replacement = {[projectTemplateName]: this.config.name};
-        let execOption: IExecOptions = {cwd: dir};
+        const dir = this.config.name;
+        const templateRepo = PlatformConfig.getRepository().module;
+        const projectTemplateName = GitGen.getRepoName(templateRepo);
+        const replacement = { [projectTemplateName]: this.config.name };
+        const execOption: IExecOptions = { cwd: dir };
         GitGen.clone(templateRepo, dir);
         mkdir(`${dir}/src`);
         findInFileAndReplace(`${dir}/package.json`, replacement);

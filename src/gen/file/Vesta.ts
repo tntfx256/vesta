@@ -16,11 +16,6 @@ export interface IVesta {
 }
 
 export class Vesta {
-    private static instance: Vesta;
-    private isUpdate: boolean = false;
-    private oldPath = "vesta.json";
-    private path = "package.json";
-    private vesta: IVesta;
 
     public static getInstance(config?: IProjectConfig): Vesta {
         if (!Vesta.instance) {
@@ -33,6 +28,12 @@ export class Vesta {
         }
         return Vesta.instance;
     }
+
+    private static instance: Vesta;
+    private isUpdate: boolean = false;
+    private oldPath = "vesta.json";
+    private path = "package.json";
+    private vesta: IVesta;
 
     constructor(config?: IProjectConfig) {
         if (config) {
@@ -95,18 +96,28 @@ export class Vesta {
     }
 
     public get isClientApplication(): boolean {
-        return this.vesta.config.type == ProjectType.ClientApplication;
+        return this.vesta.config.type === ProjectType.ClientApplication;
     }
 
     public get isAdminPanel(): boolean {
-        return this.vesta.config.type == ProjectType.AdminPanel;
+        return this.vesta.config.type === ProjectType.AdminPanel;
     }
 
     public get isApiServer(): boolean {
-        return this.vesta.config.type == ProjectType.ApiServer;
+        return this.vesta.config.type === ProjectType.ApiServer;
     }
 
-    public get cmnDirectory(): string {
-        return this.vesta.config.type == ProjectType.ApiServer ? "src/cmn" : "src/client/app/cmn";
+    public getCmnDirectory(creating?: boolean): string {
+        if (this.vesta.config.type === ProjectType.ApiServer) {
+            return "src/cmn";
+        }
+        if (creating) {
+            return "src/app/cmn";
+        }
+        return this.isNewV2() ? "src/app/cmn" : "src/client/app/cmn";
+    }
+
+    public isNewV2(): boolean {
+        return !existsSync("src/client/index.html");
     }
 }

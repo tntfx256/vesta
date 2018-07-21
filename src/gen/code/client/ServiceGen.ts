@@ -3,14 +3,13 @@ import { ArgParser } from "../../../util/ArgParser";
 import { mkdir } from "../../../util/FsUtil";
 import { Log } from "../../../util/Log";
 import { fcUpper } from "../../../util/StringUtil";
+import { Vesta } from "../../file/Vesta";
 
 export interface IServiceGenConfig {
     name: string;
 }
 
 export class ServiceGen {
-    private className: string;
-    private path = "src/client/app/service/";
 
     public static help() {
         Log.write(`
@@ -37,7 +36,13 @@ Example:
         (new ServiceGen(config)).generate();
     }
 
+    private className: string;
+    private path = "src/client/app/service/";
+
     constructor(private config: IServiceGenConfig) {
+        if (Vesta.getInstance().isNewV2()) {
+            this.path = "src/app/service/";
+        }
         this.className = fcUpper(config.name);
         mkdir(this.path);
     }

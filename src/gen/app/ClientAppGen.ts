@@ -25,11 +25,12 @@ export class ClientAppGen {
         this.cloneTemplate();
         const dir = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
+        // tslint:disable-next-line:max-line-length
         const templateProjectName = GitGen.getRepoName(this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client);
         const replacePattern = { [templateProjectName]: dir };
-        copy(`${dir}/resources/gitignore/variantConfig.ts`, `${dir}/src/client/app/config/variantConfig.ts`);
-        mkdir(`${dir}/vesta/client/cordova/www`); // for installing plugins this folder must exist
-        findInFileAndReplace(`${dir}/vesta/client/cordova/config.xml`, replacePattern);
+        copy(`${dir}/resources/gitignore/variantConfig.ts`, `${dir}/src/app/config/variantConfig.ts`);
+        mkdir(`${dir}/vesta/cordova/www`); // for installing plugins this folder must exist
+        findInFileAndReplace(`${dir}/vesta/cordova/config.xml`, replacePattern);
     }
 
     private cloneTemplate() {

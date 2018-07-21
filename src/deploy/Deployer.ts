@@ -1,11 +1,11 @@
 import * as fs from "fs-extra";
-import {GitGen} from "../gen/file/GitGen";
-import {execute} from "../util/CmdUtil";
-import {mkdir, remove, rename} from "../util/FsUtil";
+import { GitGen } from "../gen/file/GitGen";
+import { execute } from "../util/CmdUtil";
+import { mkdir, remove, rename } from "../util/FsUtil";
 
 export interface IDeployHistory {
     date: string;
-    type: 'deploy' | 'backup';
+    type: "deploy" | "backup";
     branch?: string;
 }
 
@@ -20,8 +20,8 @@ export interface IDeployConfig {
     deployPath: string;
     repositoryUrl: string;
     branch: string;
-    history: Array<IDeployHistory>;
-    args: Array<string>;
+    history: IDeployHistory[];
+    args: string[];
 }
 
 export class Deployer {
@@ -38,18 +38,18 @@ export class Deployer {
     }
 
     public deploy() {
-        let deployPath = `${this.config.deployPath}/${this.config.projectName}`;
+        const deployPath = `${this.config.deployPath}/${this.config.projectName}`;
         let args = [this.cloningPath, deployPath];
         args = args.concat(this.config.args);
         remove(this.cloningPath);
         GitGen.clone(this.config.repositoryUrl, this.cloningPath);
-        execute(`git checkout ${this.config.branch}`, {cwd: this.cloningPath});
-        if (this.config.branch != 'master') {
-            execute(`git pull`, {cwd: this.cloningPath});
+        execute(`git checkout ${this.config.branch}`, { cwd: this.cloningPath });
+        if (this.config.branch !== "master") {
+            execute(`git pull`, { cwd: this.cloningPath });
         }
         rename(`${this.cloningPath}/resources/ci/deploy.sh`, `${this.cloningPath}/deploy.sh`);
         execute(`chmod +x ${this.cloningPath}/deploy.sh`);
-        execute(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(' ')}`);
+        execute(`${process.cwd()}/${this.cloningPath}/deploy.sh ${args.join(" ")}`);
         remove(this.cloningPath);
     }
 }

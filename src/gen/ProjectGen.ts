@@ -38,19 +38,20 @@ export class ProjectGen {
         this.docker = new DockerGen(config);
         //
         this.commonApp = new CommonGen(config);
-        if (config.type == ProjectType.ClientApplication) {
+        if (config.type === ProjectType.ClientApplication) {
             this.clientApp = new ClientAppGen(config);
-        } else if (config.type == ProjectType.ApiServer) {
+        } else if (config.type === ProjectType.ApiServer) {
             this.serverApp = new ServerAppGen(config);
-        } else if (config.type == ProjectType.AdminPanel) {
+        } else if (config.type === ProjectType.AdminPanel) {
             this.clientApp = new ClientAppGen(config);
         }
     }
 
     public generate() {
-        const isClientSideProject = this.config.type != ProjectType.ApiServer;
+        const isClientSideProject = this.config.type !== ProjectType.ApiServer;
         const projectName = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
+        // tslint:disable-next-line:max-line-length
         const projectTemplateName = GitGen.getRepoName(isClientSideProject ? (this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client) : templateRepo.api);
         const repoInfo = this.config.repository;
         const replacement = { [projectTemplateName]: kebabCase(this.config.name) };

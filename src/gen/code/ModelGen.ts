@@ -1,4 +1,4 @@
-import { Err, Field, FieldType, IModel, IModelFields, Schema, RelationType } from "@vesta/core";
+import { Err, Field, FieldType, IModel, IModelFields, Schema } from "@vesta/core";
 import { execSync } from "child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { Question } from "inquirer";
@@ -26,7 +26,7 @@ interface IFields {
 export class ModelGen {
 
     public static getModelsList(): any {
-        const modelPath = Vesta.getInstance().isApiServer ? "src/cmn/models" : "src/client/app/cmn/models";
+        const modelPath = `${Vesta.getInstance().getCmnDirectory()}/models`;
         const modelDirectory = join(process.cwd(), modelPath);
         const models = {};
         try {
@@ -141,7 +141,7 @@ export class ModelGen {
             ModelGen.modelsMeta[key] = null;
             return null;
         }
-        const tsModelFile = `src${Vesta.getInstance().isApiServer ? "" : "/client/app"}/cmn/models/${modelName}.ts`;
+        const tsModelFile = `${Vesta.getInstance().getCmnDirectory()}/models/${modelName}.ts`;
         const content = readFileSync(tsModelFile, "utf8");
         let meta: IFieldMeta = { form: true, list: true };
         const fieldStartIndex = content.indexOf(`schema.addField("${fieldName}")`);

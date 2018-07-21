@@ -12,8 +12,8 @@ export interface ISassGenConfig {
 }
 
 export class SassGen {
+
     public static Type = { Font: "font" };
-    private basePath = "src/scss";
 
     public static help() {
         Log.write(`
@@ -40,6 +40,8 @@ Options:
         const sass = new SassGen(config);
         sass.generate();
     }
+
+    private basePath = "src/scss";
 
     constructor(private config: ISassGenConfig) {
     }
