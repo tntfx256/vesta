@@ -55,8 +55,9 @@ export class DetailComponentGen {
         detailState.addProperty({ name: model.instanceName, type: model.interfaceName });
         // class
         const detailClass = detailFile.addClass(this.className);
+        detailClass.shouldExport(true);
         detailClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
-        detailClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
+        detailClass.getConstructor().addParameter({ name: "props", type: `I${this.className}Props` });
         detailClass.getConstructor().setContent(`super(props);
         this.state = {${model.instanceName}: {}};`);
         // fetch
@@ -129,7 +130,7 @@ export class DetailComponentGen {
             case FieldType.File:
                 detailsFile.addImport(["getFileUrl"], genRelativePath(this.config.path, `${appDir}/util/Util`));
                 code = `const ${instanceName}${pascalCase(fieldName)} = getFileUrl(\`${instanceName}/\${${instanceName}.${fieldName}}\`);`;
-                value = `<img src={${instanceName}${pascalCase(fieldName)}}/>`;
+                value = `<img src={${instanceName}${pascalCase(fieldName)}} />`;
                 break;
             case FieldType.Timestamp:
                 if (!this.writtenOnce.dateTime) {

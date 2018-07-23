@@ -296,7 +296,7 @@ export class ModelGen {
             type: "Schema",
         });
         if (!this.vesta.isApiServer) {
-            this.path = "src/client/app/cmn/models";
+            this.path = this.vesta.isNewV2() ? "src/app/cmn/models" : "src/client/app/cmn/models";
         }
         mkdir(this.path);
     }

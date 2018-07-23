@@ -1,37 +1,38 @@
 export class XMLGen {
-    private classNames: Array<string> = [];
-    private noValueAttributes: Array<string> = [];
+    private classNames: string[] = [];
+    private noValueAttributes: string[] = [];
     private attributes: any = {};
-    private children: Array<XMLGen> = [];
-    private textContent: string = '';
-    private htmlContent: string = '';
+    private children: XMLGen[] = [];
+    private textContent: string = "";
+    private htmlContent: string = "";
 
     constructor(public tagName: string, public isSingleTag: boolean = false) {
     }
 
-    addClass(className: string): XMLGen {
-        let classes = className.split('\W');
-        classes.forEach(className => {
-            if (this.classNames.indexOf(className) < 0) {
-                this.classNames.push(className);
+    public addClass(className: string): XMLGen {
+        const classes = className.split("\W");
+        classes.forEach((c) => {
+            if (this.classNames.indexOf(c) < 0) {
+                this.classNames.push(c);
             }
         });
         return this;
     }
 
-    removeClass(className: string): XMLGen {
-        let index = -1,
-            classes = className.split('\W');
-        classes.forEach(className => {
-            if ((index = this.classNames.indexOf(className)) >= 0) {
+    public removeClass(className: string): XMLGen {
+        let index = -1;
+        const classes = className.split("\W");
+        classes.forEach((c) => {
+            index = this.classNames.indexOf(c);
+            if (index >= 0) {
                 this.classNames.splice(index, 1);
             }
         });
         return this;
     }
 
-    setAttribute(name: string, value?: any): XMLGen {
-        if ('undefined' == typeof value) {
+    public setAttribute(name: string, value?: any): XMLGen {
+        if ("undefined" === typeof value) {
             if (this.noValueAttributes.indexOf(name) < 0) {
                 this.noValueAttributes.push(name);
             }
@@ -41,12 +42,12 @@ export class XMLGen {
         return this;
     }
 
-    getAttribute(name: string): string {
+    public getAttribute(name: string): string {
         return this.attributes[name];
     }
 
-    removeAttribute(name): XMLGen {
-        let index = this.noValueAttributes.indexOf(name);
+    public removeAttribute(name): XMLGen {
+        const index = this.noValueAttributes.indexOf(name);
         if (index >= 0) {
             this.noValueAttributes.splice(index, 1);
         } else {
@@ -55,25 +56,25 @@ export class XMLGen {
         return this;
     }
 
-    append(...children: Array<XMLGen>): XMLGen {
+    public append(...children: XMLGen[]): XMLGen {
         this.children = this.children.concat(children);
         return this;
     }
 
-    prepend(...children: Array<XMLGen>): XMLGen {
+    public prepend(...children: XMLGen[]): XMLGen {
         this.children = children.concat(this.children);
         return this;
     }
 
-    appendTo(parent: XMLGen): XMLGen {
+    public appendTo(parent: XMLGen): XMLGen {
         parent.append(this);
         return this;
     }
 
-    insertAfter(siblingTagName: string, newElement: XMLGen): XMLGen {
+    public insertAfter(siblingTagName: string, newElement: XMLGen): XMLGen {
         let lastIndex = -1;
         for (let i = this.children.length; i--;) {
-            if (this.children[i].tagName == siblingTagName) {
+            if (this.children[i].tagName === siblingTagName) {
                 lastIndex = i;
             }
         }
@@ -85,10 +86,10 @@ export class XMLGen {
         return this;
     }
 
-    insertBefore(siblingTagName: string, newElement: XMLGen) {
+    public insertBefore(siblingTagName: string, newElement: XMLGen) {
         let firstIndex = -1;
         for (let i = this.children.length; i--;) {
-            if (this.children[i].tagName == siblingTagName) {
+            if (this.children[i].tagName === siblingTagName) {
                 firstIndex = i;
                 break;
             }
@@ -101,49 +102,49 @@ export class XMLGen {
         return this;
     }
 
-    prependTo(parent: XMLGen): XMLGen {
+    public prependTo(parent: XMLGen): XMLGen {
         parent.prepend(this);
         return this;
     }
 
-    html(html: string): XMLGen {
+    public html(html: string): XMLGen {
         this.htmlContent = html;
         return this;
     }
 
-    text(text: string): XMLGen {
+    public text(text: string): XMLGen {
         this.textContent = text;
         return this;
     }
 
-    getChildren(): Array<XMLGen> {
+    public getChildren(): XMLGen[] {
         return [].concat(this.children);
     }
 
-    getChildById(id: string): XMLGen {
+    public getChildById(id: string): XMLGen {
         for (let i = this.children.length; i--;) {
-            if (this.children[i].getAttribute('id') == id) {
+            if (this.children[i].getAttribute("id") === id) {
                 return this.children[i];
             }
         }
         return null;
     }
 
-    getChildrenByTagName(tagName: string): Array<XMLGen> {
-        let result: Array<XMLGen> = [];
+    public getChildrenByTagName(tagName: string): XMLGen[] {
+        const result: XMLGen[] = [];
         for (let i = this.children.length; i--;) {
-            if (this.children[i].tagName == tagName) {
+            if (this.children[i].tagName === tagName) {
                 result.push(this.children[i]);
             }
         }
         return result;
     }
 
-    getChildrenByAttribute(attribute: string, value?: string): Array<XMLGen> {
-        let result: Array<XMLGen> = [];
+    public getChildrenByAttribute(attribute: string, value?: string): XMLGen[] {
+        const result: XMLGen[] = [];
         for (let i = this.children.length; i--;) {
             if (this.children[i].attributes[attribute]) {
-                if (value === undefined || this.children[i].attributes[attribute] == value) {
+                if (value === undefined || this.children[i].attributes[attribute] === value) {
                     result.push(this.children[i]);
                 }
             }
@@ -151,32 +152,32 @@ export class XMLGen {
         return result;
     }
 
-    generate(indent: string = ''): string {
+    public generate(indent: string = ""): string {
         let code = `${indent}<${this.tagName}`;
         if (this.classNames.length) {
-            code += ` class="${this.classNames.join(' ')}"`;
+            code += ` class="${this.classNames.join(" ")}"`;
         }
-        for (let attr in this.attributes) {
+        for (const attr in this.attributes) {
             if (this.attributes.hasOwnProperty(attr)) {
                 code += ` ${attr}="${this.attributes[attr]}"`;
             }
         }
         if (this.noValueAttributes.length) {
-            code += ' ' + this.noValueAttributes.join(' ');
+            code += " " + this.noValueAttributes.join(" ");
         }
         if (this.isSingleTag) {
-            code += '/>';
+            code += "/>";
         } else {
-            code += '>';
+            code += ">";
             if (this.textContent) {
                 code += `${this.textContent}</${this.tagName}>`;
             } else if (this.htmlContent) {
                 code += `\n${indent}    ${this.htmlContent}\n${indent}</${this.tagName}>`;
             } else if (this.children.length) {
-                code += '\n';
-                this.children.forEach(child => {
+                code += "\n";
+                this.children.forEach((child) => {
                     code += child.generate(`${indent}    `);
-                    code += '\n';
+                    code += "\n";
                 });
                 code += `${indent}</${this.tagName}>`;
             } else {

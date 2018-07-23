@@ -3,10 +3,10 @@ import { writeFileSync } from "fs";
 import { genRelativePath, mkdir } from "../../../../util/FsUtil";
 import { plural } from "../../../../util/StringUtil";
 import { TsFileGen } from "../../../core/TSFileGen";
+import { Vesta } from "../../../file/Vesta";
 import { IFieldMeta } from "../../FieldGen";
 import { ModelGen } from "../../ModelGen";
 import { ICrudComponentGenConfig } from "../ComponentGen";
-import { Vesta } from "../../../file/Vesta";
 
 export class AddComponentGen {
     private className: string;
@@ -59,7 +59,7 @@ export class AddComponentGen {
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 addProps.addProperty({
                     name: pluralName,
-                    type: `Array<I${meta.relation.model}>`,
+                    type: `I${meta.relation.model}[]`,
                 });
                 extProps.push(pluralName);
                 extPassedProps.push(`${pluralName}={${pluralName}}`);
@@ -71,6 +71,7 @@ export class AddComponentGen {
         const addState = addFile.addInterface(`I${this.className}State`);
         // class
         const addClass = addFile.addClass(this.className);
+        addClass.shouldExport(true);
         addClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // render method
         addClass.addMethod("render")

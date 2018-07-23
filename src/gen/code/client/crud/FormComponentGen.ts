@@ -51,7 +51,7 @@ export class FormComponentGen {
         formFile.addImport(["IValidationError"], genRelativePath(path, `${appDir}/medium`));
         formFile.addImport(["IModelValidationMessage", "validationMessage"],
             genRelativePath(path, `${appDir}/util/Util`));
-        formFile.addImport(["FormWrapper", this.hasFieldOfType(FieldType.Enum) ? "FormOption" : null],
+        formFile.addImport(["FormWrapper", this.hasFieldOfType(FieldType.Enum) ? "IFormOption" : null],
             genRelativePath(path, `${appDir}/components/general/form/FormWrapper`));
         formFile.addImport([model.interfaceName],
             genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
@@ -69,13 +69,14 @@ export class FormComponentGen {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type !== RelationType.Many2Many;
+                const field = modelObject.schema.getField(fieldNames[i]);
+                const shouldBePlural = field.properties.relation.type !== RelationType.Many2Many;
                 formFile.addImport([`I${meta.relation.model}`],
                     genRelativePath(path, `${appDir}/cmn/models/${meta.relation.model}`));
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 formProps.addProperty({
                     name: pluralName,
-                    type: `Array<I${meta.relation.model}>`,
+                    type: `I${meta.relation.model}[]`,
                 });
                 extProps.push(pluralName);
             }
@@ -85,6 +86,7 @@ export class FormComponentGen {
         formState.addProperty({ name: model.instanceName, type: model.interfaceName });
         // class
         const formClass = formFile.addClass(this.className);
+        formClass.shouldExport(true);
         formClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // adding form error messages to class
         formClass.addProperty({ name: "formErrorsMessages", type: "IModelValidationMessage", access: "private" });
@@ -197,11 +199,13 @@ export class FormComponentGen {
                 break;
             case FieldType.Boolean:
                 component = "FormSelect";
-                const boolOptions = [`{id: 0, title: this.tr("no")}`, `{id: 1, title: this.tr("yes")}`];
+                const boolOptions = [`{ id: 0, title: this.tr("no") }`, `{ id: 1, title: this.tr("yes") }`];
                 const boolOptionName = `booleanOptions`;
+                formFile.addImport(["IFormOption"],
+                    genRelativePath(this.config.path, `${appDir}/components/general/form/FormWrapper`));
                 if (!this.writtenOnce.boolean) {
                     this.writtenOnce.boolean = true;
-                    code += `const ${boolOptionName}: Array<FormOption> = [\n\t\t${boolOptions.join(",\n\t\t")}];`;
+                    code += `const ${boolOptionName}: IFormOption[] = [\n\t\t\t${boolOptions.join(",\n\t\t\t")},\n\t\t];`;
                 }
                 properties.push(`options={${boolOptionName}}`);
                 break;
@@ -219,12 +223,12 @@ export class FormComponentGen {
                     }
                     const options = modelMeta.enum.options.map((option, index) => `{id: ${option}, title: this.tr("enum_${option.split(".")[1].toLowerCase()}")}`);
                     const optionName = `${fieldName}Options`;
-                    // code += `const ${optionName}: Array<{}> = ;`;
+                    // code += `const ${optionName}: any[] = ;`;
                     formClass.addProperty({
                         access: "private",
                         defaultValue: `[\n\t\t${options.join(",\n\t\t")}]`,
                         name: `${fieldName}Options`,
-                        type: "Array<FormOption>",
+                        type: "IFormOption[]",
                     });
                     properties.push(`options={this.${optionName}}`);
                 }
@@ -272,7 +276,7 @@ export class FormComponentGen {
             imports.push(component);
             form = `\n\t\t\t\t<${component} ${properties[0]} \n\t\t\t\t\t`;
             properties.shift();
-            form += `${properties.join(" ")}/>`;
+            form += `${properties.join(" ")} />`;
         }
         return { imports, form, code };
     }
@@ -385,7 +389,7 @@ export class FormComponentGen {
             }
             codes.push(`\n\t\t\t${fieldsName[i]}: {\n\t\t\t\t${code.join(",\n\t\t\t\t")},\n\t\t\t}`);
         }
-        return codes.length ? `{${codes.join(",")}\n\t\t}` : "";
+        return codes.length ? `{${codes.join(",")},\n\t\t};` : "";
     }
 
     private hasFieldOfType(type: FieldType) {

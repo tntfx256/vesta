@@ -2,7 +2,7 @@ import * as fse from "fs-extra";
 import { relative } from "path";
 import { Log } from "./Log";
 
-export function mkdir(...dirs: Array<string>): void {
+export function mkdir(...dirs: string[]): void {
     dirs.forEach((dir) => {
         // Log.info(`./> mkdir -p ${dir}`);
         try {
@@ -48,7 +48,7 @@ export function rename(src: string, dest: string) {
     }
 }
 
-export function remove(...path: Array<string>) {
+export function remove(...path: string[]) {
     path.forEach((p) => {
         Log.info(`./> rm -rf ${p}`);
         try {
@@ -65,7 +65,7 @@ export function unixPath(path: string) {
 
 export function genRelativePath(from: string, to: string): string {
     let relPath = relative(from, to).replace(/\\/g, "/").replace(/\.ts$/, "");
-    if (relPath.charAt(0) != ".") {
+    if (relPath.charAt(0) !== ".") {
         relPath = "./" + relPath;
     }
     return relPath;

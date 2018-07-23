@@ -59,21 +59,22 @@ export class ListComponentGen {
         // props
         const listProps = listFile.addInterface(`I${this.className}Props`);
         listProps.setParentClass(`IPageComponentProps<I${this.className}Params>`);
-        listProps.addProperty({ name: pluralModel, type: `Array<${model.interfaceName}>` });
+        listProps.addProperty({ name: pluralModel, type: `${model.interfaceName}[]` });
         listProps.addProperty({ name: "access", type: "IAccess" });
         listProps.addProperty({ name: "onFetch", type: `FetchAll<${model.interfaceName}>` });
         listProps.addProperty({ name: "queryOption", type: `IDataTableQueryOption<${model.interfaceName}>` });
         // state
         const listState = listFile.addInterface(`I${this.className}State`);
-        listState.addProperty({ name: pluralModel, type: `Array<I${model.originalClassName}>` });
+        listState.addProperty({ name: pluralModel, type: `I${model.originalClassName}[]` });
         // class
         const listClass = listFile.addClass(this.className);
+        listClass.shouldExport(true);
         listClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         listClass.addProperty({ name: "columns", type: `Array<IColumn<I${model.originalClassName}>>`, access: "private" });
         const { column, code } = this.getColumnsData(listFile);
         // constructor
         listClass.setConstructor();
-        listClass.getConstructor().addParameter({ name: "props", type: `${this.className}Props` });
+        listClass.getConstructor().addParameter({ name: "props", type: `I${this.className}Props` });
         let dateTimeCode = "";
         if (this.hasFieldOfType(FieldType.Timestamp)) {
             listFile.addImport(["Culture"], genRelativePath(this.config.path, `${appDir}/medium`));
@@ -81,12 +82,12 @@ export class ListComponentGen {
         const dateTimeFormat = Culture.getLocale().defaultDateFormat;`;
         }
         listClass.getConstructor().setContent(`super(props);
-        this.state = {${pluralModel}: []};${dateTimeCode}
+        this.state = { ${pluralModel}: [] };${dateTimeCode}
         this.columns = [${column}
             {
-                render: r => <DataTableOperations access={props.access} id={r.id} onDelete={this.onDelete} path="${stateName}"/>,
-                title: this.tr('operations'),
-            }
+                render: (r) => <DataTableOperations access={props.access} id={r.id} onDelete={this.onDelete} path="${stateName}" />,
+                title: this.tr("operations"),
+            },
         ];`);
         // fetch
         listClass.addMethod("componentDidMount").setContent(`this.props.onFetch(this.props.queryOption);`);
@@ -108,7 +109,7 @@ export class ListComponentGen {
         return (
             <div className="crud-page">
                 <DataTable columns={this.columns} records={${pluralModel}} queryOption={queryOption}
-                    fetch={onFetch} pagination={true}/>
+                    fetch={onFetch} pagination={true} />
             </div>
         );`);
         return listFile.generate();
@@ -171,13 +172,13 @@ export class ListComponentGen {
                     return dateTime.format(dateTimeFormat);`;
                 break;
             case FieldType.Boolean:
-                render = `this.tr(r.${fieldName} ? 'yes' : 'no')`;
+                render = `this.tr(r.${fieldName} ? "yes" : "no")`;
                 break;
             case FieldType.Enum:
                 if (modelMeta.enum) {
                     const listClass = file.getClass();
                     const enumName = camelCase(modelMeta.enum.options[0].split(".")[0]) + "Options";
-                    const options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr('enum_${option.split(".")[1].toLowerCase()}')`);
+                    const options = modelMeta.enum.options.map((option, index) => `${props.enum[index]}: this.tr("enum_${option.split(".")[1].toLowerCase()}")`);
                     // code = `const ${enumName} = {${options.join(', ')}};`;
                     render = `this.tr(this.${enumName}[r.${fieldName}])`;
                     listClass.addProperty({ name: enumName, access: "private", defaultValue: `{${options.join(", ")}}` });
@@ -186,14 +187,14 @@ export class ListComponentGen {
         }
         if (hasValue) {
             if (render) {
-                column = isRenderInline ? `{title: this.tr('fld_${fieldName}'), render: r => ${render}}` : `{
-                title: this.tr('fld_${fieldName}'),
-                render: r => {
+                column = isRenderInline ? `{ title: this.tr("fld_${fieldName}"), render: (r) => ${render} }` : `{
+                title: this.tr("fld_${fieldName}"),
+                render: (r) => {
                     ${render}
                 }
             }`;
             } else {
-                column = `{name: '${fieldName}', title: this.tr('fld_${fieldName}')}`;
+                column = `{ name: "${fieldName}", title: this.tr("fld_${fieldName}") }`;
             }
         }
         return { column, code };

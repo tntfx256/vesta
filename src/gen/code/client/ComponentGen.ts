@@ -178,11 +178,11 @@ Example:
 
         return (
             <div className="page ${kebabCase(stateName).toLowerCase()}-page has-navbar">
-                <PageTitle title={this.tr("mdl_${this.className.toLowerCase()}")}/>
-                <Navbar title={this.tr("mdl_${this.className.toLowerCase()}")} showBurger={true}/>
+                <PageTitle title={this.tr("mdl_${this.className.toLowerCase()}")} />
+                <Navbar title={this.tr("mdl_${this.className.toLowerCase()}")} showBurger={true} />
                 <h1>{this.tr("mdl_${this.className.toLowerCase()}")}</h1>
-                <Preloader show={showLoader}/>
-                <CrudMenu path="${stateName}" access={this.access}/>
+                <Preloader show={showLoader} />
+                <CrudMenu path="${stateName}" access={this.access} />
                 <div className="crud-wrapper">
                     <DynamicRouter>
                         <Switch>
@@ -324,7 +324,7 @@ Example:
         this.state = {};`);
         // render method
         const cssClass = this.config.isPage ? `page ${className}-page has-navbar` : `${className}`;
-        const navbar = this.config.isPage ? `\n\t\t\t\t<Navbar title={this.tr("${instanceName.toLowerCase()}")}/>` : "";
+        const navbar = this.config.isPage ? `\n\t\t\t\t<Navbar title={this.tr("${instanceName.toLowerCase()}")} />` : "";
         (componentClass.addMethod("render")).setContent(`return (
             <div className="${cssClass}">${navbar}
                 <h1>${this.className} Component</h1>
@@ -365,7 +365,7 @@ Example:
             stateInterface.addProperty({ name: "validationErrors", type: "IValidationError", isOptional: true });
             stateInterface.addProperty({
                 name: plural(this.model.instanceName),
-                type: `Array<${this.model.interfaceName}>`,
+                type: `${this.model.interfaceName}[]`,
             });
             stateInterface.addProperty({
                 name: "queryOption",
@@ -380,7 +380,7 @@ Example:
                     const isMany2Many = field.properties.relation.type === RelationType.Many2Many;
                     stateInterface.addProperty({
                         name: isMany2Many ? fieldNames[i] : plural(fieldNames[i]),
-                        type: `Array<I${meta.relation.model}>`,
+                        type: `I${meta.relation.model}[]`,
                     });
                 }
             }

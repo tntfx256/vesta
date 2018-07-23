@@ -61,7 +61,7 @@ export class EditComponentGen {
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
                 editProps.addProperty({
                     name: pluralName,
-                    type: `Array<I${meta.relation.model}>`,
+                    type: `I${meta.relation.model}[]`,
                 });
                 extProps.push(pluralName);
                 extPassedProps.push(`${pluralName}={${pluralName}}`);
@@ -73,6 +73,7 @@ export class EditComponentGen {
         const editState = editFile.addInterface(`I${this.className}State`);
         // class
         const editClass = editFile.addClass(this.className);
+        editClass.shouldExport(true);
         editClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // render method
         editClass.addMethod("render")
