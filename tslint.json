@@ -3,6 +3,7 @@
     "tslint:recommended"
   ],
   "rules": {
-    "no-empty-interface": false
+    "no-empty-interface": false,
+    "max-line-length": false
   }
 }

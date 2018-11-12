@@ -42,9 +42,7 @@ export class FieldGen {
         const meta: IFieldMeta = {};
         if ("form" in this.metaInfo) { meta.form = this.metaInfo.form; }
         if ("list" in this.metaInfo) { meta.list = this.metaInfo.list; }
-        // tslint:disable-next-line:max-line-length
         let code = `${this.modelFile.name}.schema.addField("${this.name}").type(${this.getCodeForFieldType(this.properties.type)})`;
-        // tslint:disable-next-line:max-line-length
         if (this.properties.type === FieldType.List) { code += `.listOf(${this.getCodeForFieldType(this.properties.list)})`; }
         if (this.properties.required) { code += ".required()"; }
         if (this.properties.primary) { code += ".primary()"; }
@@ -70,7 +68,6 @@ export class FieldGen {
         return code + ";";
     }
 
-    // tslint:disable-next-line:max-line-length
     public getNameTypePair(): { defaultValue: string, fieldName: string, fieldType: string, interfaceFieldType: string } {
         const fieldType = this.properties.type === FieldType.Enum ? this.enumName :
             this.getCodeForActualFieldType(this.properties.type);
@@ -303,7 +300,6 @@ export class FieldGen {
             qs.push({ name: "default", type: "input", message: "Default Value: " } as Question);
         }
         if (askForListnForm) {
-            // tslint:disable-next-line:max-line-length
             qs.push({ name: "showInList", type: "confirm", message: "Show in data table: ", default: true } as Question);
             qs.push({ name: "showInForm", type: "confirm", message: "Show in form: ", default: true } as Question);
         }

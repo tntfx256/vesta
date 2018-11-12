@@ -332,7 +332,6 @@ export class ModelGen {
         }
         for (let i = 0, il = fieldNames.length; i < il; ++i) {
             this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
-            // tslint:disable-next-line:max-line-length
             const { fieldName, fieldType, interfaceFieldType, defaultValue } = this.fields[fieldNames[i]].getNameTypePair();
             const property: IStructureProperty = {
                 access: ClassGen.Access.Public,

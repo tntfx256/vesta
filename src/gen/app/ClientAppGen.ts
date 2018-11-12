@@ -25,7 +25,6 @@ export class ClientAppGen {
         this.cloneTemplate();
         const dir = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
-        // tslint:disable-next-line:max-line-length
         const templateProjectName = GitGen.getRepoName(this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client);
         const replacePattern = { [templateProjectName]: dir };
         copy(`${dir}/resources/gitignore/variantConfig.ts`, `${dir}/src/app/config/variantConfig.ts`);

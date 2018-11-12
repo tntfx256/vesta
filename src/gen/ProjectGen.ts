@@ -51,7 +51,6 @@ export class ProjectGen {
         const isClientSideProject = this.config.type !== ProjectType.ApiServer;
         const projectName = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
-        // tslint:disable-next-line:max-line-length
         const projectTemplateName = GitGen.getRepoName(isClientSideProject ? (this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client) : templateRepo.api);
         const repoInfo = this.config.repository;
         const replacement = { [projectTemplateName]: kebabCase(this.config.name) };

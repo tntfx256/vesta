@@ -40,10 +40,9 @@ export class DetailComponentGen {
         const detailFile = new TsFileGen(this.className);
         // imports
         detailFile.addImport(["React"], "react", true);
-        detailFile.addImport(["FetchById", "PageComponent", "IPageComponentProps"],
-            genRelativePath(path, `${appDir}/components/PageComponent`));
-        detailFile.addImport([`I${model.originalClassName}`],
-            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
+        detailFile.addImport(["PageComponent", "IPageComponentProps"], genRelativePath(path, `${appDir}/components/PageComponent`));
+        detailFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
+        detailFile.addImport(["ModelService"], genRelativePath(path, `${appDir}/cmn/models/ModelService`));
         // params
         detailFile.addInterface(`I${this.className}Params`).addProperty({ name: "id", type: "number" });
         // props
@@ -56,12 +55,13 @@ export class DetailComponentGen {
         // class
         const detailClass = detailFile.addClass(this.className);
         detailClass.shouldExport(true);
+        detailClass.addProperty({ name: "service", access: "private", defaultValue: `ModelService.getService<${model.interfaceName}>("${model.instanceName}")` });
         detailClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         detailClass.getConstructor().addParameter({ name: "props", type: `I${this.className}Props` });
         detailClass.getConstructor().setContent(`super(props);
         this.state = {${model.instanceName}: {}};`);
         // fetch
-        detailClass.addMethod("componentDidMount").setContent(`this.props.onFetch(+this.props.match.params.id)
+        detailClass.addMethod("componentDidMount").setContent(`this.service.fetch(+this.props.match.params.id)
             .then((${model.instanceName}) => this.setState({${model.instanceName}}));`);
         const { field, code } = this.getDetailsData(detailFile);
         // render method

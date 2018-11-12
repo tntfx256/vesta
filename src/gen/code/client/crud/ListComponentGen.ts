@@ -2,6 +2,7 @@ import { Field, FieldType, IFieldProperties, Schema } from "@vesta/core";
 import { writeFileSync } from "fs";
 import { genRelativePath, mkdir } from "../../../../util/FsUtil";
 import { camelCase, plural } from "../../../../util/StringUtil";
+import { ClassGen } from "../../../core/ClassGen";
 import { TsFileGen } from "../../../core/TSFileGen";
 import { Vesta } from "../../../file/Vesta";
 import { IFieldMeta } from "../../FieldGen";
@@ -42,18 +43,12 @@ export class ListComponentGen {
         // imports
         listFile.addImport(["React"], "react", true);
         listFile.addImport(["Link"], "react-router-dom");
-        listFile.addImport(["PageComponent", "IPageComponentProps", "FetchAll"],
-            genRelativePath(path, `${appDir}/components/PageComponent`));
-        listFile.addImport([`I${model.originalClassName}`],
-            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
-        listFile.addImport(["IColumn", "DataTable", "IDataTableQueryOption"],
-            genRelativePath(path, `${appDir}/components/general/DataTable`));
-        listFile.addImport(["IDeleteResult"],
-            genRelativePath(path, `${appDir}/medium`));
-        listFile.addImport(["IAccess"],
-            genRelativePath(path, `${appDir}/service/AuthService`));
-        listFile.addImport(["DataTableOperations"],
-            genRelativePath(path, `${appDir}/components/general/DataTableOperations`));
+        listFile.addImport(["PageComponent", "IPageComponentProps"], genRelativePath(path, `${appDir}/components/PageComponent`));
+        listFile.addImport([`I${model.originalClassName}`], genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
+        listFile.addImport(["IColumn", "DataTable", "IDataTableQueryOption"], genRelativePath(path, `${appDir}/components/general/DataTable`));
+        listFile.addImport(["IDeleteResult"], genRelativePath(path, `${appDir}/medium`));
+        listFile.addImport(["IAccess"], genRelativePath(path, `${appDir}/service/AuthService`));
+        listFile.addImport(["DataTableOperations"], genRelativePath(path, `${appDir}/components/general/DataTableOperations`));
         // params
         listFile.addInterface(`I${this.className}Params`);
         // props
@@ -91,6 +86,37 @@ export class ListComponentGen {
         ];`);
         // fetch
         listClass.addMethod("componentDidMount").setContent(`this.props.onFetch(this.props.queryOption);`);
+        // fetchAll method
+        const fetchAllMethod = listClass.addMethod(`onFetchAll`, ClassGen.Access.Private);
+        fetchAllMethod.setAsArrowFunction(true);
+        fetchAllMethod.addParameter({ name: "queryOption", type: `IDataTableQueryOption<${model.interfaceName}>` });
+        fetchAllMethod.setContent(`this.setState({ showLoader: true, queryOption });
+        this.onFetchCount(queryOption);
+        this.api.get<${model.interfaceName}>("${stateName}", queryOption)
+            .then((response) => {
+                this.setState({ showLoader: false, ${plural(model.instanceName)}: response.items });
+            })
+            .catch((error) => {
+                this.setState({ showLoader: false, validationErrors: error.violations });
+                this.notif.error(error.message);
+            });`);
+        // fetchCount method
+        const fetchCountMethod = listClass.addMethod(`onFetchCount`, ClassGen.Access.Private);
+        fetchCountMethod.setAsArrowFunction(true);
+        fetchCountMethod.addParameter({
+            name: "queryOption",
+            type: `IDataTableQueryOption<${model.interfaceName}>`,
+        });
+        fetchCountMethod.setContent(`this.api.get<${model.interfaceName}>("${stateName}/count", queryOption)
+            .then((response) => {
+                this.state.queryOption.total = response.total;
+                this.setState({ queryOption: this.state.queryOption });
+            })
+            .catch((error) => {
+                this.state.queryOption.total = 0;
+                this.setState({ queryOption: this.state.queryOption });
+                this.notif.error(error.message);
+            });`);
         // delete action
         const delMethod = listClass.addMethod("onDelete", "private");
         delMethod.addParameter({ name: "id" });

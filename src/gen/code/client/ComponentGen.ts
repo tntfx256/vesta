@@ -147,7 +147,7 @@ Example:
         const extStatesCode = extStates.length ? `,\n\t\t\t${extStates.join(",\n\t\t\t")}` : "";
         componentClass.getConstructor().setContent(`super(props);
         this.access = this.auth.getAccessList("${stateName}");
-        this.state = { ${plural(this.model.instanceName)}: [], queryOption: { page: 1, limit: this.pagination.itemsPerPage }${extStatesCode} };`);
+        this.state = { ${plural(this.model.instanceName)}: [], queryOption: { page: 1, limit: 20 }${extStatesCode} };`);
         // fetching relation on component did mount
         const extraProps = [];
         const fetchCallers = [];
@@ -174,145 +174,31 @@ Example:
         const model = this.model;
         // render method
         const modelClassName = this.model.originalClassName;
-        (componentClass.addMethod("render")).setContent(`const {showLoader, ${plural(model.instanceName)}, queryOption, validationErrors${extraPropsCode}} = this.state;
+        (componentClass.addMethod("render")).setContent(`
+        const add = this.access.add ?
+            <Route path="/${stateName}/add" render={this.tz(${modelClassName}Add, {${stateName}: ["add"]})} /> : null;
+        const edit = this.access.edit ?
+            <Route path="/${stateName}/edit/:id" render={this.tz(${modelClassName}Edit, {${stateName}: ["edit"]})} /> : null;
 
         return (
             <div className="page ${kebabCase(stateName).toLowerCase()}-page has-navbar">
                 <PageTitle title={this.tr("mdl_${this.className.toLowerCase()}")} />
                 <Navbar title={this.tr("mdl_${this.className.toLowerCase()}")} showBurger={true} />
                 <h1>{this.tr("mdl_${this.className.toLowerCase()}")}</h1>
-                <Preloader show={showLoader} />
                 <CrudMenu path="${stateName}" access={this.access} />
+
                 <div className="crud-wrapper">
                     <DynamicRouter>
                         <Switch>
-                            {this.access.add ? <Route path="/${stateName}/add" render={this.tz(${modelClassName}Add, {${stateName}: ["add"]}, { onSave: this.onSave, validationErrors${extraPropsCode} })} /> : null}
-                            {this.access.edit ? <Route path="/${stateName}/edit/:id" render={this.tz(${modelClassName}Edit, {${stateName}: ["edit"]}, { onSave: this.onSave, onFetch: this.onFetch, validationErrors${extraPropsCode} })} /> : null}
-                            <Route path="/${stateName}/detail/:id" render={this.tz(${modelClassName}Detail, {${stateName}: ["read"]}, { onFetch: this.onFetch })} />
+                            {add}
+                            {edit}
+                            <Route path="/${stateName}/detail/:id" render={this.tz(${modelClassName}Detail, {${stateName}: ["read"]})} />
                         </Switch>
                     </DynamicRouter>
-                    <${modelClassName}List access={this.access} onFetch={this.onFetchAll} queryOption={queryOption} ${plural(this.model.instanceName)}={${plural(this.model.instanceName)}} />
+                    <${modelClassName}List access={this.access} />
                 </div>
             </div>
         );`);
-        // fetch method
-        const fetchMethod = componentClass.addMethod(`onFetch`, ClassGen.Access.Private);
-        fetchMethod.setAsArrowFunction(true);
-        fetchMethod.addParameter({ name: "id", type: "number" });
-        fetchMethod.setContent(`this.setState({ showLoader: true });
-        return this.api.get<${model.interfaceName}>(\`${stateName}/\${id}\`)
-            .then((response) => {
-                this.setState({ showLoader: false });
-                return response.items[0];
-            })
-            .catch((error) => {
-                this.setState({ showLoader: false });
-                this.notif.error(error.message);
-            });`);
-        // fetchAll method
-        const fetchAllMethod = componentClass.addMethod(`onFetchAll`, ClassGen.Access.Private);
-        fetchAllMethod.setAsArrowFunction(true);
-        fetchAllMethod.addParameter({ name: "queryOption", type: `IDataTableQueryOption<${this.model.interfaceName}>` });
-        fetchAllMethod.setContent(`this.setState({ showLoader: true, queryOption });
-        this.onFetchCount(queryOption);
-        this.api.get<${model.interfaceName}>("${stateName}", queryOption)
-            .then((response) => {
-                this.setState({ showLoader: false, ${plural(this.model.instanceName)}: response.items });
-            })
-            .catch((error) => {
-                this.setState({ showLoader: false, validationErrors: error.violations });
-                this.notif.error(error.message);
-            });`);
-        // fetchCount method
-        const fetchCountMethod = componentClass.addMethod(`onFetchCount`, ClassGen.Access.Private);
-        fetchCountMethod.setAsArrowFunction(true);
-        fetchCountMethod.addParameter({
-            name: "queryOption",
-            type: `IDataTableQueryOption<${this.model.interfaceName}>`,
-        });
-        fetchCountMethod.setContent(`this.api.get<${model.interfaceName}>("${stateName}/count", queryOption)
-            .then((response) => {
-                this.state.queryOption.total = response.total;
-                this.setState({ queryOption: this.state.queryOption });
-            })
-            .catch((error) => {
-                this.state.queryOption.total = 0;
-                this.setState({ queryOption: this.state.queryOption });
-                this.notif.error(error.message);
-            });`);
-        // save method
-        // files
-        const fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
-        const files = fileFields ? Object.keys(fileFields) : [];
-        const resultCode = `this.setState({ showLoader: false });
-                this.notif.success(this.tr("info_save_record"));
-                this.onFetchAll(this.state.queryOption);
-                this.props.history.goBack();`;
-        let deleteCode = "";
-        let uploadCode = "";
-        let uploadResultCode = "";
-        if (files.length) {
-            deleteCode = `\n\t\tlet hasFile = false;
-        const ${model.instanceName}Files: ${model.interfaceName} = {};`;
-            for (let i = files.length; i--;) {
-                const fieldName = files[0];
-                deleteCode += `\n\t\tif (${model.instanceName}.${fieldName} && ${model.instanceName}.${fieldName} instanceof File) {
-            ${model.instanceName}Files.${fieldName} = ${model.instanceName}.${fieldName};
-            delete ${model.instanceName}.${fieldName};
-            hasFile = true;
-        }`;
-            }
-            uploadCode = `hasFile ? this.api.upload<${model.interfaceName}>(\`${model.instanceName}/file/\${response.items[0].id}\`, ${model.instanceName}Files) : response`;
-            uploadResultCode = `\n\t\t\t.then((response) => {
-                ${resultCode}
-            })`;
-        } else {
-            uploadCode = `{
-                ${resultCode}
-            }`;
-        }
-        const saveMethod = componentClass.addMethod(`onSave`, "private");
-        saveMethod.setAsArrowFunction(true);
-        saveMethod.addParameter({ name: "model", type: model.interfaceName });
-        saveMethod.setContent(`const ${model.instanceName} = new ${model.className}(model);
-        const validationErrors = ${model.instanceName}.validate();
-        if (validationErrors) {
-            return this.setState({validationErrors});
-        }${deleteCode}
-        this.setState({ showLoader: true, validationErrors: null });
-        const data = ${model.instanceName}.getValues<${model.interfaceName}>();
-        (model.id ? this.api.put<${model.interfaceName}>("${model.instanceName}", data) : this.api.post<${model.interfaceName}>("${model.instanceName}", data))
-            .then((response) => ${uploadCode})${uploadResultCode}
-            .catch((error) => {
-                this.setState({ showLoader: false, validationErrors: error.violations });
-                this.notif.error(error.message);
-            });`);
-        // fetch functions for relations
-        if (this.relationalFields) {
-            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
-                const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                const field = modelObject.schema.getField(fieldNames[i]);
-                if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = field.properties.relation.type !== RelationType.Many2Many;
-                const methodPostfix = pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i]);
-                const stateVar = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
-                const method = componentClass.addMethod(`fetch${methodPostfix}`);
-                if (meta.relation && meta.relation.model) {
-                    const modelName = meta.relation.model;
-                    const instanceName = camelCase(modelName);
-                    method.setAsArrowFunction(true);
-                    method.setContent(`this.setState({showLoader: true});
-        this.api.get<I${modelName}>("${instanceName}")
-            .then((response) => {
-                this.setState({showLoader: false, ${stateVar}: response.items});
-            })
-            .catch((error) => {
-                this.setState({showLoader: false, validationErrors: error.violations});
-                this.notif.error(error.message);
-            });`);
-                }
-            }
-        }
         writeFileSync(`${this.path}/${this.className}.tsx`, componentFile.generate());
     }
 
@@ -339,11 +225,9 @@ Example:
         const path = `${scssDir}/${relPath}`;
         mkdir(path);
         const className = kebabCase(this.className).toLowerCase();
-        // tslint:disable-next-line:max-line-length
         writeFileSync(`${path}/_${className}.scss`, `.${className}${this.config.isPage ? "-page" : ""} {\n\n}`, { encoding: "utf8" });
         const importStatement = `@import '${relPath}/${className}';`;
         const replace = this.config.isPage ? "// <vesta:scssPageComponent/>" : "// <vesta:scssComponent/>";
-        // tslint:disable-next-line:max-line-length
         findInFileAndReplace(`${scssDir}/_common.scss`, { [replace]: `${importStatement}\n${replace}` }, (code) => code.indexOf(importStatement) < 0);
     }
 
@@ -356,7 +240,7 @@ Example:
         }
         // props
         const propsInterface = componentFile.addInterface(`I${this.className}Props`);
-        const propsParentClass = this.config.isPage ? `IPageComponentProps${params}` : `IBaseComponentProps${params}`;
+        const propsParentClass = this.config.isPage ? `IPageComponentProps${params}` : `IBaseComponentProps`;
         propsInterface.setParentClass(propsParentClass);
         // state
         const stateInterface = componentFile.addInterface(`I${this.className}State`);
@@ -462,7 +346,7 @@ Example:
         return `import React from "react";
 import { IBaseComponentProps } from "${importPath}";${params}
 
-interface I${this.className}Props extends IBaseComponentProps${params ? `<I${this.className}Params>` : ""} {
+interface I${this.className}Props extends IBaseComponentProps {
 }
 
 export const ${this.className} = (props: I${this.className}Props) => {

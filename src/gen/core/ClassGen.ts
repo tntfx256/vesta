@@ -23,7 +23,6 @@ export class ClassGen extends AbstractStructureGen {
         super(name);
     }
 
-    // tslint:disable-next-line:max-line-length
     public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false, isAsync: boolean = false): MethodGen {
         const method = super.addMethod(name);
         method.setAccessType(access);

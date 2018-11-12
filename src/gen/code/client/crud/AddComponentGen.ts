@@ -1,16 +1,11 @@
-import { FieldType, IModelFields, RelationType } from "@vesta/core";
 import { writeFileSync } from "fs";
 import { genRelativePath, mkdir } from "../../../../util/FsUtil";
-import { plural } from "../../../../util/StringUtil";
 import { TsFileGen } from "../../../core/TSFileGen";
 import { Vesta } from "../../../file/Vesta";
-import { IFieldMeta } from "../../FieldGen";
-import { ModelGen } from "../../ModelGen";
 import { ICrudComponentGenConfig } from "../ComponentGen";
 
 export class AddComponentGen {
     private className: string;
-    private relationalFields: IModelFields;
 
     constructor(private config: ICrudComponentGenConfig) {
         this.className = `${config.modelConfig.originalClassName}Add`;
@@ -18,7 +13,6 @@ export class AddComponentGen {
     }
 
     public generate() {
-        this.relationalFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
         const code = this.genCrudAddComponent();
         // generate file
         writeFileSync(`${this.config.path}/${this.className}.tsx`, code);
@@ -27,46 +21,18 @@ export class AddComponentGen {
     private genCrudAddComponent() {
         const model = this.config.modelConfig;
         const path = this.config.path;
-        const modelObject = ModelGen.getModel(this.config.modelConfig.originalClassName);
         const formClassName = `${this.config.modelConfig.originalClassName}Form`;
         const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
         // ts file
         const addFile = new TsFileGen(this.className);
         // imports
         addFile.addImport(["React"], "react", true);
-        addFile.addImport(["IValidationError"], genRelativePath(path, `${appDir}/medium`));
-        addFile.addImport(["PageComponent", "IPageComponentProps", "Save"],
-            genRelativePath(path, `${appDir}/components/PageComponent`));
+        addFile.addImport(["PageComponent", "IPageComponentProps"], genRelativePath(path, `${appDir}/components/PageComponent`));
         addFile.addImport([formClassName], `./${formClassName}`);
-        addFile.addImport([model.interfaceName],
-            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
         // params
         addFile.addInterface(`I${this.className}Params`);
         // props
         const addProps = addFile.addInterface(`I${this.className}Props`);
-        addProps.setParentClass(`IPageComponentProps<I${this.className}Params>`);
-        addProps.addProperty({ name: "onSave", type: `Save<${model.interfaceName}>` });
-        addProps.addProperty({ name: "validationErrors", type: "IValidationError" });
-        const extProps = [];
-        const extPassedProps = [];
-        if (this.relationalFields) {
-            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
-                const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
-                if (!meta.form || !meta.relation.showAllOptions) { continue; }
-                const shouldBePlural = modelObject.schema.getField(fieldNames[i]).properties.relation.type != RelationType.Many2Many;
-                addFile.addImport([`I${meta.relation.model}`],
-                    genRelativePath(path, `${appDir}/cmn/models/${meta.relation.model}`));
-                const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
-                addProps.addProperty({
-                    name: pluralName,
-                    type: `I${meta.relation.model}[]`,
-                });
-                extProps.push(pluralName);
-                extPassedProps.push(`${pluralName}={${pluralName}}`);
-            }
-        }
-        const extPropsCode = extProps.length ? `, ${extProps.join(", ")}` : "";
-        const extPassedPropsCode = extPassedProps.length ? ` ${extPassedProps.join(" ")}` : "";
         // state
         const addState = addFile.addInterface(`I${this.className}State`);
         // class
@@ -75,21 +41,24 @@ export class AddComponentGen {
         addClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
         // render method
         addClass.addMethod("render")
-            .setContent(`const { onSave, validationErrors${extPropsCode}, history } = this.props;
-
+            .setContent(`
         return (
             <div className="crud-page">
                 <h1>{this.tr("title_record_add", this.tr("${model.originalClassName.toLowerCase()}"))}</h1>
-                <${formClassName} onSave={onSave}
-                    validationErrors={validationErrors}${extPassedPropsCode}>
+                <${formClassName} goBack={this.goBack}>
                     <div className="btn-group">
                         <button className="btn btn-primary" type="submit">{this.tr("add")}</button>
                         <button className="btn btn-outline" type="button"
-                            onClick={history.goBack}>{this.tr("cancel")}</button>
+                            onClick={this.goBack}>{this.tr("cancel")}</button>
                     </div>
                 </${formClassName}>
             </div>
         );`);
+
+        const gbMethod = addClass.addMethod("goBack", "private");
+        gbMethod.setAsArrowFunction(true);
+        gbMethod.setContent(`this.props.history.goBack();`);
+
         return addFile.generate();
     }
 }

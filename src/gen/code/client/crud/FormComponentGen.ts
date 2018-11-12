@@ -45,49 +45,39 @@ export class FormComponentGen {
         // ts file
         const formFile = new TsFileGen(this.className);
         // imports
+        const enumType = this.hasFieldOfType(FieldType.Enum) ? "IFormOption" : null;
         formFile.addImport(["React"], "react", true);
-        formFile.addImport(["FetchById", "PageComponent", "IPageComponentProps", "Save"],
-            genRelativePath(path, `${appDir}/components/PageComponent`));
+        formFile.addImport(["Component"], "react");
         formFile.addImport(["IValidationError"], genRelativePath(path, `${appDir}/medium`));
-        formFile.addImport(["IModelValidationMessage", "validationMessage"],
-            genRelativePath(path, `${appDir}/util/Util`));
-        formFile.addImport(["FormWrapper", this.hasFieldOfType(FieldType.Enum) ? "IFormOption" : null],
-            genRelativePath(path, `${appDir}/components/general/form/FormWrapper`));
-        formFile.addImport([model.interfaceName],
-            genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
-        // params
-        formFile.addInterface(`I${this.className}Params`);
+        formFile.addImport(["IModelValidationMessage", "validationMessage"], genRelativePath(path, `${appDir}/util/Util`));
+        formFile.addImport(["FormWrapper", enumType], genRelativePath(path, `${appDir}/components/general/form/FormWrapper`));
+        formFile.addImport([model.interfaceName], genRelativePath(path, `${appDir}/cmn/models/${model.originalClassName}`));
         // props
-        const extProps = [];
         const formProps = formFile.addInterface(`I${this.className}Props`);
-        formProps.setParentClass(`IPageComponentProps<I${this.className}Params>`);
+        formProps.setParentClass(`IBaseComponentProps`);
         formProps.addProperty({ name: "id", type: "number", isOptional: true });
-        formProps.addProperty({ name: "onFetch", type: `FetchById<${model.interfaceName}>`, isOptional: true });
-        formProps.addProperty({ name: "onSave", type: `Save<${model.interfaceName}>` });
-        formProps.addProperty({ name: "validationErrors", type: "IValidationError" });
+        formProps.addProperty({ name: "goBack", type: `() => void` });
+        // state
+        const formState = formFile.addInterface(`I${this.className}State`);
+        formState.addProperty({ name: model.instanceName, type: model.interfaceName });
+        formState.addProperty({ name: "validationErrors", type: "IValidationError", isOptional: true });
+        const extStates = [];
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
                 if (!meta.form || !meta.relation.showAllOptions) { continue; }
                 const field = modelObject.schema.getField(fieldNames[i]);
                 const shouldBePlural = field.properties.relation.type !== RelationType.Many2Many;
-                formFile.addImport([`I${meta.relation.model}`],
-                    genRelativePath(path, `${appDir}/cmn/models/${meta.relation.model}`));
                 const pluralName = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
-                formProps.addProperty({
-                    name: pluralName,
-                    type: `I${meta.relation.model}[]`,
-                });
-                extProps.push(pluralName);
+                formFile.addImport([`I${meta.relation.model}`], genRelativePath(path, `${appDir}/cmn/models/${meta.relation.model}`));
+                formState.addProperty({ name: pluralName, type: `I${meta.relation.model}[]` });
+                extStates.push(pluralName);
             }
         }
-        // state
-        const formState = formFile.addInterface(`I${this.className}State`);
-        formState.addProperty({ name: model.instanceName, type: model.interfaceName });
         // class
         const formClass = formFile.addClass(this.className);
         formClass.shouldExport(true);
-        formClass.setParentClass(`PageComponent<I${this.className}Props, I${this.className}State>`);
+        formClass.setParentClass(`Component<I${this.className}Props, I${this.className}State>`);
         // adding form error messages to class
         formClass.addProperty({ name: "formErrorsMessages", type: "IModelValidationMessage", access: "private" });
         // constructor
@@ -114,14 +104,13 @@ export class FormComponentGen {
         }
         formClass.addMethod("componentDidMount").setContent(`const id = +this.props.id;
         if (isNaN(id)) { return; }
-        this.props.onFetch(id)
+        this.service.fetch(id)
             .then((${model.instanceName}) => ${finalCode});`);
         // render
         const formData = this.getFormData(formFile);
-        const extPropsCode = extProps.length ? `, ${extProps.join(", ")}` : "";
+        const extStateCode = extStates.length ? `, ${extStates.join(", ")}` : "";
         const extraCode = formData.code ? `\n\t\t${formData.code}` : "";
-        formClass.addMethod("render").setContent(`const { validationErrors${extPropsCode} } = this.props;
-        const { ${model.instanceName} } = this.state;
+        formClass.addMethod("render").setContent(`const { ${model.instanceName}, validationErrors${extStateCode} } = this.state;
         const errors = validationErrors ? validationMessage(this.formErrorsMessages, validationErrors) : {};${extraCode}
 
         return (
@@ -134,13 +123,98 @@ export class FormComponentGen {
         onChange.setAsArrowFunction(true);
         onChange.addParameter({ name: "name", type: "string" });
         onChange.addParameter({ name: "value", type: "any" });
-        onChange.setContent(`this.state.${model.instanceName}[name] = value;
-        this.setState({ ${model.instanceName}: this.state.${model.instanceName} });`);
+        onChange.setContent(`const { ${model.instanceName} } = this.state;
+        ${model.instanceName}[name] = value;
+        this.setState({ ${model.instanceName} });`);
         // onSubmit method
         const onSubmit = formClass.addMethod("onSubmit", "private");
         onSubmit.setAsArrowFunction(true);
-        onSubmit.addParameter({ name: "e", type: "Event" });
-        onSubmit.setContent(`this.props.onSave(this.state.${model.instanceName});`);
+        onSubmit.setContent(`const {} = this.state;
+        this.service.submit(this.state.${model.instanceName});`);
+        // // fetch method
+        const fetchMethod = formClass.addMethod(`onFetch`, ClassGen.Access.Private);
+        fetchMethod.setAsArrowFunction(true);
+        fetchMethod.addParameter({ name: "id", type: "number" });
+        fetchMethod.setContent(`this.setState({ showLoader: true });
+        return this.api.get<${model.interfaceName}>(\`${model.instanceName}/\${id}\`)
+            .then((response) => {
+                this.setState({ showLoader: false });
+                return response.items[0];
+            })
+            .catch((error) => {
+                this.setState({ showLoader: false });
+                this.notif.error(error.message);
+            });`);
+        // save method
+        // files
+        // const fileFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+        // const files = fileFields ? Object.keys(fileFields) : [];
+        const resultCode = `this.setState({ showLoader: false });
+                this.notif.success(this.tr("info_save_record"));
+                this.onFetchAll(this.state.queryOption);
+                this.props.history.goBack();`;
+        let deleteCode = "";
+        let uploadCode = "";
+        let uploadResultCode = "";
+        if (files.length) {
+            deleteCode = `\n\t\tlet hasFile = false;
+        const ${model.instanceName}Files: ${model.interfaceName} = {};`;
+            for (let i = files.length; i--;) {
+                const fieldName = files[0];
+                deleteCode += `\n\t\tif (${model.instanceName}.${fieldName} && ${model.instanceName}.${fieldName} instanceof File) {
+            ${model.instanceName}Files.${fieldName} = ${model.instanceName}.${fieldName};
+            delete ${model.instanceName}.${fieldName};
+            hasFile = true;
+        }`;
+            }
+            uploadCode = `this.api.upload<${model.interfaceName}>(\`${model.instanceName}/file/\${response.items[0].id}\`, ${model.instanceName}Files) : response`;
+            uploadResultCode = `\n\t\t\t.then((response) => {
+                ${resultCode}
+            })`;
+        } else {
+            uploadCode = `{
+                ${resultCode}
+            }`;
+        }
+        const saveMethod = formClass.addMethod(`onSave`, "private");
+        saveMethod.setAsArrowFunction(true);
+        saveMethod.addParameter({ name: "model", type: model.interfaceName });
+        saveMethod.setContent(`const ${model.instanceName} = new ${model.className}(model);
+        const validationErrors = ${model.instanceName}.validate();
+        if (validationErrors) {
+            return this.setState({validationErrors});
+        }${deleteCode}
+        this.setState({ showLoader: true, validationErrors: null });
+        const data = ${model.instanceName}.getValues<${model.interfaceName}>();
+        (model.id ? this.api.put<${model.interfaceName}>("${model.instanceName}", data) : this.api.post<${model.interfaceName}>("${model.instanceName}", data))
+            .then((response) => ${uploadCode})${uploadResultCode}
+            .catch((error) => {
+                this.setState({ showLoader: false, validationErrors: error.violations });
+                this.notif.error(error.message);
+            });`);
+        // fetch functions for relations
+        if (this.relationalFields) {
+            for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
+                const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
+                const field = modelObject.schema.getField(fieldNames[i]);
+                if (!meta.form || !meta.relation.showAllOptions) { continue; }
+                const shouldBePlural = field.properties.relation.type !== RelationType.Many2Many;
+                const methodPostfix = pascalCase(shouldBePlural ? plural(fieldNames[i]) : fieldNames[i]);
+                const stateVar = shouldBePlural ? plural(fieldNames[i]) : fieldNames[i];
+                const method = formClass.addMethod(`fetch${methodPostfix}`);
+                if (meta.relation && meta.relation.model) {
+                    const modelName = meta.relation.model;
+                    const instanceName = camelCase(modelName);
+                    method.setAsArrowFunction(true);
+                    method.setContent(`Preloader.show();
+        ModelService.getService<I${modelName}>("${instanceName}").fetchAll()
+            .then((${stateVar}) => {
+                this.setState({ ${stateVar}});
+                Preloader.hide();
+            });`);
+                }
+            }
+        }
         return formFile.generate();
     }
 
