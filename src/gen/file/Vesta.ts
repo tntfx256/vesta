@@ -51,12 +51,11 @@ export class Vesta {
                     if ("vesta" in packageData) {
                         this.vesta = packageData.vesta;
                     } else {
-                        Log.error("`vesta.json` not found. Make sure you are in the correct directory");
+                        Log.error("`vesta` not found in `package.json` file. Make sure you are in the correct directory", true);
                     }
                 }
                 if (!existsSync(this.path)) {
-                    Log.error("`package.json` not found. Make sure you are in the correct directory");
-                    process.exit();
+                    Log.error("`package.json` not found. Make sure you are in the correct directory", true);
                 }
                 if (update) {
                     this.generate();
