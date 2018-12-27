@@ -22,7 +22,7 @@ export class AddComponentGen {
         const model = this.config.modelConfig;
         const path = this.config.path;
         const formClassName = `${this.config.modelConfig.originalClassName}Form`;
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         // ts file
         const addFile = new TsFileGen(this.className);
         // imports

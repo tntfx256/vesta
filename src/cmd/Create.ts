@@ -21,9 +21,6 @@ export class Create {
                 projectConfig.server = {};
                 break;
             case "admin":
-                projectConfig.type = ProjectType.AdminPanel;
-                projectConfig.client = {};
-                break;
             case "client":
                 projectConfig.type = ProjectType.ClientApplication;
                 projectConfig.client = {};

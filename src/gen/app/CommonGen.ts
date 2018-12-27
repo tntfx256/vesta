@@ -38,7 +38,7 @@ export class CommonGen {
         if (!this.config.repository.common) { return; }
         const cwd = this.config.name;
         const repo = this.config.repository;
-        const cmnDir = this.vesta.getCmnDirectory(true);
+        const cmnDir = this.vesta.directories.cmn;
         remove(`${cwd}/${cmnDir}`);
         return execute(`git submodule add ${repo.common} ${cmnDir}`, { cwd });
     }
@@ -64,7 +64,7 @@ export class CommonGen {
 
     private initWithoutSubModule() {
         const dir = this.config.name;
-        const destDir = pathJoin(dir, this.vesta.getCmnDirectory(true));
+        const destDir = pathJoin(dir, this.vesta.directories.cmn);
         mkdir(destDir);
         GitGen.clone(PlatformConfig.getRepository().cmn, destDir);
         finalizeClonedTemplate(destDir);

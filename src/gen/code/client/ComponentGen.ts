@@ -94,10 +94,7 @@ Example:
     private relationalFields: IModelFields;
 
     constructor(private config: IComponentGenConfig) {
-        if (Vesta.getInstance().isNewV2()) {
-            this.path = "src/app/components/";
-        }
-        this.path += config.path;
+        this.path = `${Vesta.getInstance().directories.components}/${config.path}`;
         this.className = fcUpper(config.name);
         mkdir(this.path);
     }
@@ -151,7 +148,7 @@ Example:
         // fetching relation on component did mount
         const extraProps = [];
         const fetchCallers = [];
-        const cmnDir = Vesta.getInstance().isNewV2() ? "src/app/cmn" : "src/client/app/cmn";
+        const cmnDir = Vesta.getInstance().directories.cmn;
         if (this.relationalFields) {
             for (let fieldNames = Object.keys(this.relationalFields), i = 0, il = fieldNames.length; i < il; ++i) {
                 const meta: IFieldMeta = ModelGen.getFieldMeta(this.config.model, fieldNames[i]);
@@ -221,7 +218,7 @@ Example:
     private createScss() {
         if (!this.config.hasStyle) { return; }
         const relPath = `components/${this.config.path}`;
-        const scssDir = Vesta.getInstance().isNewV2() ? "src/scss" : "src/client/scss";
+        const scssDir = Vesta.getInstance().directories.sass;
         const path = `${scssDir}/${relPath}`;
         mkdir(path);
         const className = kebabCase(this.className).toLowerCase();
@@ -289,7 +286,7 @@ Example:
 
     private genComponentFile(): TsFileGen {
         const componentFile = new TsFileGen(this.className);
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         componentFile.addImport(["React"], "react", true);
         if (this.config.isPage) {
             componentFile.addImport(["PageComponent", "IPageComponentProps"],
@@ -340,7 +337,7 @@ Example:
     private genStateless() {
         const cmpName = camelCase(this.className);
         const className = kebabCase(cmpName).toLowerCase();
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         const importPath = genRelativePath(this.path, `${appDir}/components/BaseComponent`);
         const params = this.config.noParams ? "" : `\n\ninterface I${this.className}Params {\n}`;
         return `import React from "react";
@@ -359,7 +356,7 @@ export const ${this.className} = (props: I${this.className}Props) => {
     }
 
     private parseModel(): IModelConfig {
-        const cmnDir = Vesta.getInstance().isNewV2() ? "src/app/cmn" : "src/client/app/cmn";
+        const cmnDir = Vesta.getInstance().directories.cmn;
         const modelFilePath = `${cmnDir}/models/${this.config.model}.ts`;
         if (!existsSync(modelFilePath)) {
             Log.error(`Specified model was not found: '${modelFilePath}'`);

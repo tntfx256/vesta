@@ -26,7 +26,7 @@ interface IFields {
 export class ModelGen {
 
     public static getModelsList(): any {
-        const modelPath = `${Vesta.getInstance().getCmnDirectory()}/models`;
+        const modelPath = Vesta.getInstance().directories.model;
         const modelDirectory = join(process.cwd(), modelPath);
         const models = {};
         try {
@@ -141,7 +141,7 @@ export class ModelGen {
             ModelGen.modelsMeta[key] = null;
             return null;
         }
-        const tsModelFile = `${Vesta.getInstance().getCmnDirectory()}/models/${modelName}.ts`;
+        const tsModelFile = `${Vesta.getInstance().directories.cmn}/models/${modelName}.ts`;
         const content = readFileSync(tsModelFile, "utf8");
         let meta: IFieldMeta = { form: true, list: true };
         const fieldStartIndex = content.indexOf(`schema.addField("${fieldName}")`);
@@ -295,9 +295,9 @@ export class ModelGen {
             name: "schema",
             type: "Schema",
         });
-        if (!this.vesta.isApiServer) {
-            this.path = this.vesta.isNewV2() ? "src/app/cmn/models" : "src/client/app/cmn/models";
-        }
+        // if (!this.vesta.isApiServer) {
+        //     this.path = this.vesta.directories.model;
+        // }
         mkdir(this.path);
     }
 

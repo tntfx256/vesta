@@ -37,7 +37,7 @@ export class ListComponentGen {
         const path = this.config.path;
         const stateName = camelCase(this.config.name);
         const pluralModel = plural(model.instanceName);
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         // ts file
         const listFile = new TsFileGen(this.className);
         // imports

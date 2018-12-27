@@ -25,7 +25,7 @@ export class ClientAppGen {
         this.cloneTemplate();
         const dir = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
-        const templateProjectName = GitGen.getRepoName(this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client);
+        const templateProjectName = GitGen.getRepoName(templateRepo.client);
         const replacePattern = { [templateProjectName]: dir };
         copy(`${dir}/resources/gitignore/variantConfig.ts`, `${dir}/src/app/config/variantConfig.ts`);
         mkdir(`${dir}/vesta/cordova/www`); // for installing plugins this folder must exist
@@ -36,7 +36,7 @@ export class ClientAppGen {
         const dir = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
         try {
-            GitGen.clone(this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client, dir);
+            GitGen.clone(templateRepo.client, dir);
         } catch (e) {
             Log.error(e);
             process.exit();

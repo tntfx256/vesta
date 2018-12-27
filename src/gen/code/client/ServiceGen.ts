@@ -40,9 +40,7 @@ Example:
     private path = "src/client/app/service/";
 
     constructor(private config: IServiceGenConfig) {
-        if (Vesta.getInstance().isNewV2()) {
-            this.path = "src/app/service/";
-        }
+        this.path = `${Vesta.getInstance().directories.app}/service/`;
         this.className = fcUpper(config.name);
         mkdir(this.path);
     }

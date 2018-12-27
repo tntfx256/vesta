@@ -11,7 +11,7 @@ import { I18nConfig } from "./code/I18nGen";
 import { GitGen, IRepositoryConfig } from "./file/GitGen";
 import { Vesta } from "./file/Vesta";
 
-export const enum ProjectType { ClientApplication = 1, AdminPanel, ApiServer }
+export const enum ProjectType { ClientApplication = 1, ApiServer }
 
 export interface IProjectConfig {
     client?: IClientAppConfig;
@@ -42,8 +42,6 @@ export class ProjectGen {
             this.clientApp = new ClientAppGen(config);
         } else if (config.type === ProjectType.ApiServer) {
             this.serverApp = new ServerAppGen(config);
-        } else if (config.type === ProjectType.AdminPanel) {
-            this.clientApp = new ClientAppGen(config);
         }
     }
 
@@ -51,7 +49,7 @@ export class ProjectGen {
         const isClientSideProject = this.config.type !== ProjectType.ApiServer;
         const projectName = this.config.name;
         const templateRepo = PlatformConfig.getRepository();
-        const projectTemplateName = GitGen.getRepoName(isClientSideProject ? (this.vesta.isAdminPanel ? templateRepo.admin : templateRepo.client) : templateRepo.api);
+        const projectTemplateName = GitGen.getRepoName(isClientSideProject ? templateRepo.client : templateRepo.api);
         const repoInfo = this.config.repository;
         const replacement = { [projectTemplateName]: kebabCase(this.config.name) };
         const execOption: IExecOptions = { cwd: projectName };

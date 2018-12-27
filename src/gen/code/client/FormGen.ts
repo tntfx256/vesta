@@ -58,9 +58,7 @@ Example:
     private path = "src/client/app/components/";
 
     constructor(private config: IFormGenConfig) {
-        if (Vesta.getInstance().isNewV2()) {
-            this.path = "src/app/components/";
-        }
+        this.path = `${Vesta.getInstance().directories.app}/components`;
         this.path += config.path;
         this.className = fcUpper(config.name);
         mkdir(this.path);

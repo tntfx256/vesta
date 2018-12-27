@@ -35,7 +35,7 @@ export class DetailComponentGen {
     private genCrudDetailComponent() {
         const model = this.config.modelConfig;
         const path = this.config.path;
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         // ts file
         const detailFile = new TsFileGen(this.className);
         // imports
@@ -107,7 +107,7 @@ export class DetailComponentGen {
         if (fieldName === "id") { return null as IDetailFieldData; }
         const props: IFieldProperties = field.properties;
         const modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         const label = fcUpper(fieldName);
         const instanceName = camelCase(modelName);
         let details = "";

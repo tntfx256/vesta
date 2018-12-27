@@ -24,7 +24,7 @@ export class EditComponentGen {
         const path = this.config.path;
         const modelObject = ModelGen.getModel(this.config.modelConfig.originalClassName);
         const formClassName = `${this.config.modelConfig.originalClassName}Form`;
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         // ts file
         const editFile = new TsFileGen(this.className);
         // imports

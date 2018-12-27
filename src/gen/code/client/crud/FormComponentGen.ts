@@ -41,7 +41,7 @@ export class FormComponentGen {
         const model = this.config.modelConfig;
         const path = this.config.path;
         const modelObject = ModelGen.getModel(model.originalClassName);
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         // ts file
         const formFile = new TsFileGen(this.className);
         // imports
@@ -223,7 +223,7 @@ export class FormComponentGen {
         if (fieldName === "id") { return null as IFormFieldData; }
         const props: IFieldProperties = field.properties;
         const modelMeta: IFieldMeta = ModelGen.getFieldMeta(modelName, fieldName);
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         if (!modelMeta.form) { return null as IFormFieldData; }
         const instanceName = camelCase(modelName);
         let form = "";
@@ -430,7 +430,7 @@ export class FormComponentGen {
 
     private getFormData(formFile: TsFileGen): IFormFieldData {
         const fields = this.schema.getFields();
-        const appDir = Vesta.getInstance().isNewV2() ? "src/app" : "src/client/app";
+        const appDir = Vesta.getInstance().directories.app;
         let formComponents = "";
         let formComponentsToImport = [];
         const codes = [];

@@ -15,6 +15,15 @@ export interface IVesta {
     version: IVestaVersion;
 }
 
+export interface IStructure {
+    app: string;
+    cmn: string;
+    components: string;
+    controllers?: string;
+    model: string;
+    sass: string;
+}
+
 export class Vesta {
 
     public static getInstance(config?: IProjectConfig): Vesta {
@@ -30,6 +39,7 @@ export class Vesta {
     }
 
     private static instance: Vesta;
+    private dirs: IStructure;
     private isUpdate: boolean = false;
     private oldPath = "vesta.json";
     private path = "package.json";
@@ -65,6 +75,7 @@ export class Vesta {
                 process.exit();
             }
         }
+        this.setStructures();
     }
 
     public generate(directory?: string) {
@@ -98,25 +109,42 @@ export class Vesta {
         return this.vesta.config.type === ProjectType.ClientApplication;
     }
 
-    public get isAdminPanel(): boolean {
-        return this.vesta.config.type === ProjectType.AdminPanel;
-    }
-
     public get isApiServer(): boolean {
         return this.vesta.config.type === ProjectType.ApiServer;
     }
 
-    public getCmnDirectory(creating?: boolean): string {
-        if (this.vesta.config.type === ProjectType.ApiServer) {
-            return "src/cmn";
-        }
-        if (creating) {
-            return "src/app/cmn";
-        }
-        return this.isNewV2() ? "src/app/cmn" : "src/client/app/cmn";
+    public get directories(): IStructure {
+        return this.dirs;
     }
 
-    public isNewV2(): boolean {
-        return !existsSync("src/client/index.html");
+    private setStructures() {
+        this.dirs = {} as IStructure;
+        if (existsSync(`${__dirname}/src/client/app`)) {
+            this.dirs = {
+                app: "src/client/app",
+                cmn: "src/client/app/cmn",
+                components: "src/client/app/components",
+                model: "src/client/app/cmn/models",
+                sass: "src/client/app/scss",
+            };
+        } else if (existsSync(`${__dirname}/src/app`)) {
+            this.dirs = {
+                app: "src/app",
+                cmn: "src/app/cmn",
+                components: "src/app/components",
+                model: "src/app/cmn/models",
+                sass: "src/app/scss",
+            };
+        } else if (existsSync(`${__dirname}/src/cmn`)) {
+            this.dirs = {
+                app: "src",
+                cmn: "src/cmn",
+                components: "src/components",
+                model: "src/cmn/models",
+                sass: "src/components",
+            };
+        }
+        const apiVersion = this.getVersion().api;
+        this.dirs.controllers = `src/api/${apiVersion}/controller`;
     }
 }
