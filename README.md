@@ -32,7 +32,6 @@ This command will create a project using below scaffolding templates and the opt
   * [RESTful Api](https://github.com/VestarayanAfzar/vesta-template-api) Backend application based on Express framework
 * Client side
   * [Client Application](https://github.com/VestarayanAfzar/vesta-template-client) This project contains build process for any of Web, Cordova, Electron targets
-  * [Admin Panel](https://github.com/VestarayanAfzar/vesta-template-admin) Same as client project but contains extra features for admins (Only for web)
 
 All these project are common in some files which are exported to a new project ([Common](https://github.com/VestarayanAfzar/vesta-template-cmn)) 
 which will be copied/submoduled  into a sub directory of generated project.
@@ -42,7 +41,6 @@ If you want to init git repository you have to create them on your remote git re
 ### `vesta gen`
 Generate each of the below items  [use `vesta gen --help`]:
 ```vesta
-sass            [Client]
 model           [Client, Server]
 controller      [Server]
 component       [Client]

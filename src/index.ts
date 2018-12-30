@@ -8,7 +8,7 @@ import { Gen } from "./cmd/Gen";
 import { Init } from "./cmd/Init";
 import { Module } from "./cmd/Module";
 import { Update } from "./cmd/Update";
-import { IPlatformConfig, PlatformConfig } from "./PlatformConfig";
+import { PlatformConfig } from "./PlatformConfig";
 import { ArgParser } from "./util/ArgParser";
 import { readJsonFile } from "./util/FsUtil";
 import { Log } from "./util/Log";

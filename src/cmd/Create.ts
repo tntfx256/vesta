@@ -15,12 +15,11 @@ export class Create {
             return Log.error("projectName may only contains [letters, numbers, dash]");
         }
         const projectConfig: IProjectConfig = { name } as IExtProjectConfig;
-        switch (argParser.get("--type")) {
+        switch (argParser.get("--type", "client")) {
             case "api":
                 projectConfig.type = ProjectType.ApiServer;
                 projectConfig.server = {};
                 break;
-            case "admin":
             case "client":
                 projectConfig.type = ProjectType.ClientApplication;
                 projectConfig.client = {};
@@ -53,7 +52,7 @@ Creating new project based on the provided options
     PROJECT_NAME    The name of the project
 
 Options:
-    --type          Type of project [client, admin, api]       {default: client}
+    --type          Type of project [client, api]       {default: client}
     --main-repo     Address of the main repository
     --cmn-repo      Address of the common repository
     --create-cmn    Create common repository (Only the first time)
@@ -63,10 +62,9 @@ Example:
     // creating a backend project
     vesta create test-api --type=api
 
-    // creating a complete project with api, client, and admin panel
+    // creating a complete project with api, and client
     vesta create api    --type=api    --main-repo=https://git.my/repo/api.git    --cmn-repo=https://git.my/repo/cmn.git --create-cmn
     vesta create client --type=client --main-repo=https://git.my/repo/client.git --cmn-repo=https://git.my/repo/cmn.git
-    vesta create admin  --type=admin  --main-repo=https://git.my/repo/admin.git  --cmn-repo=https://git.my/repo/cmn.git
 `);
     }
 }
