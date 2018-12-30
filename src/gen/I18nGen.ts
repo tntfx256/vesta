@@ -1,10 +1,10 @@
 import { Question } from "inquirer";
-import { Log } from "../../util/Log";
-import { ask } from "../../util/Util";
-import { IProjectConfig } from "../ProjectGen";
+import { Log } from "../util/Log";
+import { ask } from "../util/Util";
+import { IProjectConfig } from "./ProjectGen";
 
 export interface I18nConfig {
-    locales: Array<string>;
+    locales: string[];
     useMultilingualModel: boolean;
 }
 

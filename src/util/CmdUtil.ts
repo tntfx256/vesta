@@ -1,6 +1,6 @@
-import {execSync, ExecSyncOptions} from "child_process";
-import {fix, trimLineBreaks} from "./StringUtil";
-import {Log} from "./Log";
+import { execSync, ExecSyncOptions } from "child_process";
+import { Log } from "./Log";
+import { fix, trimLineBreaks } from "./StringUtil";
 
 export interface IExecOptions extends ExecSyncOptions {
     silent?: boolean;
@@ -13,7 +13,6 @@ export interface IExecReasult {
     stderr: string;
 }
 
-
 /*export function exec(command, options?: IExecOptions): Promise<IExecReasult> {
  return new Promise<IExecReasult>((resolve) => {
  exec(command, options, (error: Error, stdout: string, stderr: string) => {
@@ -24,27 +23,27 @@ export interface IExecReasult {
 
 export function execute(command, options?: IExecOptions): string {
     options = options || {};
-    if (options.hasOwnProperty('interactive')) {
+    if (options.hasOwnProperty("interactive")) {
         options.interactive = true;
         delete options.interactive;
     }
     if (!options.silent) {
-        Log.info(`${options.cwd || '.'}/> ${command} `);
+        Log.info(`${options.cwd || "."}/> ${command} `);
         delete options.silent;
     }
-    options.stdio = ['inherit', options.interactive ? 'inherit' : 'pipe', 'inherit'];
+    options.stdio = ["inherit", options.interactive ? "inherit" : "pipe", "inherit"];
     // options.encoding = 'utf8';
-    return execSync(command, options).toString('utf8');
+    return execSync(command, options).toString("utf8");
 }
 
 export function getOutputOf(command, options?: IExecOptions): string {
-    options = options || {silent: true, interactive: false};
+    options = options || { silent: true, interactive: false };
     return trimLineBreaks(execute(command, options));
 }
 
-export function table(header: Array<string>, rows: Array<Array<string>>) {
+export function table(header: string[], rows: string[][]) {
     // calculating max char of each column
-    let maxChars: Array<number> = [];
+    const maxChars: number[] = [];
     for (let i = 0, il = header.length; i < il; ++i) {
         maxChars[i] = header[i].length;
     }
@@ -56,21 +55,22 @@ export function table(header: Array<string>, rows: Array<Array<string>>) {
         }
     }
     // printing table
-    let table = '';
+    let html = "";
     for (let i = 0, il = header.length; i < il; ++i) {
-        table += fix(header[i], maxChars[i] + 2);
+        html += fix(header[i], maxChars[i] + 2);
     }
-    table += '\n';
+    html += "\n";
     // line
-    for (let i = table.length; i--;) {
-        table += '-';
+    for (let i = html.length; i--;) {
+        html += "-";
     }
-    table += '\n';
+    html += "\n";
     for (let i = 0, il = rows.length; i < il; ++i) {
         for (let j = 0, jl = rows[i].length; j < jl; ++j) {
-            table += fix(rows[i][j], maxChars[j] + 2);
+            html += fix(rows[i][j], maxChars[j] + 2);
         }
-        table += '\n';
+        html += "\n";
     }
-    console.log(table);
+    // tslint:disable-next-line:no-console
+    console.log(html);
 }

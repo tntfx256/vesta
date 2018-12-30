@@ -1,5 +1,6 @@
-import {camelCase, pascalCase} from "../../util/StringUtil";
-import {MethodGen} from "./MethodGen";
+import { camelCase } from "lodash";
+import { pascalCase } from "../../util/StringUtil";
+import { MethodGen } from "./MethodGen";
 
 export interface IMethods {
     [name: string]: MethodGen;
@@ -14,7 +15,7 @@ export interface IStructureProperty {
     isStatic?: boolean;
 }
 
-export abstract class AbstractStructureGen {
+export abstract class StructureGen {
     public name: string;
     protected shouldBeExported: boolean = false;
     protected methods: MethodGen[] = [];
@@ -28,7 +29,7 @@ export abstract class AbstractStructureGen {
     }
 
     public setConstructor(): MethodGen {
-        this.constructorMethod = new MethodGen();
+        this.constructorMethod = new MethodGen("", `\t`);
         return this.constructorMethod;
     }
 

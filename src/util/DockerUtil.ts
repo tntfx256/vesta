@@ -1,19 +1,19 @@
 import * as fs from "fs";
+import { Question } from "inquirer";
 import * as path from "path";
-import {Question} from "inquirer";
-import {Log} from "./Log";
-import {IDeployConfig} from "../deploy/Deployer";
-import {ask} from "./Util";
-import {execute, getOutputOf, table} from "./CmdUtil";
-import {getKernelVersion, getOsCodeName} from "./OsUtil";
+import { IDeployConfig } from "../deploy/Deployer";
+import { execute, getOutputOf, table } from "./CmdUtil";
+import { Log } from "./Log";
+import { ask, getKernelVersion, getOsCodeName } from "./Util";
 
-let isRoot = require('is-root');
+// tslint:disable-next-line:no-var-requires
+const isRoot = require("is-root");
 
 interface IContainerInfo {
     id: string;
     name: string;
     status: string;
-    ports: Array<string>;
+    ports: string[];
 }
 
 export class DockerUtil {
@@ -26,14 +26,15 @@ export class DockerUtil {
     }
 
     public static installEngine() {
-        if (!isRoot()) return Log.error('You must run this command as root!');
+        if (!isRoot()) { return Log.error("You must run this command as root!"); }
         const osCodeName = getOsCodeName();
         execute(`apt-get update -y`);
         try {
             execute(`apt-get remove docker docker-engine`);
         } catch (e) {
+            //
         }
-        if (osCodeName.toLowerCase() === 'trusty') {
+        if (osCodeName.toLowerCase() === "trusty") {
             const kernel = getKernelVersion();
             execute(`apt-get install linux-image-extra-${kernel} linux-image-extra-virtual`);
         }
@@ -50,16 +51,16 @@ export class DockerUtil {
     }
 
     public static installCompose() {
-        if (!isRoot()) return Log.error('You must run this command as root!');
-        ask<{ version: string }>(<Question>{
-            name: 'version',
-            type: 'input',
-            message: 'Enter docker-compose version that you wish to install: ',
-            default: '1.13.0'
-        })
-            .then(answer => {
+        if (!isRoot()) { return Log.error("You must run this command as root!"); }
+        ask<{ version: string }>({
+            default: "1.13.0",
+            message: "Enter docker-compose version that you wish to install: ",
+            name: "version",
+            type: "input",
+        } as Question)
+            .then((answer) => {
                 if (answer.version) {
-                    execute(`curl -L https://github.com/docker/compose/releases/download/${answer.version}/docker-compose-${getOutputOf('uname -s')}-${getOutputOf('uname -m')} > /tmp/docker-compose`);
+                    execute(`curl -L https://github.com/docker/compose/releases/download/${answer.version}/docker-compose-${getOutputOf("uname -s")}-${getOutputOf("uname -m")} > /tmp/docker-compose`);
                     execute(`cp /tmp/docker-compose /usr/local/bin/docker-compose`);
                     execute(`chmod +x /usr/local/bin/docker-compose`);
                     execute(`docker-compose --version`);
@@ -69,37 +70,37 @@ export class DockerUtil {
     }
 
     public static getContainerName(name: string): string {
-        return name.replace(/[\W_]/g, '').toLowerCase();
+        return name.replace(/[\W_]/g, "").toLowerCase();
     }
 
     public static isVolumeDriver(name: string): boolean {
-        return name.indexOf('.') === 0 || name.indexOf('/') === 0;
+        return name.indexOf(".") === 0 || name.indexOf("/") === 0;
     }
 
-    public static up(path: string) {
-        if (path) {
+    public static up(filePath: string) {
+        if (filePath) {
             try {
-                let options = <IDeployConfig>JSON.parse(fs.readFileSync(path, {encoding: 'utf-8'}));
+                const options = JSON.parse(fs.readFileSync(filePath, { encoding: "utf-8" })) as IDeployConfig;
                 process.chdir(options.deployPath);
             } catch (e) {
                 Log.error(`Error reading deployed file: ${e.message}`);
             }
         }
-        execute('docker-compose up -d');
+        execute("docker-compose up -d");
     }
 
-    public static getContainersInfo(filter?: string): Array<IContainerInfo> {
+    public static getContainersInfo(filter?: string): IContainerInfo[] {
         let command = `docker ps`;
         if (filter) {
             command += ` --filter ${filter}`;
         }
-        let output = execute(command);
-        let data: Array<IContainerInfo> = [];
-        let lines = output.split(/\r?\n/);
+        const output = execute(command);
+        let data: IContainerInfo[] = [];
+        const lines = output.split(/\r?\n/);
         for (let i = 1, il = lines.length; i < il; ++i) {
-            if (!lines[i]) continue;
-            let parts = lines[i].split(/\s\s+/);
-            data.push({id: parts[0], name: parts[6], status: parts[4], ports: parts[5].split(',')});
+            if (!lines[i]) { continue; }
+            const parts = lines[i].split(/\s\s+/);
+            data.push({ id: parts[0], name: parts[6], status: parts[4], ports: parts[5].split(",") });
         }
         data = data.sort((a, b) => a.name > b.name ? 1 : -1);
         return data;
@@ -109,65 +110,65 @@ export class DockerUtil {
         if (file && fs.existsSync(file)) {
             process.chdir(path.parse(file).dir);
             try {
-                let options = <IDeployConfig>JSON.parse(fs.readFileSync(file, {encoding: 'utf-8'}));
+                const options = JSON.parse(fs.readFileSync(file, { encoding: "utf-8" })) as IDeployConfig;
                 process.chdir(options.deployPath);
             } catch (e) {
                 Log.error(`Error reading deployed file: ${e.message}`);
             }
         }
-        let wd = DockerUtil.getContainerName(path.parse(process.cwd()).base);
-        let info = DockerUtil.getContainersInfo(`name=${wd}`);
-        let rows = [];
+        const wd = DockerUtil.getContainerName(path.parse(process.cwd()).base);
+        const info = DockerUtil.getContainersInfo(`name=${wd}`);
+        const rows = [];
         for (let i = 0, il = info.length; i < il; ++i) {
-            let container = info[i];
-            rows.push([container.id, container.name, container.status, container.ports.join(', ')]);
+            const container = info[i];
+            rows.push([container.id, container.name, container.status, container.ports.join(", ")]);
         }
-        table(['ID', 'NAME', 'STATUS', 'PORT'], rows);
+        table(["ID", "NAME", "STATUS", "PORT"], rows);
     }
 
     public static down(file: string) {
         if (file && fs.existsSync(file)) {
             process.chdir(path.parse(file).dir);
             try {
-                let options = <IDeployConfig>JSON.parse(fs.readFileSync(file, {encoding: 'utf-8'}));
+                const options = JSON.parse(fs.readFileSync(file, { encoding: "utf-8" })) as IDeployConfig;
                 process.chdir(options.deployPath);
             } catch (e) {
                 Log.error(`Error reading deployed file: ${e.message}`);
             }
         }
-        execute('docker-compose down');
+        execute("docker-compose down");
     }
 
     public static scale(file: string, scaleTo?: number) {
         if (file && fs.existsSync(file)) {
             process.chdir(path.parse(file).dir);
             try {
-                let options = <IDeployConfig>JSON.parse(fs.readFileSync(file, {encoding: 'utf-8'}));
+                const options = JSON.parse(fs.readFileSync(file, { encoding: "utf-8" })) as IDeployConfig;
                 process.chdir(options.deployPath);
             } catch (e) {
                 Log.error(`Error reading deployed file: ${e.message}`);
             }
         }
-        if (!scaleTo) return DockerUtil.ps(file);
+        if (!scaleTo) { return DockerUtil.ps(file); }
         execute(`docker-compose scale api=${scaleTo}`);
-        let containerName = DockerUtil.getContainerName(path.parse(process.cwd()).base);
-        let info = DockerUtil.getContainersInfo(`name=${containerName}`);
-        let apiContainerName = `${containerName}_api`;
-        let apiContainersInfo = [];
+        const containerName = DockerUtil.getContainerName(path.parse(process.cwd()).base);
+        const info = DockerUtil.getContainersInfo(`name=${containerName}`);
+        const apiContainerName = `${containerName}_api`;
+        const apiContainersInfo = [];
         for (let i = info.length; i--;) {
-            if (info[i].name.indexOf(apiContainerName) == 0) {
+            if (info[i].name.indexOf(apiContainerName) === 0) {
                 apiContainersInfo.push(info[i]);
             }
         }
         Log.info(`${apiContainerName} has been scaled to ${apiContainersInfo.length}`);
-        let inspections = [];
-        let ports = [];
-        apiContainersInfo.forEach(info => {
+        const inspections = [];
+        const ports = [];
+        apiContainersInfo.forEach((containerInfo) => {
             try {
-                for (let i = info.ports.length; i--;) {
-                    if (info.ports[i].indexOf('3000/tcp') > 0) {
-                        ports.push(/.+:(\d+)-/.exec(info.ports[i])[1]);
-                        let result = execute(`docker inspect ${info.id}`);
+                for (let i = containerInfo.ports.length; i--;) {
+                    if (containerInfo.ports[i].indexOf("3000/tcp") > 0) {
+                        ports.push(/.+:(\d+)-/.exec(containerInfo.ports[i])[1]);
+                        const result = execute(`docker inspect ${containerInfo.id}`);
                         inspections.push(/IPAddress.+"(.+)"/.exec(result)[1]);
                     }
                 }

@@ -1,10 +1,9 @@
-import { ComponentGen } from "../gen/code/client/ComponentGen";
-import { FormGen } from "../gen/code/client/FormGen";
-import { SassGen } from "../gen/code/client/SassGen";
-import { ServiceGen } from "../gen/code/client/ServiceGen";
-import { ModelGen } from "../gen/code/ModelGen";
-import { ExpressControllerGen } from "../gen/code/server/ExpressControllerGen";
-import { Vesta } from "../gen/file/Vesta";
+import { ComponentGen } from "../gen/ComponentGen";
+import { ControllerGen } from "../gen/ControllerGen";
+import { FormGen } from "../gen/FormGen";
+import { ModelGen } from "../gen/ModelGen";
+import { ServiceGen } from "../gen/ServiceGen";
+import { Vesta } from "../gen/Vesta";
 import { ArgParser } from "../util/ArgParser";
 import { Log } from "../util/Log";
 import { pascalCase } from "../util/StringUtil";
@@ -34,7 +33,6 @@ Creating specified code snippet base on provided configuration
                     model           Client/Server      Creating a model
                     component       Client             Creating a react component
                     service         Client             Creating a service provider
-                    sass            Client             Creating a sass file of specific type (component, page, font)
 
     NAME        The name of the snippet
 
@@ -43,21 +41,18 @@ Run 'vesta gen <TYPE> --help' for more information on TYPE
     }
 
     private static generate(type: string) {
-        if (["controller"].indexOf(type) >= 0 && !Vesta.getInstance().isApiServer) {
+        if (["controller"].indexOf(type) >= 0 && !Vesta.isApiServer) {
             return Log.error("Controller generator is not supported on Client side applications");
         }
-        if (["sass", "component", "service", "form"].indexOf(type) >= 0 && Vesta.getInstance().isApiServer) {
+        if (["sass", "component", "service", "form"].indexOf(type) >= 0 && Vesta.isApiServer) {
             return Log.error(`${pascalCase(type)} generator is not supported on Api applications`);
         }
         switch (type) {
             case "controller":
-                ExpressControllerGen.init();
+                ControllerGen.init();
                 break;
             case "model":
                 ModelGen.init();
-                break;
-            case "sass":
-                SassGen.init();
                 break;
             case "component":
                 ComponentGen.init();
@@ -76,12 +71,9 @@ Run 'vesta gen <TYPE> --help' for more information on TYPE
     private static showHelp(type) {
         switch (type) {
             case "controller":
-                ExpressControllerGen.help();
+                ControllerGen.help();
                 break;
             case "model":
-                break;
-            case "sass":
-                SassGen.help();
                 break;
             case "component":
                 ComponentGen.help();

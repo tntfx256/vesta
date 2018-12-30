@@ -1,10 +1,12 @@
-import { DateTime } from "@vesta/core/DateTime";
+
+import { DateTime } from "@vesta/culture";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { prompt as iPrompt, Question } from "inquirer";
+import { getOutputOf } from "./CmdUtil";
 import { readJsonFile, remove } from "./FsUtil";
 import { Log } from "./Log";
 
-export function ask<T>(questions: Question | Array<Question>): Promise<T> {
+export function ask<T>(questions: Question | Question[]): Promise<T> {
     return new Promise<T>((resolve) => {
         iPrompt(questions).then((answer) => {
             resolve(answer as any as T);
@@ -26,6 +28,18 @@ export function findInFileAndReplace(filePath: string, patternReplacePair: any, 
             code = code.replace(regex, replace);
         }
         writeFileSync(filePath, code);
+        return;
+    }
+    Log.error(`File not found @${filePath}`);
+}
+
+export function appendToFile(filePath: string, content: string) {
+    if (existsSync(filePath)) {
+        let code = readFileSync(filePath, "utf8");
+        if (code.indexOf(content) === -1) {
+            code = `${code}\n${content}`;
+            writeFileSync(filePath, code);
+        }
         return;
     }
     Log.error(`File not found @${filePath}`);
@@ -60,4 +74,22 @@ export function getDateTime(format: string, timestamp?: number) {
         d.setTime(timestamp);
     }
     DateTime.prototype.format.call(d, format);
+}
+
+export function getOsCodeName(): string {
+    return getOutputOf(`lsb_release -cs`).trim();
+}
+
+export function getKernelVersion() {
+    return getOutputOf(`uname -r`).trim();
+}
+
+export function debug(...data) {
+    // tslint:disable-next-line:no-console
+    console.log("\n\t\tSTART\n");
+    // tslint:disable-next-line:no-console
+    console.log(...data);
+    // tslint:disable-next-line:no-console
+    console.log("\n\t\tEND\n");
+    process.exit();
 }

@@ -1,17 +1,16 @@
 import { join as pathJoin } from "path";
-import { PlatformConfig } from "../../PlatformConfig";
-import { execute, IExecOptions } from "../../util/CmdUtil";
-import { mkdir, remove } from "../../util/FsUtil";
-import { finalizeClonedTemplate } from "../../util/Util";
-import { GitGen } from "../file/GitGen";
-import { Vesta } from "../file/Vesta";
-import { IExtProjectConfig } from "../ProjectGen";
+import { PlatformConfig } from "../PlatformConfig";
+import { execute, IExecOptions } from "../util/CmdUtil";
+import { mkdir, remove } from "../util/FsUtil";
+import { finalizeClonedTemplate } from "../util/Util";
+import { GitGen } from "./GitGen";
+import { IExtProjectConfig } from "./ProjectGen";
+import { Vesta } from "./Vesta";
 
 export class CommonGen {
     private vesta: Vesta;
 
     constructor(private config: IExtProjectConfig) {
-        this.vesta = Vesta.getInstance();
     }
 
     /**
@@ -38,7 +37,7 @@ export class CommonGen {
         if (!this.config.repository.common) { return; }
         const cwd = this.config.name;
         const repo = this.config.repository;
-        const cmnDir = this.vesta.directories.cmn;
+        const cmnDir = Vesta.directories.cmn;
         remove(`${cwd}/${cmnDir}`);
         return execute(`git submodule add ${repo.common} ${cmnDir}`, { cwd });
     }
@@ -64,7 +63,7 @@ export class CommonGen {
 
     private initWithoutSubModule() {
         const dir = this.config.name;
-        const destDir = pathJoin(dir, this.vesta.directories.cmn);
+        const destDir = pathJoin(dir, Vesta.directories.cmn);
         mkdir(destDir);
         GitGen.clone(PlatformConfig.getRepository().cmn, destDir);
         finalizeClonedTemplate(destDir);

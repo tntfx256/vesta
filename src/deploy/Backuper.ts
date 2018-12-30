@@ -1,4 +1,4 @@
-import { Culture } from "@vesta/core";
+import { Culture } from "@vesta/culture";
 import { existsSync, readFileSync } from "fs";
 import * as YAML from "yamljs";
 import { execute } from "../util/CmdUtil";

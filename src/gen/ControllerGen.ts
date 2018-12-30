@@ -1,25 +1,26 @@
 import { FieldType, IModelFields } from "@vesta/core";
 import { readFileSync } from "fs";
-import { mkdirpSync } from "fs-extra";
+import { camelCase } from "lodash";
 import { join } from "path";
-import { ArgParser } from "../../../util/ArgParser";
-import { genRelativePath, writeFile } from "../../../util/FsUtil";
-import { Log } from "../../../util/Log";
-import { camelCase, fcUpper, plural } from "../../../util/StringUtil";
-import { ClassGen } from "../../core/ClassGen";
-import { MethodGen } from "../../core/MethodGen";
-import { Placeholder } from "../../core/Placeholder";
-import { TsFileGen } from "../../core/TSFileGen";
-import { Vesta } from "../../file/Vesta";
-import { ModelGen } from "../ModelGen";
+import { ArgParser } from "../util/ArgParser";
+import { genRelativePath, mkdir, writeFile } from "../util/FsUtil";
+import { Log } from "../util/Log";
+import { getConfidentialFields, getFieldMeta, getFieldsByType, getOwnerVerifiedFields } from "../util/Model";
+import { pascalCase, plural } from "../util/StringUtil";
+import { ClassGen } from "./core/ClassGen";
+import { MethodGen } from "./core/MethodGen";
+import { Placeholder } from "./core/Placeholder";
+import { TsFileGen } from "./core/TSFileGen";
+import { Vesta } from "./Vesta";
 
-export interface IExpressControllerConfig {
+export interface IControllerConfig {
     model: string;
     name: string;
     route: string;
+    version: string;
 }
 
-export class ExpressControllerGen {
+export class ControllerGen {
 
     public static help() {
         Log.write(`
@@ -32,21 +33,23 @@ Creating a server side (Vesta API) controller
 Options:
     --model     Generates CRUD controller on specified model
     --route     Routing path
+    --version   api version [v1]
 `);
     }
 
-    public static init(): IExpressControllerConfig {
+    public static init(): IControllerConfig {
         const argParser = ArgParser.getInstance();
-        const config: IExpressControllerConfig = {
+        const config: IControllerConfig = {
             model: argParser.get("--model", null),
             name: argParser.get(),
             route: argParser.get("--route", "/"),
+            version: argParser.get("--version", "v1"),
         };
         if (!config.name || !/^[a-z]+$/i.exec(config.name)) {
             Log.error("Missing/Invalid controller name\nSee 'vesta gen controller --help' for more information\n");
             return;
         }
-        const controller = new ExpressControllerGen(config);
+        const controller = new ControllerGen(config);
         controller.generate();
     }
 
@@ -63,9 +66,9 @@ Options:
     private routingPath: string = "/";
     private vesta: Vesta;
 
-    constructor(private config: IExpressControllerConfig) {
-        this.vesta = Vesta.getInstance();
-        this.init(this.vesta.getVersion().api);
+    constructor(private config: IControllerConfig) {
+        this.apiVersion = config.version;
+        this.init();
     }
 
     public generate() {
@@ -73,11 +76,10 @@ Options:
             this.addCRUDOperations();
         }
         writeFile(join(this.path, `${this.controllerClass.name}.ts`), this.controllerFile.generate());
-        const apiVersion = this.vesta.getVersion().api;
-        const filePath = `src/api/${apiVersion}/import.ts`;
+        const filePath = `src/api/${this.apiVersion}/import.ts`;
         let code = readFileSync(filePath, { encoding: "utf8" });
         if (code.search(Placeholder.ExpressController)) {
-            const relPath = genRelativePath(`src/api/${apiVersion}`, this.path);
+            const relPath = genRelativePath(`src/api/${this.apiVersion}`, this.path);
             const importCode = `import {${this.controllerClass.name}} from "${relPath}/${this.controllerClass.name}";`;
             if (code.indexOf(importCode) >= 0) { return; }
             const embedCode = `${camelCase(this.config.name)}: ${this.controllerClass.name},`;
@@ -87,36 +89,27 @@ Options:
         }
     }
 
-    private init(version: string) {
-        if (!version) {
-            return Log.error("Unable to obtain the API version!");
-        }
-        this.apiVersion = version;
-        this.path = join(this.path, version, "controller", this.config.route);
+    private init() {
+        this.path = join(this.path, this.apiVersion, "controller", this.config.route);
         this.rawName = camelCase(this.config.name);
-        const controllerName = fcUpper(this.rawName) + "Controller";
+        const controllerName = pascalCase(this.rawName) + "Controller";
         this.normalizeRoutingPath();
         this.controllerFile = new TsFileGen(controllerName);
         this.controllerClass = this.controllerFile.addClass();
         this.controllerClass.shouldExport(true);
         if (this.config.model) {
-            this.filesFields = ModelGen.getFieldsByType(this.config.model, FieldType.File);
+            this.filesFields = getFieldsByType(this.config.model, FieldType.File);
         }
         if (this.filesFields) {
             this.controllerFile.addImport(["join"], "path");
         }
         this.controllerFile.addImport(["NextFunction", "Response", "Router"], "express");
-        this.controllerFile.addImport(["BaseController", "IExtRequest"],
-            genRelativePath(this.path, "src/api/BaseController"));
+        this.controllerFile.addImport(["BaseController", "IExtRequest"], genRelativePath(this.path, "src/api/BaseController"));
         this.controllerClass.setParentClass("BaseController");
         this.routeMethod = this.controllerClass.addMethod("route");
         this.routeMethod.addParameter({ name: "router", type: "Router" });
         // this.controllerClass.addMethod('init', ClassGen.Access.Protected);
-        try {
-            mkdirpSync(this.path);
-        } catch (e) {
-            Log.warning(e.message);
-        }
+        mkdir(this.path);
     }
 
     private addResponseMethod(name: string) {
@@ -124,17 +117,17 @@ Options:
         method.addParameter({ name: "req", type: "IExtRequest" });
         method.addParameter({ name: "res", type: "Response" });
         method.addParameter({ name: "next", type: "NextFunction" });
-        method.setContent(`return next({message: '${name} has not been implemented'})`);
+        method.appendContent(`return next({message: '${name} has not been implemented'})`);
         return method;
     }
 
     private addCRUDOperations() {
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         const modelInstanceName = camelCase(modelName);
-        const modelClassName = fcUpper(modelInstanceName);
-        this.relationsFields = ModelGen.getFieldsByType(this.config.model, FieldType.Relation);
-        this.ownerVerifiedFields = ModelGen.getOwnerVerifiedFields(this.config.model);
-        this.confidentialFields = ModelGen.getConfidentialFields(this.config.model);
+        const modelClassName = pascalCase(modelInstanceName);
+        this.relationsFields = getFieldsByType(this.config.model, FieldType.Relation);
+        this.ownerVerifiedFields = getOwnerVerifiedFields(this.config.model);
+        this.confidentialFields = getConfidentialFields(this.config.model);
         this.controllerFile.addImport(["Err", "DatabaseError", "ValidationError"], "@vesta/core");
         this.controllerFile.addImport([modelClassName, `I${modelClassName}`],
             genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
@@ -145,43 +138,43 @@ Options:
         // count operation
         let methodName = `get${modelClassName}Count`;
         let methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Read");
-        this.addResponseMethod(methodName).setContent(this.getCountCode());
+        this.addResponseMethod(methodName).appendContent(this.getCountCode());
         // tslint:disable-next-line:max-line-length
         this.routeMethod.appendContent(`router.get("${this.routingPath}/count",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "get" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Read");
-        this.addResponseMethod(methodName).setContent(this.getQueryCode(true));
+        this.addResponseMethod(methodName).appendContent(this.getQueryCode(true));
         // tslint:disable-next-line:max-line-length
         this.routeMethod.appendContent(`router.get("${this.routingPath}/:id",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "get" + plural(modelClassName);
-        this.addResponseMethod(methodName).setContent(this.getQueryCode(false));
+        this.addResponseMethod(methodName).appendContent(this.getQueryCode(false));
         // tslint:disable-next-line:max-line-length
         this.routeMethod.appendContent(`router.get("${this.routingPath}",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "add" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Add");
-        this.addResponseMethod(methodName).setContent(this.getInsertCode());
+        this.addResponseMethod(methodName).appendContent(this.getInsertCode());
         // tslint:disable-next-line:max-line-length
         this.routeMethod.appendContent(`router.post("${this.routingPath}",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "update" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Edit");
-        this.addResponseMethod(methodName).setContent(this.getUpdateCode());
+        this.addResponseMethod(methodName).appendContent(this.getUpdateCode());
         // tslint:disable-next-line:max-line-length
         this.routeMethod.appendContent(`router.put("${this.routingPath}",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         //
         methodName = "remove" + modelClassName;
         methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Delete");
-        this.addResponseMethod(methodName).setContent(this.getDeleteCode());
+        this.addResponseMethod(methodName).appendContent(this.getDeleteCode());
         // tslint:disable-next-line:max-line-length
         this.routeMethod.appendContent(`router.delete("${this.routingPath}/:id",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         // file upload
         if (this.filesFields) {
             methodName = "upload";
             methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Edit");
-            this.addResponseMethod(methodName).setContent(this.getUploadCode());
+            this.addResponseMethod(methodName).appendContent(this.getUploadCode());
             // tslint:disable-next-line:max-line-length
             this.routeMethod.appendContent(`router.post("${this.routingPath}/file/:id",${methodBasedMiddleWares} this.wrap(this.${methodName}));`);
         }
@@ -214,9 +207,9 @@ Options:
         if (this.relationsFields) {
             const relationFieldsNames = Object.keys(this.relationsFields);
             for (let i = relationFieldsNames.length; i--;) {
-                const meta = ModelGen.getFieldMeta(this.config.model, relationFieldsNames[i]);
+                const meta = getFieldMeta(this.config.model, relationFieldsNames[i]);
                 const extPath = meta.relation.path ? `/${meta.relation.path}` : "";
-                const relConfFields = ModelGen.getConfidentialFields(meta.relation.model);
+                const relConfFields = getConfidentialFields(meta.relation.model);
                 if (relConfFields.length) {
                     this.controllerFile.addImport([`I${meta.relation.model}`],
                         genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`));
@@ -241,10 +234,10 @@ Options:
     }
 
     private getQueryCodeForSingleInstance(): string {
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         const ownerChecks = [];
         for (let i = this.ownerVerifiedFields.length; i--;) {
-            const meta = ModelGen.getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
+            const meta = getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
             if (meta.relation) {
                 const extPath = meta.relation.path ? `/${meta.relation.path}` : "";
                 this.controllerFile.addImport([`I${meta.relation.model}`],
@@ -267,7 +260,7 @@ Options:
     }
 
     private getQueryCodeForMultiInstance(): string {
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         const ownerQueries = [];
         for (let i = this.ownerVerifiedFields.length; i--;) {
             ownerQueries.push(`${this.ownerVerifiedFields[i]}: authUser.id`);
@@ -281,7 +274,7 @@ Options:
     }
 
     private getCountCode(): string {
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         // let modelInstanceName = camelCase(modelName);
         return `const query = this.query2vql(${modelName}, req.query, true);
         const result = await ${modelName}.count<I${modelName}>(query);
@@ -293,7 +286,7 @@ Options:
     }
 
     private getInsertCode(): string {
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         const modelInstanceName = camelCase(modelName);
         const ownerAssigns = [];
         for (let i = this.ownerVerifiedFields.length; i--;) {
@@ -312,7 +305,7 @@ Options:
     }
 
     private getUpdateCode(): string {
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         const modelInstanceName = camelCase(modelName);
         const ownerChecks = [];
         const ownerInlineChecks = [];
@@ -339,7 +332,7 @@ Options:
     }
 
     private getDeleteCode(): string {
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         const modelInstanceName = camelCase(modelName);
         const ownerChecks = [];
         if (this.ownerVerifiedFields.length) {
@@ -347,7 +340,7 @@ Options:
                 ownerChecks.push(`result.items[0].${this.ownerVerifiedFields} !== authUser.id`);
             }
         }
-        const fieldsOfTypeFile = ModelGen.getFieldsByType(modelName, FieldType.File);
+        const fieldsOfTypeFile = getFieldsByType(modelName, FieldType.File);
         let deleteFileCode = [];
 
         if (fieldsOfTypeFile) {
@@ -389,7 +382,7 @@ Options:
     private getUploadCode(): string {
         // todo add conf & owner
         this.controllerFile.addImport(["FileUploader"], genRelativePath(this.path, "src/helpers/FileUploader"));
-        const modelName = ModelGen.extractModelName(this.config.model);
+        const modelName = pascalCase(this.config.model);
         const modelInstanceName = camelCase(modelName);
         let code = "";
         const fileNames = Object.keys(this.filesFields);
@@ -402,7 +395,7 @@ Options:
         } else {
             code = `const delList: Array<Promise<string>> = [];`;
             for (let i = 0, il = fileNames.length; i < il; ++i) {
-                const oldName = `old${fcUpper(fileNames[i])}`;
+                const oldName = `old${pascalCase(fileNames[i])}`;
                 code += `
         if (upl.${fileNames[i]}) {
             const ${oldName} = ${modelInstanceName}.${fileNames[i]};

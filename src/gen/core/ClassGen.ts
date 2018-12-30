@@ -1,5 +1,5 @@
-import { AbstractStructureGen } from "./AbstractStructureGen";
 import { MethodGen } from "./MethodGen";
+import { StructureGen } from "./StructureGen";
 import { IMixin } from "./TSFileGen";
 
 export interface IMetodProperties {
@@ -11,7 +11,7 @@ export interface IMetodProperties {
     name: string;
 }
 
-export class ClassGen extends AbstractStructureGen {
+export class ClassGen extends StructureGen {
     public static Access = {
         Private: "private",
         Protected: "protected",
@@ -25,10 +25,10 @@ export class ClassGen extends AbstractStructureGen {
 
     public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false, isAsync: boolean = false): MethodGen {
         const method = super.addMethod(name);
-        method.setAccessType(access);
-        method.setAsStatic(isStatic);
-        method.setAsAbstract(isAbstract);
-        method.setAsAsync(isAsync);
+        method.accessType = access;
+        method.isStatic = isStatic;
+        method.isAbstract = isAbstract;
+        method.isAsync = isAsync;
         return method;
     }
 
@@ -109,11 +109,10 @@ export class ClassGen extends AbstractStructureGen {
         for (let i = this.methods.length; i--;) {
             const method = this.methods[i];
             const access = method.getAccessType();
-            const isStatic = method.isStatic();
             if (access === "public") {
-                isStatic ? publicStatics.push(method) : publicMethods.push(method);
+                method.isStatic ? publicStatics.push(method) : publicMethods.push(method);
             } else {
-                isStatic ? privatestatics.push(method) : privateMethods.push(method);
+                method.isStatic ? privatestatics.push(method) : privateMethods.push(method);
             }
         }
         publicStatics.sort(methodCompare);

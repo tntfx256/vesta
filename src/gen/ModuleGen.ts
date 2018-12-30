@@ -2,7 +2,7 @@ import { PlatformConfig } from "../PlatformConfig";
 import { execute, IExecOptions } from "../util/CmdUtil";
 import { mkdir } from "../util/FsUtil";
 import { findInFileAndReplace } from "../util/Util";
-import { GitGen } from "./file/GitGen";
+import { GitGen } from "./GitGen";
 
 export interface IModuleConfig {
     name: string;

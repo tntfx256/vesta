@@ -1,5 +1,5 @@
 import * as fs from "fs-extra";
-import { GitGen } from "../gen/file/GitGen";
+import { GitGen } from "../gen/GitGen";
 import { execute } from "../util/CmdUtil";
 import { mkdir, remove, rename } from "../util/FsUtil";
 

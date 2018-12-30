@@ -1,4 +1,4 @@
-import {pascalCase} from "../../util/StringUtil";
+import { pascalCase } from "../../util/StringUtil";
 
 export interface IEnumProperty {
     name: string;
@@ -8,9 +8,9 @@ export interface IEnumProperty {
 export class EnumGen {
 
     public name: string;
-    private startIndex: number = 1;
     protected shouldBeExported: boolean = true;
-    private properties: Array<IEnumProperty> = [];
+    private startIndex: number = 1;
+    private properties: IEnumProperty[] = [];
 
     constructor(name: string) {
         this.name = pascalCase(name);
@@ -22,16 +22,16 @@ export class EnumGen {
 
     public addProperty(name: string, index?: number) {
         name = pascalCase(name);
-        if (!index || index < 0) index = 0;
+        if (!index || index < 0) { index = 0; }
         for (let i = this.properties.length; i--;) {
-            if (this.properties[i].name == name) {
+            if (this.properties[i].name === name) {
                 if (index) {
                     this.properties[i].index = index;
                 }
                 return;
             }
         }
-        this.properties.push({name: name, index: index});
+        this.properties.push({ name, index });
         this.properties = this.properties.sort((a: IEnumProperty, b: IEnumProperty) => {
             return a.index - b.index;
         });
@@ -39,7 +39,7 @@ export class EnumGen {
 
     public setStartIndex(index: number) {
         for (let i = this.properties.length; i--;) {
-            if (this.properties[i].index == index) {
+            if (this.properties[i].index === index) {
                 return;
             }
         }
@@ -49,20 +49,20 @@ export class EnumGen {
     }
 
     public generate(): string {
-        let code = this.shouldBeExported ? 'export ' : '',
-            props: Array<string> = [];
+        let code = this.shouldBeExported ? "export " : "";
+        const props: string[] = [];
 
         code += `enum ${this.name} {`;
         for (let i = 0, il = this.properties.length; i < il; ++i) {
             if (this.properties[i].index) {
                 props.push(`${this.properties[i].name} = ${this.properties[i].index}`);
-            } else if (i == 0 && this.startIndex > 0) {
+            } else if (i === 0 && this.startIndex > 0) {
                 props.push(`${this.properties[i].name} = ${this.startIndex}`);
             } else {
                 props.push(this.properties[i].name);
             }
         }
-        code = `${code}${props.join(', ')}}`;
+        code = `${code}${props.join(", ")}}`;
         return code;
     }
 }

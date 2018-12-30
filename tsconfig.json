@@ -4,7 +4,9 @@
     "target": "es6",
     "noEmitHelpers": true,
     "outDir": "./bin",
-    "newLine": "LF"
+    "newLine": "LF",
+    "sourceMap": true,
+    "declaration": true
   },
   "files": [
     "src/index.ts"

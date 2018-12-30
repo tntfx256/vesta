@@ -35,13 +35,14 @@ Options:
     -v, --version   Displays the version of vesta platform
 
 Commands:
-    init            Initiating a vesta project from existing code and Managing server (Ubuntu)
-    create          Creating new project
-    module          Creating new module for vesta platform
-    gen             Generate code for mentioned type
-    deploy          Deploy a project from remote repository
     backup          Backup all storage data into a single tar file
+    create          Creating new project
+    deploy          Deploy a project from remote repository
     docker          Manage docker relevant operations
+    eject           Eject a vesta module for direct source code manipulation
+    gen             Generate code for mentioned type
+    init            Initiating a vesta project from existing code and Managing server (Ubuntu)
+    module          Creating new module for vesta platform
     update          Updates a package to it's latest version
 
 Run 'vesta <COMMAND> --help' for more information on COMMAND
@@ -58,31 +59,29 @@ Attention:
 PlatformConfig.init(packageInfo.vesta);
 
 switch (command) {
-    // no need to vesta.json
-    case "init":
-        Init.init();
+    case "backup":
+        Backup.init();
         break;
     case "create":
         Create.init();
         break;
-    case "module":
-        Module.init();
-        break;
     case "deploy":
         Deploy.init();
-        break;
-    case "backup":
-        Backup.init();
         break;
     case "docker":
         Docker.init();
         break;
-    case "update":
-        Update.init();
-        break;
-    // vesta.json must exist
     case "gen":
         Gen.init();
+        break;
+    case "init":
+        Init.init();
+        break;
+    case "module":
+        Module.init();
+        break;
+    case "update":
+        Update.init();
         break;
     default:
         const error = command ? `'${command}' is not a vesta command` : "";

@@ -1,6 +1,4 @@
 import { Log } from "../../util/Log";
-import { camelCase } from "../../util/StringUtil";
-import { ClassGen } from "./ClassGen";
 
 export interface IMethodParameter {
     name: string;
@@ -11,113 +9,76 @@ export interface IMethodParameter {
 }
 
 export class MethodGen {
-    private content: string = "";
-    private parameters: Array<IMethodParameter> = [];
-    private returnType: string = "";
-    private accessType: string = "";
-    private isConstructor: boolean = false;
-    private isStaticMethod: boolean = false;
-    private isAbstract: boolean = false;
-    private isAsync: boolean = false;
-    private isArrow: boolean = false;
-    private shouldBeExported: boolean = false;
-    private isSimpleMethod: boolean = false;
-    private isInterface: boolean = false;
+    public content: string = "";
+    public parameters: IMethodParameter[] = [];
+    public returnType: string = "";
+    public accessType: string = "";
+    public methodType: string = "";
+    public isConstructor: boolean = false;
+    public isStatic: boolean = false;
+    public isAbstract: boolean = false;
+    public isAsync: boolean = false;
+    public isArrow: boolean = false;
+    public shoulExport: boolean = false;
+    public isSimple: boolean = false;
+    public isInterface: boolean = false;
 
-    constructor(public name: string = "") {
+    private methods: MethodGen[] = [];
+
+    constructor(public name: string = "", private indent = "") {
         if (!name) {
             this.isConstructor = true;
-        } else {
-            this.name = camelCase(name);
         }
     }
-
-    public setAsStatic(isStatic: boolean = true) {
-        this.isStaticMethod = isStatic;
-    }
-
-    public setAsAbstract(isAbstract: boolean = true) {
-        this.isAbstract = isAbstract;
-    }
-
-    public setAsAsync(isAsync: boolean = false) {
-        this.isAsync = isAsync;
-    }
-
-    public setAsArrowFunction(isArrowFunction: boolean = true) {
-        this.isArrow = isArrowFunction;
-    }
-
-    public setAccessType(access: string = ClassGen.Access.Public) {
-        this.accessType = access;
-    }
-
-    public isInterfaceMethod(isInterface: boolean = true) {
-        this.isInterface = isInterface;
-    }
-
-    public shouldExport(shouldBeExported: boolean = true) {
-        this.shouldBeExported = shouldBeExported;
-    }
-
-    public isSimple(isSimple: boolean = true) {
-        this.isSimpleMethod = isSimple;
-    }
-
-    public isStatic(): boolean {
-        return this.isStaticMethod;
-    }
-
-    // public get isStatic() {
-    //     return this.isStaticMethod;
-    // }
-    // public set isStatic(isStatic: boolean) {
-    //     this.isStaticMethod = isStatic;
-    // }
 
     public getAccessType() {
         return this.accessType;
     }
 
+    public addMethod(name: string) {
+        this.methods.push(new MethodGen(name, `${this.indent}\t`));
+        return this.methods[this.methods.length - 1];
+    }
+
     public addParameter(parameter: IMethodParameter) {
         for (let i = this.parameters.length; i--;) {
-            if (this.parameters[i].name == parameter.name) {
+            if (this.parameters[i].name === parameter.name) {
                 return Log.error(`A parameter with the same name (${parameter.name}) already exists`);
             }
         }
         this.parameters.push(parameter);
     }
 
-    public setReturnType(type: string) {
-        this.returnType = `: ${type}`;
-    }
-
-    public setContent(code: string) {
-        this.content = code;
-    }
-
-    public getContent(): string {
-        return this.content;
-    }
-
     public appendContent(code: string) {
-        this.content = this.content ? `${this.content}\n        ${code}` : code;
-    }
-
-    public prependContent(code: string) {
-        this.content = code + (this.content ? `\n${this.content}` : "");
+        const nl = this.content ? `\n` : "";
+        this.content = `${this.content}${nl}\t${this.indent}${code}`;
     }
 
     public generate(): string {
-        const parametersCode = this.getParameterCode();
-        if (this.isInterface) {
-            return this.interfaceMethodGen(parametersCode);
-        } else if (this.isSimpleMethod) {
-            return this.simpleMethodGen(parametersCode);
-        } else if (this.shouldBeExported) {
-            return this.exportedMethodGen(parametersCode);
+        let code = this.indent;
+        code += this.shoulExport ? "export " : "";
+        code += this.accessType ? `${this.accessType} ` : "";
+        code += this.isConstructor ? "constructor" : "";
+        code += this.isArrow ? "const " : "";
+        code += !this.isArrow && !this.isConstructor ? "function " : "";
+        code += this.name;
+        code += this.isArrow && this.methodType ? `: ${this.methodType}` : "";
+        code += this.isArrow ? " = " : "";
+        code += `(${this.getParameterCode()})`;
+        code += this.returnType && !this.isArrow ? `: ${this.returnType}` : "";
+        code += this.isArrow ? " => {" : " {";
+        // content
+        code += this.content;
+        // inner functions
+        const methods: string[] = [];
+        for (const method of this.methods) {
+            methods.push(method.generate());
         }
-        return this.classMethodGen(parametersCode);
+        if (methods.length) {
+            code += `\n\n${methods.join("\n\n")}`;
+        }
+        code += `\n${this.indent}}`;
+        return code;
     }
 
     private getParameterCode(): string {
@@ -140,64 +101,5 @@ export class MethodGen {
             codes.push(code);
         }
         return codes.join(", ");
-    }
-
-    private interfaceMethodGen(parametersCode: string): string {
-        if (this.isConstructor) {
-            if (this.isInterface) {
-                return `    new(${parametersCode});`;
-            }
-            return `
-    constructor(${parametersCode}) {
-        ${this.content}
-    }`;
-        }
-        // not a constructor
-        if (this.isInterface) {
-            return `    ${this.name}(${parametersCode})${this.returnType};`;
-        }
-        let st = this.isStaticMethod ? " static" : "";
-        st = this.isAsync ? `${st} async` : st;
-        if (this.isAbstract) {
-            return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};`;
-        }
-        return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType} {
-        ${this.content}
-    }`;
-    }
-
-    private classMethodGen(parametersCode: string): string {
-        if (this.isConstructor) {
-            return `
-    constructor(${parametersCode}) {
-        ${this.content}
-    }\n`;
-        }
-        // not a constructor
-        const st = this.isStaticMethod ? " static" : "";
-        const async = this.isAsync ? ` async` : "";
-        if (this.isAbstract) {
-            return `    ${this.accessType}${st} ${this.name}(${parametersCode})${this.returnType};\n`;
-        }
-        const content = this.content ? `
-        ${this.content}` : "";
-        return this.isArrow ?
-            `    ${this.accessType}${st} ${this.name} =${async} (${parametersCode})${this.returnType} => {${content}
-    }\n` :
-            `    ${this.accessType}${async}${st} ${this.name}(${parametersCode})${this.returnType} {${content}
-    }\n`;
-    }
-
-    private exportedMethodGen(parametersCode: string): string {
-        return `export function ${this.name}(${parametersCode})${this.returnType} {
-    ${this.content}
-}\n`;
-    }
-
-    private simpleMethodGen(parametersCode: string): string {
-        const exp = this.shouldBeExported ? "export " : "";
-        return `${exp}function ${this.name}(${parametersCode})${this.returnType} {
-    ${this.content}
-}\n`;
     }
 }

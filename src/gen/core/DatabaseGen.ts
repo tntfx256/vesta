@@ -1,11 +1,11 @@
 export interface IDatabaseInfo {
-    'import': string;
+    "import": string;
     from: string;
     type: string;
 }
 
 export class DatabaseGen {
-    static Mongodb = 'mongodb';
-    static Redis = 'redis';
-    static MySQL = 'mysql';
+    public static Mongodb = "mongodb";
+    public static Redis = "redis";
+    public static MySQL = "mysql";
 }

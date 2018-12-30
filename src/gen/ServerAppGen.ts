@@ -1,16 +1,13 @@
-import { PlatformConfig } from "../../PlatformConfig";
-import { GitGen } from "../file/GitGen";
-import { Vesta } from "../file/Vesta";
-import { IExtProjectConfig } from "../ProjectGen";
+import { PlatformConfig } from "../PlatformConfig";
+import { GitGen } from "./GitGen";
+import { IExtProjectConfig } from "./ProjectGen";
 
 export interface IServerAppConfig {
 }
 
 export class ServerAppGen {
-    private vesta: Vesta;
 
     constructor(private config: IExtProjectConfig) {
-        this.vesta = Vesta.getInstance();
     }
 
     public generate() {

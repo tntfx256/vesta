@@ -1,4 +1,4 @@
-import { Culture } from "@vesta/core";
+import { Culture } from "@vesta/culture";
 import { existsSync } from "fs";
 import { Backuper } from "../deploy/Backuper";
 import { IDeployConfig } from "../deploy/Deployer";

@@ -1,10 +1,10 @@
 import { FieldType, IFieldProperties, Mime, RelationType } from "@vesta/core";
 import { Question } from "inquirer";
-import { Log } from "../../util/Log";
-import { fcUpper } from "../../util/StringUtil";
-import { ask } from "../../util/Util";
-import { TsFileGen } from "../core/TSFileGen";
-import { ModelGen } from "./ModelGen";
+import { Log } from "../util/Log";
+import { getModelsList } from "../util/Model";
+import { pascalCase } from "../util/StringUtil";
+import { ask } from "../util/Util";
+import { TsFileGen } from "./core/TSFileGen";
 
 export interface IFieldMeta {
     confidential?: boolean;
@@ -283,7 +283,7 @@ export class FieldGen {
                 break;
             case FieldType.Relation:
                 const types = ["One2Many", "Many2Many"];
-                const models = Object.keys(ModelGen.getModelsList());
+                const models = Object.keys(getModelsList());
                 qs.push({ name: "relationType", type: "list", choices: types, message: "Relation Type: " } as Question);
                 qs.push({ name: "relatedModel", type: "list", choices: models, message: "Target Model: " } as Question);
                 break;
@@ -393,13 +393,13 @@ export class FieldGen {
             enumArray = this.properties.enum;
             Log.warning(`Do not forget to import the (${this.enumName})`);
         } else {
-            this.enumName = fcUpper(this.modelFile.name) + fcUpper(this.name);
+            this.enumName = pascalCase(this.modelFile.name) + pascalCase(this.name);
             const enumField = this.modelFile.addEnum(this.enumName);
             enumField.shouldExport(true);
             firstEnum = `${this.enumName}.${firstEnum}`;
             for (let i = 0, il = this.properties.enum.length; i < il; ++i) {
                 enumField.addProperty(this.properties.enum[i]);
-                const v = fcUpper(this.properties.enum[i]);
+                const v = pascalCase(this.properties.enum[i]);
                 enumArray.push(`${this.enumName}.${v}`);
                 if (i === 0) {
                     firstEnum = enumArray[0];
@@ -438,18 +438,21 @@ export class FieldGen {
 
     private getDefaultValueForClassProperty(): string {
         switch (this.properties.type) {
-            // case FieldType.String:
-            // case FieldType.Text:
-            // case FieldType.Password:
-            // case FieldType.Tel:
-            // case FieldType.EMail:
-            // case FieldType.URL:
-            // case FieldType.Number:
-            // case FieldType.Integer:
-            // case FieldType.Float:
-            // case FieldType.File:
-            // case FieldType.Enum:
-            // case FieldType.Object:
+            case FieldType.String:
+            case FieldType.Text:
+            case FieldType.Password:
+            case FieldType.Tel:
+            case FieldType.EMail:
+            case FieldType.URL:
+                return '""';
+            case FieldType.Number:
+            case FieldType.Integer:
+            case FieldType.Float:
+                return "0";
+            case FieldType.File:
+            case FieldType.Enum:
+            case FieldType.Object:
+                return "null";
             case FieldType.Timestamp:
                 return "Date.now()";
             case FieldType.Boolean:

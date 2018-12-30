@@ -1,61 +1,47 @@
-export function trimLineBreaks(string: string): string {
-    if (!string) return string;
-    return string.replace(/\r?\n|\r$/, '');
+import { camelCase, upperFirst } from "lodash";
+
+export function trimLineBreaks(text: string): string {
+    if (!text) { return text; }
+    return text.replace(/\r?\n|\r$/, "");
 }
 
-export function fix(string: string, length: number, align: string = 'left') {
-    let offset = length - string.length;
-    if (!offset) return string;
+export function fix(text: string, length: number, align: string = "left") {
+    const offset = length - text.length;
+    if (!offset) { return text; }
     if (offset > 0) {
         for (let i = offset; i--;) {
-            if (align == 'right') {
-                string = ' ' + string;
-            } else if (align == 'left') {
-                string += ' ';
+            if (align === "right") {
+                text = " " + text;
+            } else if (align === "left") {
+                text += " ";
             } else {
                 // center
             }
         }
-        return string;
+        return text;
     }
     // offset < 0
-    return
-}
-
-/**
- * Uppercase only the first character in str
- */
-export function fcUpper(str: string) {
-    if (!str.length) return str;
-    return str[0].toUpperCase() + str.substr(1);
-}
-
-export function camelCase(str: string) {
-    if (!str.length) return str;
-    return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function (match, index) {
-        if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
-        return index == 0 ? match.toLowerCase() : match.toUpperCase();
-    });
+    return;
 }
 
 export function pascalCase(str: string) {
-    if (!str.length) return str;
-    return fcUpper(camelCase(str));
+    if (!str.length) { return str; }
+    return upperFirst(camelCase(str));
 }
 
 export function kebabCase(str: string) {
-    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
 export function plural(name: string): string {
-    let lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
-    if (['a', 'i', 'u', 's'].indexOf(lastChar) >= 0) {
-        return name + 'es';
+    const lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
+    if (["a", "i", "u", "s"].indexOf(lastChar) >= 0) {
+        return name + "es";
     }
-    if (['y'].indexOf(name.charAt(name.length - 1)) >= 0) {
-        return name.substr(0, name.length - 1) + 'ies';
+    if (["y"].indexOf(name.charAt(name.length - 1)) >= 0) {
+        return name.substr(0, name.length - 1) + "ies";
     }
-    return name + 's';
+    return name + "s";
 }
 
 export function strRepeat(str: string, times: number): string {

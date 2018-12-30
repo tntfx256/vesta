@@ -1,6 +1,6 @@
 import { Question } from "inquirer";
-import { execute } from "../../util/CmdUtil";
-import { ask } from "../../util/Util";
+import { execute } from "../util/CmdUtil";
+import { ask } from "../util/Util";
 
 export interface IRepositoryConfig {
     common?: string;
@@ -32,7 +32,7 @@ export class GitGen {
     }
 
     private static getRepoConfig(): Promise<IRepositoryConfig> {
-        const qs: Array<Question> = [
+        const qs: Question[] = [
             {
                 message: "Repository URL (Main Project): ",
                 name: "main",

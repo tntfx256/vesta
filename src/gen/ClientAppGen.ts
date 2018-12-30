@@ -1,10 +1,9 @@
-import { PlatformConfig } from "../../PlatformConfig";
-import { copy, mkdir } from "../../util/FsUtil";
-import { Log } from "../../util/Log";
-import { findInFileAndReplace } from "../../util/Util";
-import { GitGen } from "../file/GitGen";
-import { Vesta } from "../file/Vesta";
-import { IExtProjectConfig } from "../ProjectGen";
+import { PlatformConfig } from "../PlatformConfig";
+import { copy, mkdir } from "../util/FsUtil";
+import { Log } from "../util/Log";
+import { findInFileAndReplace } from "../util/Util";
+import { GitGen } from "./GitGen";
+import { IExtProjectConfig } from "./ProjectGen";
 
 export interface IClientAppConfig {
 }
@@ -14,11 +13,7 @@ export class ClientAppGen {
     public static getGeneratorConfig(): Promise<IClientAppConfig> {
         return Promise.resolve({} as IClientAppConfig);
     }
-
-    protected vesta: Vesta;
-
     constructor(protected config: IExtProjectConfig) {
-        this.vesta = Vesta.getInstance(config);
     }
 
     public generate() {

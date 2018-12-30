@@ -1,7 +1,8 @@
-import { join, relative } from "path";
+import { camelCase } from "lodash";
+import { join } from "path";
 import { writeFile } from "../../util/FsUtil";
 import { Log } from "../../util/Log";
-import { camelCase, pascalCase } from "../../util/StringUtil";
+import { pascalCase } from "../../util/StringUtil";
 import { ClassGen } from "./ClassGen";
 import { EnumGen } from "./EnumGen";
 import { InterfaceGen } from "./InterfaceGen";
@@ -15,7 +16,7 @@ export interface ImportStatement {
 }
 
 export interface ImportStorage {
-    [from: string]: Array<ImportStatement>;
+    [from: string]: ImportStatement[];
 }
 
 export interface IMixin {
@@ -26,18 +27,18 @@ export interface IMixin {
 
 export class TsFileGen {
     public static CodeLocation = { AfterImport: 1, AfterEnum: 2, AfterInterface: 3, AfterClass: 4, AfterMethod: 5 };
-    private refs: Array<string> = [];
-    private mixins: Array<IMixin> = [];
-    private methods: Array<MethodGen> = [];
-    private enums: Array<EnumGen> = [];
-    private classes: Array<ClassGen> = [];
-    private interfaces: Array<InterfaceGen> = [];
+    private refs: string[] = [];
+    private mixins: IMixin[] = [];
+    private methods: MethodGen[] = [];
+    private enums: EnumGen[] = [];
+    private classes: ClassGen[] = [];
+    private interfaces: InterfaceGen[] = [];
     private importStatements: ImportStorage = {};
 
     constructor(public name: string) {
     }
 
-    public addReference(...refs: Array<string>): void {
+    public addReference(...refs: string[]): void {
         refs.forEach((ref) => {
             if (this.refs.indexOf(ref) < 0) {
                 this.refs.push(ref);
@@ -45,7 +46,7 @@ export class TsFileGen {
         });
     }
 
-    public addImport(modules: Array<string>, from: string, isDefault?: boolean) {
+    public addImport(modules: string[], from: string, isDefault?: boolean) {
         if (!this.importStatements[from]) {
             this.importStatements[from] = [];
         }
@@ -54,7 +55,7 @@ export class TsFileGen {
             let found = false;
             for (let j = this.importStatements[from].length; j--;) {
                 const st: ImportStatement = this.importStatements[from][j];
-                if (st.name == modules[i]) {
+                if (st.name === modules[i]) {
                     found = true;
                     break;
                 }
@@ -101,9 +102,9 @@ export class TsFileGen {
 
     public getInterface(name: string): InterfaceGen {
         name = pascalCase(name);
-        if (name.charAt(0) != "I") { name += `I${name}`; }
+        if (name.charAt(0) !== "I") { name += `I${name}`; }
         for (let i = this.interfaces.length; i--;) {
-            if (this.interfaces[i].name == name) {
+            if (this.interfaces[i].name === name) {
                 return this.interfaces[i];
             }
         }
@@ -122,7 +123,7 @@ export class TsFileGen {
     public getEnum(name: string): EnumGen {
         name = pascalCase(name);
         for (let i = this.enums.length; i--;) {
-            if (this.enums[i].name == name) {
+            if (this.enums[i].name === name) {
                 return this.enums[i];
             }
         }
@@ -130,7 +131,7 @@ export class TsFileGen {
     }
 
     public addMethod(name: string): MethodGen {
-        name = camelCase(name);
+        // name = camelCase(name);
         let method = this.getMethod(name);
         if (method) { return method; }
         method = new MethodGen(name);
@@ -141,7 +142,7 @@ export class TsFileGen {
     public getMethod(name: string): MethodGen {
         name = camelCase(name);
         for (let i = this.methods.length; i--;) {
-            if (this.enums[i].name == name) {
+            if (this.enums[i].name === name) {
                 return this.methods[i];
             }
         }
@@ -192,7 +193,7 @@ export class TsFileGen {
     private getMixin(position) {
         const code = [];
         for (let i = 0, il = this.mixins.length; i < il; ++i) {
-            if (this.mixins[i].position == position) {
+            if (this.mixins[i].position === position) {
                 code.push(`${this.mixins[i].code}`);
             }
         }

@@ -3,13 +3,12 @@ import { execute, IExecOptions } from "../util/CmdUtil";
 import { mkdir } from "../util/FsUtil";
 import { kebabCase } from "../util/StringUtil";
 import { finalizeClonedTemplate, findInFileAndReplace } from "../util/Util";
-import { ClientAppGen, IClientAppConfig } from "./app/ClientAppGen";
-import { CommonGen } from "./app/CommonGen";
-import { IServerAppConfig, ServerAppGen } from "./app/ServerAppGen";
-import { DockerGen } from "./code/DockerGen";
-import { I18nConfig } from "./code/I18nGen";
-import { GitGen, IRepositoryConfig } from "./file/GitGen";
-import { Vesta } from "./file/Vesta";
+import { ClientAppGen, IClientAppConfig } from "./ClientAppGen";
+import { CommonGen } from "./CommonGen";
+import { DockerGen } from "./DockerGen";
+import { GitGen, IRepositoryConfig } from "./GitGen";
+import { I18nConfig } from "./I18nGen";
+import { IServerAppConfig, ServerAppGen } from "./ServerAppGen";
 
 export const enum ProjectType { ClientApplication = 1, ApiServer }
 
@@ -30,11 +29,9 @@ export class ProjectGen {
     public clientApp: ClientAppGen;
     public commonApp: CommonGen;
     public serverApp: ServerAppGen;
-    public vesta: Vesta;
     private docker: DockerGen;
 
     constructor(public config: IExtProjectConfig) {
-        this.vesta = Vesta.getInstance(config);
         this.docker = new DockerGen(config);
         //
         this.commonApp = new CommonGen(config);
@@ -57,7 +54,6 @@ export class ProjectGen {
         // having the client or server to generate it's projects
         isClientSideProject ? this.clientApp.generate() : this.serverApp.generate();
         this.docker.compose();
-        this.vesta.generate(projectName);
         finalizeClonedTemplate(projectName, kebabCase(projectName));
         findInFileAndReplace(`${projectName}/resources/ci/deploy.sh`, replacement);
         if (!repoInfo || !repoInfo.main) {

@@ -1,7 +1,7 @@
-import { AbstractStructureGen, IStructureProperty } from "./AbstractStructureGen";
 import { MethodGen } from "./MethodGen";
+import { IStructureProperty, StructureGen } from "./StructureGen";
 
-export class InterfaceGen extends AbstractStructureGen {
+export class InterfaceGen extends StructureGen {
 
     constructor(name: string) {
         super(name);
@@ -9,7 +9,7 @@ export class InterfaceGen extends AbstractStructureGen {
 
     public addMethod(name: string): MethodGen {
         const method = super.addMethod(name);
-        method.isInterfaceMethod(true);
+        method.isInterface = true;
         return method;
     }
 

@@ -8,7 +8,7 @@ export function mkdir(...dirs: string[]): void {
         try {
             fse.mkdirpSync(dir);
         } catch (e) {
-            Log.error(`mkdir: ${e.message}`);
+            // Log.error(`mkdir: ${e.message}`);
         }
     });
 }

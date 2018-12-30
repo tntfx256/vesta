@@ -1,9 +1,9 @@
 import { writeFileSync } from "fs";
-import { ArgParser } from "../../../util/ArgParser";
-import { mkdir } from "../../../util/FsUtil";
-import { Log } from "../../../util/Log";
-import { fcUpper } from "../../../util/StringUtil";
-import { Vesta } from "../../file/Vesta";
+import { ArgParser } from "../util/ArgParser";
+import { mkdir } from "../util/FsUtil";
+import { Log } from "../util/Log";
+import { pascalCase } from "../util/StringUtil";
+import { Vesta } from "./Vesta";
 
 export interface IServiceGenConfig {
     name: string;
@@ -40,8 +40,8 @@ Example:
     private path = "src/client/app/service/";
 
     constructor(private config: IServiceGenConfig) {
-        this.path = `${Vesta.getInstance().directories.app}/service/`;
-        this.className = fcUpper(config.name);
+        this.path = `${Vesta.directories.app}/service/`;
+        this.className = pascalCase(config.name);
         mkdir(this.path);
     }
 

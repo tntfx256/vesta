@@ -1,4 +1,4 @@
-import { GitGen } from "../gen/file/GitGen";
+import { GitGen } from "../gen/GitGen";
 import { IExtProjectConfig, IProjectConfig, ProjectGen, ProjectType } from "../gen/ProjectGen";
 import { ArgParser } from "../util/ArgParser";
 import { Log } from "../util/Log";
