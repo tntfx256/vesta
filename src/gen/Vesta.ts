@@ -65,14 +65,13 @@ export class Vesta {
         } else {
             Vesta.dirs = {
                 app: "src",
-                cmn: "src",
+                cmn: "src/cmn",
                 components: "src/components",
                 controllers: `src/controllers`,
                 model: "src/models",
                 sass: "src/components",
                 vesta: "vesta",
             };
-            mkdir("src");
         }
     }
 }

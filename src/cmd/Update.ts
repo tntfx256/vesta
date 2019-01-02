@@ -13,6 +13,9 @@ export class Update {
         }
         try {
             const content = readJsonFile<any>(`package.json`);
+            if (!content) {
+                process.exit();
+            }
             const isDev = argParser.has("--dev");
             const pkgKeyName = isDev ? "devDependencies" : "dependencies";
             const allPackages = Object.keys(content[pkgKeyName]);

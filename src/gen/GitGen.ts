@@ -1,5 +1,6 @@
 import { Question } from "inquirer";
 import { execute } from "../util/CmdUtil";
+import { Log } from "../util/Log";
 import { ask } from "../util/Util";
 
 export interface IRepositoryConfig {
@@ -12,7 +13,11 @@ export class GitGen {
 
     public static clone(repository: string, destination: string = "", branch: string = ""): string {
         const branchCmd = branch ? `-b ${branch}` : "";
-        return execute(`git clone ${branchCmd} ${repository} ${destination}`);
+        try {
+            return execute(`git clone ${branchCmd} ${repository} ${destination}`);
+        } catch (e) {
+            Log.error(e.message, true);
+        }
     }
 
     public static getRepoName(repoUrl: string): string {

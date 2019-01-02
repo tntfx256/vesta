@@ -10,7 +10,7 @@ import { GitGen, IRepositoryConfig } from "./GitGen";
 import { I18nConfig } from "./I18nGen";
 import { IServerAppConfig, ServerAppGen } from "./ServerAppGen";
 
-export const enum ProjectType { ClientApplication = 1, ApiServer }
+export const enum ProjectType { ClientApplication = 1, NativeClientApplication, ApiServer }
 
 export interface IProjectConfig {
     client?: IClientAppConfig;
@@ -63,10 +63,10 @@ export class ProjectGen {
         // Initiating the git repo
         execute(`git init`, execOption);
         execute(`git add .`, execOption);
-        execute(`git commit -m Vesta-init`, execOption);
+        execute(`git commit -m vesta-init`, execOption);
         this.commonApp.generate();
         execute(`git add .`, execOption);
-        execute(`git commit -m Vesta-common`, execOption);
+        execute(`git commit -m vesta-common`, execOption);
         execute(`git remote add origin ${repoInfo.main}`, execOption);
         execute(`git push -u origin master`, execOption);
     }

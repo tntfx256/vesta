@@ -2,9 +2,11 @@
 import { DateTime } from "@vesta/culture";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { prompt as iPrompt, Question } from "inquirer";
+import { camelCase, kebabCase } from "lodash";
 import { getOutputOf } from "./CmdUtil";
 import { readJsonFile, remove } from "./FsUtil";
 import { Log } from "./Log";
+import { pascalCase } from "./StringUtil";
 
 export function ask<T>(questions: Question | Question[]): Promise<T> {
     return new Promise<T>((resolve) => {
@@ -14,23 +16,22 @@ export function ask<T>(questions: Question | Question[]): Promise<T> {
     });
 }
 
-export function findInFileAndReplace(filePath: string, patternReplacePair: any, shoulProceed?: (content: string) => boolean) {
+export function findInFileAndReplace(filePath: string, patternReplacePair: any) {
     if (existsSync(filePath)) {
-        let code = readFileSync(filePath, "utf8");
-        const tobeContinue = shoulProceed ? shoulProceed(code) : true;
-        for (let patterns = Object.keys(patternReplacePair), i = patterns.length; i--;) {
-            const pattern = patterns[i];
-            const replace = patternReplacePair[pattern];
-            const regex = new RegExp(pattern, "g");
-            if (!tobeContinue) {
-                continue;
-            }
-            code = code.replace(regex, replace);
-        }
-        writeFileSync(filePath, code);
-        return;
+        return Log.error(`File not found: ${filePath}`);
     }
-    Log.error(`File not found @${filePath}`);
+    let code = readFileSync(filePath, "utf8");
+    for (let patterns = Object.keys(patternReplacePair), i = patterns.length; i--;) {
+        const pattern = patterns[i];
+        const replace = patternReplacePair[pattern];
+        const allPatterns = [pattern, pascalCase(pattern), kebabCase(pattern), camelCase(pattern)];
+        const allReplaces = [replace, pascalCase(replace), kebabCase(replace), camelCase(replace)];
+        for (let j = 0, jl = allPatterns.length; j < jl; ++j) {
+            const regex = new RegExp(allPatterns[j], "g");
+            code = code.replace(regex, allReplaces[j]);
+        }
+    }
+    writeFileSync(filePath, code);
 }
 
 export function appendToFile(filePath: string, content: string) {

@@ -1,6 +1,6 @@
 {
   "name": "vesta",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "description": "Vesta Platform",
   "license": "Apache-2.0",
   "author": "hbtb <bishehsary@gmail.com>",
@@ -13,18 +13,19 @@
   },
   "vesta": {
     "repository": {
-      "api": "https://github.com/VestaRayanAfzar/vesta-template-api.git",
-      "client": "https://github.com/VestaRayanAfzar/vesta-template-client.git",
-      "cmn": "https://github.com/VestaRayanAfzar/vesta-template-cmn.git"
+      "api": "https://github.com/vestaBoot/vesta-template-api.git",
+      "client": "https://github.com/vestaBoot/vesta-template-client.git",
+      "native": "https://github.com/vestaBoot/vesta-template-native-client.git",
+      "cmn": "https://github.com/vestaBoot/vesta-template-cmn.git"
     }
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc -w -p ."
   },
-  "repository": "https://github.com/VestaRayanAfzar/vesta.git",
+  "repository": "https://github.com/vestaBoot/vesta.git",
   "bugs": {
-    "url": "https://github.com/VestaRayanAfzar/vesta/issues",
+    "url": "https://github.com/vestaBoot/vesta/issues",
     "email": "bishehsary@gmail.com"
   },
   "dependencies": {

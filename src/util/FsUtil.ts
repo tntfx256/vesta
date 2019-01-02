@@ -31,7 +31,7 @@ export function writeFile(path: string, content: string) {
 }
 
 export function copy(src: string, dest: string) {
-    Log.info(`./> cp ${src} ${dest}`);
+    // Log.info(`./> cp ${src} ${dest}`);
     try {
         fse.copySync(src, dest);
     } catch (e) {
@@ -40,7 +40,7 @@ export function copy(src: string, dest: string) {
 }
 
 export function rename(src: string, dest: string) {
-    Log.info(`./> mv ${src} ${dest}`);
+    // Log.info(`./> mv ${src} ${dest}`);
     try {
         fse.renameSync(src, dest);
     } catch (e) {
@@ -50,7 +50,7 @@ export function rename(src: string, dest: string) {
 
 export function remove(...path: string[]) {
     path.forEach((p) => {
-        Log.info(`./> rm -rf ${p}`);
+        // Log.info(`./> rm -rf ${p}`);
         try {
             fse.removeSync(p);
         } catch (e) {

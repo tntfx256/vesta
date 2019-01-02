@@ -1,5 +1,5 @@
+import { copySync, mkdirSync } from "fs-extra";
 import { PlatformConfig } from "../PlatformConfig";
-import { copy, mkdir } from "../util/FsUtil";
 import { Log } from "../util/Log";
 import { findInFileAndReplace } from "../util/Util";
 import { GitGen } from "./GitGen";
@@ -10,9 +10,6 @@ export interface IClientAppConfig {
 
 export class ClientAppGen {
 
-    public static getGeneratorConfig(): Promise<IClientAppConfig> {
-        return Promise.resolve({} as IClientAppConfig);
-    }
     constructor(protected config: IExtProjectConfig) {
     }
 
@@ -22,8 +19,9 @@ export class ClientAppGen {
         const templateRepo = PlatformConfig.getRepository();
         const templateProjectName = GitGen.getRepoName(templateRepo.client);
         const replacePattern = { [templateProjectName]: dir };
-        copy(`${dir}/resources/gitignore/variantConfig.ts`, `${dir}/src/app/config/variantConfig.ts`);
-        mkdir(`${dir}/vesta/cordova/www`); // for installing plugins this folder must exist
+        copySync(`${dir}/resources/gitignore/variantConfig.ts`, `${dir}/src/config/variantConfig.ts`);
+        // for installing plugins this folder must exist
+        mkdirSync(`${dir}/vesta/cordova/www`);
         findInFileAndReplace(`${dir}/vesta/cordova/config.xml`, replacePattern);
     }
 
