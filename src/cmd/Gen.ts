@@ -42,10 +42,10 @@ Run 'vesta gen <TYPE> --help' for more information on TYPE
 
     private static generate(type: string) {
         if (["controller"].indexOf(type) >= 0 && !Vesta.isApiServer) {
-            return Log.error("Controller generator is not supported on Client side applications");
+            return Log.error("Controller generator is not supported on Client side applications", true);
         }
-        if (["sass", "component", "service", "form"].indexOf(type) >= 0 && Vesta.isApiServer) {
-            return Log.error(`${pascalCase(type)} generator is not supported on Api applications`);
+        if (["component", "service", "form"].indexOf(type) >= 0 && Vesta.isApiServer) {
+            return Log.error(`${pascalCase(type)} generator is not supported on Api applications`, true);
         }
         switch (type) {
             case "controller":

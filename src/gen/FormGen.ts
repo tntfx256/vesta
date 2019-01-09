@@ -94,11 +94,11 @@ export function genForm(config: IFormGenConfig) {
         file.addImport(["ComponentType", "useState"], "react");
         file.addImport(["Culture"], "@vesta/culture");
         file.addImport(["IValidationError", "IModelValidationMessage", "validationMessage"], "@vesta/core");
-        file.addImport(["FormWrapper", enumType, "IBaseComponentProps"], "@vesta/components");
+        file.addImport(["FormWrapper", enumType, "IComponentProps"], "@vesta/components");
         file.addImport([model.interfaceName, model.className], genRelativePath(config.path, model.file));
         // props
         const props = file.addInterface(`I${fileName}Props`);
-        props.setParentClass(`IBaseComponentProps`);
+        props.setParentClass(`IComponentProps`);
         props.addProperty({ name: "id", type: "number", isOptional: true });
         props.addProperty({ name: "goBack", type: `() => void` });
     }

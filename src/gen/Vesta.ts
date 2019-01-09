@@ -1,5 +1,4 @@
 import { existsSync } from "fs";
-import { mkdir } from "../util/FsUtil";
 
 export interface IStructure {
     app: string;
@@ -20,7 +19,7 @@ export class Vesta {
     }
 
     public static get isApiServer(): boolean {
-        return existsSync(`${__dirname}/src/api`);
+        return existsSync(`${process.cwd()}/src/api`);
     }
 
     public static get directories(): IStructure {
@@ -32,7 +31,7 @@ export class Vesta {
 
     private static setStructures() {
         Vesta.dirs = {} as IStructure;
-        if (existsSync(`${__dirname}/src/client/app/cmn`)) {
+        if (existsSync(`${process.cwd()}/src/client/app/cmn`)) {
             Vesta.dirs = {
                 app: "src/client/app",
                 cmn: "src/client/app/cmn",
@@ -42,7 +41,7 @@ export class Vesta {
                 sass: "src/client/app/scss",
                 vesta: "vesta",
             };
-        } else if (existsSync(`${__dirname}/src/app/cmn`)) {
+        } else if (existsSync(`${process.cwd()}/src/app/cmn`)) {
             Vesta.dirs = {
                 app: "src/app",
                 cmn: "src/app/cmn",
@@ -52,7 +51,7 @@ export class Vesta {
                 sass: "src/app/scss",
                 vesta: "vesta",
             };
-        } else if (existsSync(`${__dirname}/src/cmn`)) {
+        } else if (existsSync(`${process.cwd()}/src/cmn`)) {
             Vesta.dirs = {
                 app: "src",
                 cmn: "src/cmn",

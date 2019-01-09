@@ -12,10 +12,10 @@ export function genSimple(config: IComponentGenConfig) {
     const componentFile = new TsFileGen(className);
     componentFile.addImport(["React"], "react", true);
     componentFile.addImport(["ComponentType"], "react");
-    componentFile.addImport(["IBaseComponentProps"], "@vesta/components");
+    componentFile.addImport(["IComponentProps"], "@vesta/components");
     // props
     const propsInterface = componentFile.addInterface(`I${className}Props`);
-    propsInterface.setParentClass("IBaseComponentProps");
+    propsInterface.setParentClass("IComponentProps");
     // component class
     componentFile.addMixin(`
 export const ${className}: ComponentType<I${className}Props> = (props: I${className}Props) => {
