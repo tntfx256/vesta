@@ -35,14 +35,13 @@ export abstract class StructureGen {
     protected parentClass: string;
     protected implementations: string[] = [];
     protected constructorMethod: MethodGen;
-    protected tab = "    ";
 
     constructor(name: string) {
         this.name = pascalCase(name);
     }
 
     public setConstructor(): MethodGen {
-        this.constructorMethod = new MethodGen("", this.tab);
+        this.constructorMethod = new MethodGen("", 1);
         return this.constructorMethod;
     }
 
@@ -59,7 +58,7 @@ export abstract class StructureGen {
                 return this.methods[i];
             }
         }
-        const method = new MethodGen(config.name, "    ");
+        const method = new MethodGen(config.name, 1);
         method.accessType = config.access || Access.None;
         method.isStatic = config.isStatic;
         method.isAbstract = config.isAbstract;

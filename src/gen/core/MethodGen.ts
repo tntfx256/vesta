@@ -1,4 +1,5 @@
 import { Log } from "../../util/Log";
+import { tab } from "../../util/StringUtil";
 import { Access } from "./StructureGen";
 
 export interface IMethodParameter {
@@ -24,10 +25,9 @@ export class MethodGen {
     public isSimple: boolean = false;
     public isInterface: boolean = false;
 
-    private tab = "    ";
     private methods: MethodGen[] = [];
 
-    constructor(public name: string = "", private indent = "") {
+    constructor(public name: string = "", private indent = 0) {
         if (!name) {
             this.isConstructor = true;
         }
@@ -38,7 +38,7 @@ export class MethodGen {
     }
 
     public addMethod(name: string) {
-        this.methods.push(new MethodGen(name, `${this.indent}${this.tab}`));
+        this.methods.push(new MethodGen(name, this.indent + 1));
         return this.methods[this.methods.length - 1];
     }
 
@@ -53,11 +53,11 @@ export class MethodGen {
 
     public appendContent(code: string) {
         const nl = this.content ? `\n` : "";
-        this.content = `${this.content}${nl}${this.tab}${this.indent}${code}`;
+        this.content = `${this.content}${nl}${tab(this.indent + 1)}${code}`;
     }
 
     public generate(): string {
-        let code = this.indent;
+        let code = tab(this.indent);
         code += this.shouldExport ? "export " : "";
         code += this.accessType ? `${this.accessType} ` : "";
         code += this.isConstructor ? "constructor" : "";
@@ -80,7 +80,7 @@ export class MethodGen {
         if (methods.length) {
             code += `\n\n${methods.join("\n\n")}`;
         }
-        code += `\n${this.indent}}\n`;
+        code += `\n${tab(this.indent)}}${this.isArrow ? ";" : ""}`;
         return code;
     }
 

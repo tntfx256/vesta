@@ -35,7 +35,7 @@ export function genUpsert(config: IComponentGenConfig, isEdit: boolean) {
 
     return (
         <div className="crud-page">
-            <h2>{tr("title_record_add", tr("mdl_${model.instanceName.toLowerCase()}"))}</h2>
+            <h2>{tr(${isEdit ? "title_record_edit" : "title_record_add"}, tr("${model.instanceName.toLowerCase()}"))}</h2>
             <${model.className}Form ${isEdit ? "id={props.match.params.id} " : ""}goBack={goBack}>
                 <div className="btn-group">
                     <Button color="primary" variant="contained">{tr("${isEdit ? "save" : "add"}")}</Button>
@@ -43,11 +43,9 @@ export function genUpsert(config: IComponentGenConfig, isEdit: boolean) {
                 </div>
             </${model.className}Form>
         </div>
-    );
-`);
+    );`);
 
     const back = method.addMethod("goBack");
-    back.appendContent(`
-        props.history.goBack();`);
+    back.appendContent(`props.history.goBack();`);
     writeFileSync(`${config.path}/${fileName}.tsx`, file.generate());
 }

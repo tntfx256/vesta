@@ -1,11 +1,11 @@
 import { Field, FieldType, IFieldProperties, RelationType } from "@vesta/core";
-import { writeFileSync } from "fs-extra";
+import { mkdirpSync, writeFileSync } from "fs-extra";
 import { camelCase, upperFirst } from "lodash";
 import { ArgParser } from "../util/ArgParser";
 import { genRelativePath } from "../util/FsUtil";
 import { Log } from "../util/Log";
 import { getFieldForFormSelect, getFieldMeta, getFieldsByType, parseModel } from "../util/Model";
-import { pascalCase, plural } from "../util/StringUtil";
+import { pascalCase, plural, tab } from "../util/StringUtil";
 import { IComponentGenConfig } from "./ComponentGen";
 import { TsFileGen } from "./core/TSFileGen";
 import { IFieldMeta } from "./FieldGen";
@@ -55,15 +55,13 @@ Example:
             return;
         }
         if (!config.model) {
-            Log.error("Missaing/Invalid model\nSee 'vesta gen form --help' for more information\n");
+            Log.error("Missing/Invalid model\nSee 'vesta gen form --help' for more information\n");
             return;
         }
         (new FormGen(config)).generate();
     }
 
     constructor(private config: IFormGenConfig) {
-        // const path = `${Vesta.directories.components}/${config.path}`;
-        // mkdir(path);
     }
 
     public generate() {
@@ -84,17 +82,22 @@ export function genForm(config: IFormGenConfig) {
     const method = file.addMethod(fileName);
     setImports();
     setContent();
-
+    try {
+        mkdirpSync(config.path);
+    } catch (error) {
+        //
+    }
     writeFileSync(`${config.path}/${fileName}.tsx`, file.generate(), { encoding: "utf8" });
 
     function setImports() {
         // imports
         const enumType = hasFieldOfType(FieldType.Enum) || hasFieldOfType(FieldType.Boolean) ? "IFormOption" : null;
         file.addImport(["React"], "react", true);
-        file.addImport(["ComponentType", "useState"], "react");
+        file.addImport(["ComponentType", "useEffect", "useState"], "react");
         file.addImport(["Culture"], "@vesta/culture");
-        file.addImport(["IValidationError", "IModelValidationMessage", "validationMessage"], "@vesta/core");
+        file.addImport(["IValidationError", "validationMessage"], "@vesta/core");
         file.addImport(["FormWrapper", enumType, "IComponentProps"], "@vesta/components");
+        file.addImport(["getCrud"], genRelativePath(config.path, "src/service/Crud.ts"));
         file.addImport([model.interfaceName, model.className], genRelativePath(config.path, model.file));
         // props
         const props = file.addInterface(`I${fileName}Props`);
@@ -111,7 +114,7 @@ export function genForm(config: IFormGenConfig) {
 
         method.appendContent(`
     const tr = Culture.getDictionary().translate;
-    const service = Crud.getService<${model.interfaceName}>("${model.instanceName}");
+    const service = getCrud<${model.interfaceName}>("${model.instanceName}");
     ${getAllEnums()}
     const formErrorsMessages = ${getValidationErrorMessages()}
 
@@ -134,11 +137,10 @@ export function genForm(config: IFormGenConfig) {
             }
         }
 
-        // fetch [componentDidMount]
         // const fetchCodes = [];
         const fileFields = getFieldsByType(config.model, FieldType.File);
         const files = fileFields ? Object.keys(fileFields) : [];
-        let finalCode = `set${model.className}({${model.instanceName}})`;
+        let finalCode = `set${model.className}(${model.instanceName})`;
         const filesCode = [];
         for (let i = files.length; i--;) {
             filesCode.push(`if (${model.instanceName}.${files[i]}) {
@@ -148,20 +150,21 @@ export function genForm(config: IFormGenConfig) {
         if (filesCode.length) {
             file.addImport(["getFileUrl"], genRelativePath(config.path, `${Vesta.directories.app}/util/Util`));
             finalCode = `{
-                ${filesCode.join("\n\t\t\t")}
+                ${filesCode.join(`\n${tab(3)}`)}
                 ${finalCode};
             }`;
         }
         method.appendContent(`useEffect(() => {
         const id = +props.id;
         if (isNaN(id)) { return; }
-        service.fetch(id).then((${model.instanceName}) => ${finalCode});`);
+        service.fetch(id).then((${model.instanceName}) => ${finalCode});
+    }, [props.id]);`);
         // render
         const formData = getFormData();
         const extStateCode = extStates.length ? `, ${extStates.join(", ")}` : "";
-        const extraCode = formData.code ? `\n\t\t${formData.code}` : "";
-        method.appendContent(`
-    const errors = errors ? validationMessage(formErrorsMessages, errors) : {};${extraCode}
+        const extraCode = formData.code ? `\n${tab(2)}${formData.code}` : "";
+        method.appendContent(`${extStateCode}
+    const errorMessages = errors ? validationMessage(formErrorsMessages, errors) : {};${extraCode}
 
     return (
         <FormWrapper name="${model.instanceName}Form" onSubmit={onSubmit}>${formData.form}
@@ -170,69 +173,38 @@ export function genForm(config: IFormGenConfig) {
     );`);
 
         // onChange method
-        method.appendContent(`function onChange(name: string, value: any){
-        ${model.instanceName}[name] = value;
-        setState({ ${model.instanceName} });
-    }`);
+        const onChangeFunction = method.addMethod("onChange");
+        onChangeFunction.addParameter({ name: "name", type: "string" });
+        onChangeFunction.addParameter({ name: "value", type: "any" });
+        onChangeFunction.appendContent(`set${model.className}({ ...${model.instanceName}, [name]: value});`);
 
-        // // fetch method
-        method.appendContent(`function onFetch(id: number){
-        Preloader.show();
-        return api.get<${model.interfaceName}>(\`${model.instanceName}/\${id}\`)
-            .then((response) => {
-                Preloader.hide();
-                return response.items[0];
-            })
-            .catch((error) => {
-                Preloader.hide();
-                notif.error(error.message);
-            });
-    }`);
         // save method
-        const resultCode = `setState({ showLoader: false });
-                notif.success(tr("info_save_record"));
-                onFetchAll(state.queryOption);
-                props.history.goBack();`;
-        let deleteCode = "";
-        let uploadCode = "";
-        let uploadResultCode = "";
+        const onSubmitFunction = method.addMethod("onSubmit");
+        let fileCode = "";
         if (files.length) {
-            deleteCode = `\n\t\tlet hasFile = false;
+            fileCode = `\n${tab(2)}let hasFile = false;
         const ${model.instanceName}Files: ${model.interfaceName} = {};`;
             for (let i = files.length; i--;) {
                 const fieldName = files[0];
-                deleteCode += `\n\t\tif (${model.instanceName}.${fieldName} && ${model.instanceName}.${fieldName} instanceof File) {
+                fileCode += `\n${tab(2)}if (${model.instanceName}.${fieldName} && ${model.instanceName}.${fieldName} instanceof File) {
             ${model.instanceName}Files.${fieldName} = ${model.instanceName}.${fieldName};
             delete ${model.instanceName}.${fieldName};
             hasFile = true;
         }`;
             }
-            uploadCode = `api.upload<${model.interfaceName}>(\`${model.instanceName}/file/\${response.items[0].id}\`, ${model.instanceName}Files) : response`;
-            uploadResultCode = `\n\t\t\t.then((response) => {
-                ${resultCode}
-            })`;
-        } else {
-            uploadCode = `{
-                ${resultCode}
-            }`;
         }
-        method.appendContent(`function onSubmit(){
-        const ${model.instanceName}Model = new ${fileName}(model);
+        onSubmitFunction.appendContent(`const ${model.instanceName}Model = new ${model.className}(${model.instanceName});
         const ${model.instanceName}Files: ${model.interfaceName} = {};
 
-        const errors = ${model.instanceName}.validate();
+        const validationErrors = ${model.instanceName}Model.validate();
         if (validationErrors) {
-            return setState({validationErrors});
-        }${deleteCode}
-        setState({ showLoader: true, validationErrors: null });
-        const data = ${model.instanceName}.getValues<${model.interfaceName}>();
-        (model.id ? api.put<${model.interfaceName}>("${model.instanceName}", data) : api.post<${model.interfaceName}>("${model.instanceName}", data))
-            .then((response) => ${uploadCode})${uploadResultCode}
-            .catch((error) => {
-                setState({ showLoader: false, validationErrors: error.violations });
-                notif.error(error.message);
-            });
-    }`);
+            return setErrors(validationErrors);
+        }${fileCode}
+        setErrors(null);
+        const data = ${model.instanceName}Model.getValues<${model.interfaceName}>();
+        service.save(data${files.length ? `${model.instanceName}Files` : ""})
+            .then((response) => props.goBack())
+            .catch((error) => setErrors(error.violations));`);
 
         // fetch functions for relations
         // if (relationalFields) {
@@ -271,7 +243,7 @@ export function genForm(config: IFormGenConfig) {
 
                 if (!writtenOnce.boolean) {
                     writtenOnce.boolean = true;
-                    code += `const ${boolOptionName}: IFormOption[] = [\n\t\t${boolOptions.join(",\n\t\t")},\n\t];`;
+                    code += `const ${boolOptionName}: IFormOption[] = [\n${tab(2)}${boolOptions.join(`,\n${tab(2)}`)},\n${tab(1)}];`;
                 }
             } else if (field.properties.type === FieldType.Enum) {
 
@@ -301,12 +273,10 @@ export function genForm(config: IFormGenConfig) {
         let formCode = "";
         const imports = [];
         let component = "";
-        let hasPlaceHolder = true;
         const properties = [`name="${fieldName}" label={tr("fld_${fieldName}")} value={${model.instanceName}.${fieldName}}`,
-        `error={errors.${fieldName}} onChange={onChange}`];
+        `error={errorMessages.${fieldName}} onChange={onChange}`];
         switch (fieldProps.type) {
             case FieldType.Text:
-                hasPlaceHolder = !modelMeta.wysiwyg;
                 component = modelMeta.wysiwyg ? "Wysiwyg" : "TextArea";
                 break;
             case FieldType.String:
@@ -348,7 +318,7 @@ export function genForm(config: IFormGenConfig) {
                 const boolOptionName = `booleanOptions`;
                 if (!writtenOnce.boolean) {
                     writtenOnce.boolean = true;
-                    formCode += `const ${boolOptionName}: IFormOption[] = [\n\t\t\t${boolOptions.join(",\n\t\t\t")},\n\t\t];`;
+                    formCode += `const ${boolOptionName}: IFormOption[] = [\n${tab(3)}${boolOptions.join(`,\n${tab(3)}`)},\n${tab(2)}];`;
                 }
                 properties.push(`options={${boolOptionName}}`);
                 break;
@@ -411,12 +381,8 @@ export function genForm(config: IFormGenConfig) {
                 Log.error(`Unknown field type for ${fieldName} of type ${fieldProps.type}`);
         }
         if (component) {
-            if (hasPlaceHolder) {
-                properties.splice(1, 0, "placeholder={true}");
-            }
             imports.push(component);
-            form = `\n\t\t\t\t<${component} ${properties[0]} \n\t\t\t\t\t`;
-            properties.shift();
+            form = `\n${tab(3)}<${component} ${properties.shift()}\n${tab(4)}`;
             form += `${properties.join(" ")} />`;
         }
         return { imports, form, code: formCode };
@@ -514,7 +480,7 @@ export function genForm(config: IFormGenConfig) {
             if (importedComponents.indexOf(component) >= 0) { return; }
             file.addImport([component], "@vesta/components");
         });
-        return { form: formComponents, code: codes.join("\n\t\t") };
+        return { form: formComponents, code: codes.join(`\n${tab(2)}`) };
     }
 
     function getValidationErrorMessages() {
@@ -527,9 +493,9 @@ export function genForm(config: IFormGenConfig) {
             for (let rules = Object.keys(messages).sort(), j = 0, jl = rules.length; j < jl; ++j) {
                 partialCodes.push(`${rules[j]}: ${messages[rules[j]]}`);
             }
-            codes.push(`\n\t\t\t${fieldsName[i]}: {\n\t\t\t\t${partialCodes.join(",\n\t\t\t\t")},\n\t\t\t}`);
+            codes.push(`\n${tab(2)}${fieldsName[i]}: {\n${tab(3)}${partialCodes.join(`,\n${tab(3)}`)},\n${tab(2)}}`);
         }
-        return codes.length ? `{${codes.join(",")},\n\t\t};` : "";
+        return codes.length ? `{${codes.join(",")},\n${tab()}};` : "";
     }
 
     function hasFieldOfType(type: FieldType) {

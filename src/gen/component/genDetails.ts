@@ -4,7 +4,7 @@ import { camelCase } from "lodash";
 import { genRelativePath } from "../../util/FsUtil";
 import { Log } from "../../util/Log";
 import { getFieldMeta, parseModel } from "../../util/Model";
-import { pascalCase } from "../../util/StringUtil";
+import { pascalCase, tab } from "../../util/StringUtil";
 import { IComponentGenConfig } from "../ComponentGen";
 import { TsFileGen } from "../core/TSFileGen";
 import { IFieldMeta } from "../FieldGen";
@@ -30,7 +30,7 @@ export function genDetails(config: IComponentGenConfig) {
     file.addImport(["ComponentType", "useEffect", "useState"], "react");
     file.addImport(["IRouteComponentProps"], "@vesta/components");
     file.addImport([model.interfaceName], genRelativePath(config.path, `${Vesta.directories.model}/${model.className}`));
-    file.addImport(["getCrud"], genRelativePath(config.path, `${Vesta.directories.model}/crud`));
+    file.addImport(["getCrud"], genRelativePath(config.path, `src/service/Crud`));
     file.addImport(["Culture"], "@vesta/culture");
     // params
     const params = file.addInterface(`I${model.className}Params`);
@@ -46,20 +46,18 @@ export function genDetails(config: IComponentGenConfig) {
     const { details: fields, code } = getDetailsData(file);
     // render method
     method.appendContent(`
-
     const tr = Culture.getDictionary().translate;
     const [${model.instanceName}, set${model.className}] = useState<${model.interfaceName}>(null);
     let initiated = false;
 
-    useEffect(()=>{
+    useEffect(() => {
         const id = +props.match.params.id;
         if (initiated || !id) { return; }
         initiated = true;
         getCrud<${model.interfaceName}>("${model.instanceName}").fetch(id).then(set${model.className});
     });
 
-    if (!${model.instanceName}) { return null; }
-    ${code}
+    if (!${model.instanceName}) { return null; }${code}
 
     return (
         <div className="crud-page">
@@ -176,7 +174,7 @@ export function genDetails(config: IComponentGenConfig) {
                 Log.error(`Unknown field type for ${fieldName} of type ${fieldProps.type}`);
         }
         if (value) {
-            details = `<tr>\n\t\t\t\t\t<td>{tr("fld_${fieldName.toLowerCase()}")}</td>\n\t\t\t\t\t<td>{${value}}</td>\n\t\t\t\t</tr>`;
+            details = `<tr>\n${tab(5)}<td>{tr("fld_${fieldName.toLowerCase()}")}</td>\n${tab(5)}<td>{${value}}</td>\n${tab(4)}</tr>`;
         }
         return { details, code: fieldCode };
     }

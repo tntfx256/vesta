@@ -30,11 +30,10 @@ export function genRoot(config: IComponentGenConfig) {
         file.addImport(["React"], "react", true);
         file.addImport(["ComponentType"], "react");
         file.addImport(["Culture"], "@vesta/culture");
-        file.addImport(["HashRouter as Router"], "react-router-dom");
-        file.addImport(["Route", "Switch"], "react-router");
+        file.addImport(["AclAction"], "@vesta/services");
         file.addImport(["Navbar", "PageTitle", "CrudMenu", "IRouteComponentProps"], "@vesta/components");
-        file.addImport(["getAcl"], genRelativePath(path, `${Vesta.directories.app}/service/Acl`));
-        file.addImport(["transitionTo"], genRelativePath(path, `${Vesta.directories.app}/service/Transition`));
+        file.addImport(["getAclInstance"], genRelativePath(path, `${Vesta.directories.app}/service/Acl`));
+        file.addImport(["Go"], genRelativePath(path, `${Vesta.directories.components}/general/Go`));
 
         for (const crud of [`Add`, `Edit`, `Detail`, `List`]) {
             file.addImport([`${model.className}${crud}`], `./${model.instanceName}/${model.className}${crud}`);
@@ -49,29 +48,19 @@ export function genRoot(config: IComponentGenConfig) {
         method.methodType = `ComponentType<${props.name}>`;
 
         method.appendContent(`
-    const access = getAcl().getAccessList("${model.instanceName}");
+    const access = getAclInstance().getAccessList("${model.instanceName}");
     const tr = Culture.getDictionary().translate;
-
-    const add = access.add ?
-        <Route path="/${model.instanceName}/add" render={transitionTo(${model.className}Add, { ${model.instanceName}: ["add"] }) } /> : null;
-    const edit = access.edit ?
-        <Route path="/${model.instanceName}/edit/:id" render={transitionTo(${model.className}Edit, { ${model.instanceName}: ["edit"] }) } /> : null;
 
     return (
         <div className="page ${kebabCase(model.instanceName).toLowerCase()}-page has-navbar">
             <PageTitle title={tr("mdl_${model.className.toLowerCase()}")} />
-            <Navbar title={tr("mdl_${model.className.toLowerCase()}")} showBurger={true} />
+            <Navbar title={tr("mdl_${model.className.toLowerCase()}")} />
             <h1>{tr("mdl_${model.className.toLowerCase()}")}</h1>
             <CrudMenu path="${model.instanceName}" access={access} />
-
             <div className="crud-wrapper">
-                <Router>
-                    <Switch>
-                        {add}
-                        {edit}
-                        <Route path="/${model.instanceName}/detail/:id" render={transitionTo(${model.className}Detail, {${model.instanceName}: ["read"]})} />
-                    </Switch>
-                </Router>
+                <Go path="/${model.instanceName}/add" component={${model.className}Add} permissions={{ ${model.instanceName}: [AclAction.Add] }} />
+                <Go path="/${model.instanceName}/edit/:id" component={${model.className}Edit} permissions={{ ${model.instanceName}: [AclAction.Edit] }} />
+                <Go path="/${model.instanceName}/detail/:id" component={${model.className}Detail} />
                 <${model.className}List />
             </div>
         </div>

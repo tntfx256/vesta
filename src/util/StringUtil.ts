@@ -51,3 +51,11 @@ export function strRepeat(str: string, times: number): string {
     }
     return v;
 }
+
+export function tab(count: number = 1): string {
+    let str = "";
+    for (let i = 0; i < count; i++) {
+        str += "    ";
+    }
+    return str;
+}
