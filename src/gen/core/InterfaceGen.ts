@@ -1,5 +1,5 @@
 import { MethodGen } from "./MethodGen";
-import { IStructureProperty, StructureGen } from "./StructureGen";
+import { IMethodProperties, IStructureProperty, StructureGen } from "./StructureGen";
 
 export class InterfaceGen extends StructureGen {
 
@@ -7,8 +7,8 @@ export class InterfaceGen extends StructureGen {
         super(name);
     }
 
-    public addMethod(name: string): MethodGen {
-        const method = super.addMethod(name);
+    public addMethod(config: IMethodProperties): MethodGen {
+        const method = super.addMethod(config);
         method.isInterface = true;
         return method;
     }

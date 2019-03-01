@@ -1,6 +1,6 @@
 import { Err, Field, FieldType, IModel, IModelFields, Schema } from "@vesta/core";
 import { execSync } from "child_process";
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync, unlinkSync } from "fs";
 import { camelCase } from "lodash";
 import { join } from "path";
 import { IModelConfig } from "../gen/ComponentGen";
@@ -62,17 +62,20 @@ export function getModel(modelName: string): IModel {
     const relativePath = compileModels();
     // const pathToModel = `${modelName}.js`;
     modelName = pascalCase(modelName);
-    const modelFile = join(process.cwd(), relativePath, `${modelName}.js`);
-    if (existsSync(modelFile)) {
-        const module = require(modelFile);
-        if (module[modelName]) {
-            // caching model
-            // modelStorage[modelName] = module[className];
-            return module[modelName];
+    let modelFile = join(process.cwd(), relativePath, `${modelName}.js`);
+    if (!existsSync(modelFile)) {
+        modelFile = join(process.cwd(), relativePath, `models/${modelName}.js`);
+        if (!existsSync(modelFile)) {
+            Log.error(`${modelName} was not found at: ${modelFile}`);
+            return null;
         }
     }
-    Log.error(`${modelName} was not found at: ${modelFile}`);
-    return null;
+    const module = require(modelFile);
+    if (module[modelName]) {
+        // caching model
+        // modelStorage[modelName] = module[className];
+        return module[modelName];
+    }
 }
 
 export function getFieldsByType(modelName: string, fieldType: FieldType): IModelFields {
@@ -225,7 +228,7 @@ function compileModels() {
         writeFileSync(tsConfigPath, tsConfig, { encoding: "utf8" });
         execSync(`npx tsc -p ${tsConfigPath}`);
         isModelGenerated = true;
-        // unlink(tsConfigPath);
+        unlinkSync(tsConfigPath);
     }
     return targetPath;
 }

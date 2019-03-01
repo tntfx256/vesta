@@ -2,15 +2,6 @@ import { MethodGen } from "./MethodGen";
 import { StructureGen } from "./StructureGen";
 import { IMixin } from "./TSFileGen";
 
-export interface IMetodProperties {
-    access?: string;
-    isAbstract?: boolean;
-    isArrow?: boolean;
-    isAsync?: boolean;
-    isStatic?: boolean;
-    name: string;
-}
-
 export class ClassGen extends StructureGen {
     public static Access = {
         Private: "private",
@@ -23,22 +14,13 @@ export class ClassGen extends StructureGen {
         super(name);
     }
 
-    public addMethod(name: string, access: string = ClassGen.Access.Public, isStatic: boolean = false, isAbstract: boolean = false, isAsync: boolean = false): MethodGen {
-        const method = super.addMethod(name);
-        method.accessType = access;
-        method.isStatic = isStatic;
-        method.isAbstract = isAbstract;
-        method.isAsync = isAsync;
-        return method;
-    }
-
     public addMixin(name: string, code: string) {
         this.mixins.push({ name, code });
     }
 
     public generate(): string {
         const exp = this.shouldBeExported ? "export " : "";
-        const abs = this.isAbstract ? " abstract " : "";
+        const abs = this.isAbstract ? "abstract " : "";
         let code = `\n${exp}${abs}class ${this.name}`;
         if (this.parentClass) { code += " extends " + this.parentClass; }
         if (this.implementations.length) {

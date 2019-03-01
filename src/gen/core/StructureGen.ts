@@ -2,6 +2,18 @@ import { camelCase } from "lodash";
 import { pascalCase } from "../../util/StringUtil";
 import { MethodGen } from "./MethodGen";
 
+export interface IMethodProperties {
+    access?: Access;
+    indent?: string;
+    isAbstract?: boolean;
+    isArrow?: boolean;
+    isAsync?: boolean;
+    isStatic?: boolean;
+    name: string;
+}
+
+export enum Access { None = "", Private = "private", Protected = "protected", Public = "public" }
+
 export interface IMethods {
     [name: string]: MethodGen;
 }
@@ -23,13 +35,14 @@ export abstract class StructureGen {
     protected parentClass: string;
     protected implementations: string[] = [];
     protected constructorMethod: MethodGen;
+    protected tab = "    ";
 
     constructor(name: string) {
         this.name = pascalCase(name);
     }
 
     public setConstructor(): MethodGen {
-        this.constructorMethod = new MethodGen("", `\t`);
+        this.constructorMethod = new MethodGen("", this.tab);
         return this.constructorMethod;
     }
 
@@ -40,13 +53,17 @@ export abstract class StructureGen {
         return this.constructorMethod;
     }
 
-    public addMethod(name: string): MethodGen {
+    public addMethod(config: IMethodProperties): MethodGen {
         for (let i = this.methods.length; i--;) {
-            if (this.methods[i].name === name) {
+            if (this.methods[i].name === config.name) {
                 return this.methods[i];
             }
         }
-        const method = new MethodGen(name);
+        const method = new MethodGen(config.name, "    ");
+        method.accessType = config.access || Access.None;
+        method.isStatic = config.isStatic;
+        method.isAbstract = config.isAbstract;
+        method.isAsync = config.isAsync;
         this.methods.push(method);
         return method;
     }

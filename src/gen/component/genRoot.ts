@@ -14,7 +14,7 @@ export function genRoot(config: IComponentGenConfig) {
     // main method
     const method = file.addMethod(model.className);
     method.isArrow = true;
-    method.shoulExport = true;
+    method.shouldExport = true;
 
     const componentFile = genComponentFile();
     writeFileSync(`${path}/${model.className}.tsx`, componentFile.generate());

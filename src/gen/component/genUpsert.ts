@@ -11,7 +11,7 @@ export function genUpsert(config: IComponentGenConfig, isEdit: boolean) {
     const file = new TsFileGen(model.className);
     const method = file.addMethod(fileName);
     method.isArrow = true;
-    method.shoulExport = true;
+    method.shouldExport = true;
 
     // imports
     file.addImport(["React"], "react", true);

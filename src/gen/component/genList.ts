@@ -23,7 +23,7 @@ export function genList(config: IComponentGenConfig) {
     const file = new TsFileGen(fileName);
     const method = file.addMethod(fileName);
     method.isArrow = true;
-    method.shoulExport = true;
+    method.shouldExport = true;
     // imports
     file.addImport(["React"], "react", true);
     file.addImport(["ComponentType", "useState", "useEffect"], "react");

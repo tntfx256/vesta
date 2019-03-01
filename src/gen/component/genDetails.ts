@@ -23,7 +23,7 @@ export function genDetails(config: IComponentGenConfig) {
     const method = file.addMethod(fileName);
     const writtenOnce: any = {};
     method.isArrow = true;
-    method.shoulExport = true;
+    method.shouldExport = true;
     method.methodType = `ComponentType<I${fileName}Props>`;
     // imports
     file.addImport(["React"], "react", true);

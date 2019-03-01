@@ -106,7 +106,7 @@ export function genForm(config: IFormGenConfig) {
     function setContent() {
         method.addParameter({ name: "props", type: `I${fileName}Props` });
         method.methodType = `ComponentType<I${fileName}Props>`;
-        method.shoulExport = true;
+        method.shouldExport = true;
         method.isArrow = true;
 
         method.appendContent(`

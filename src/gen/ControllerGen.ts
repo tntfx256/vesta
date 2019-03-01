@@ -10,6 +10,7 @@ import { pascalCase, plural } from "../util/StringUtil";
 import { ClassGen } from "./core/ClassGen";
 import { MethodGen } from "./core/MethodGen";
 import { Placeholder } from "./core/Placeholder";
+import { Access } from "./core/StructureGen";
 import { TsFileGen } from "./core/TSFileGen";
 import { Vesta } from "./Vesta";
 
@@ -106,18 +107,18 @@ Options:
         this.controllerFile.addImport(["NextFunction", "Response", "Router"], "express");
         this.controllerFile.addImport(["BaseController", "IExtRequest"], genRelativePath(this.path, "src/api/BaseController"));
         this.controllerClass.setParentClass("BaseController");
-        this.routeMethod = this.controllerClass.addMethod("route");
+        this.routeMethod = this.controllerClass.addMethod({ name: "route", access: Access.Public });
         this.routeMethod.addParameter({ name: "router", type: "Router" });
         // this.controllerClass.addMethod('init', ClassGen.Access.Protected);
         mkdir(this.path);
     }
 
     private addResponseMethod(name: string) {
-        const method = this.controllerClass.addMethod(name, ClassGen.Access.Private, false, false, true);
+        const method = this.controllerClass.addMethod({ name, access: Access.Private, isAsync: true });
         method.addParameter({ name: "req", type: "IExtRequest" });
         method.addParameter({ name: "res", type: "Response" });
         method.addParameter({ name: "next", type: "NextFunction" });
-        method.appendContent(`return next({message: '${name} has not been implemented'})`);
+        // method.appendContent(`return next({message: '${name} has not been implemented'})`);
         return method;
     }
 
@@ -131,7 +132,7 @@ Options:
         this.controllerFile.addImport(["Err", "DatabaseError", "ValidationError"], "@vesta/core");
         this.controllerFile.addImport([modelClassName, `I${modelClassName}`],
             genRelativePath(this.path, `src/cmn/models/${this.config.model}`));
-        this.controllerFile.addImport(["AclAction"], genRelativePath(this.path, `src/cmn/enum/Acl`));
+        this.controllerFile.addImport(["AclAction"], "@vesta/services");
         let acl = this.routingPath.replace(/\/+/g, ".");
         acl = acl[0] === "." ? acl.slice(1) : acl;
         const middleWares = ` this.checkAcl("${acl}", __ACTION__),`;

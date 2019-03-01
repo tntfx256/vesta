@@ -1,10 +1,11 @@
 import { Log } from "../../util/Log";
+import { Access } from "./StructureGen";
 
 export interface IMethodParameter {
     name: string;
     type?: string;
     isOptional?: boolean;
-    access?: string;
+    access?: Access;
     defaultValue?: string;
 }
 
@@ -12,17 +13,18 @@ export class MethodGen {
     public content: string = "";
     public parameters: IMethodParameter[] = [];
     public returnType: string = "";
-    public accessType: string = "";
+    public accessType: Access = Access.None;
     public methodType: string = "";
     public isConstructor: boolean = false;
     public isStatic: boolean = false;
     public isAbstract: boolean = false;
     public isAsync: boolean = false;
     public isArrow: boolean = false;
-    public shoulExport: boolean = false;
+    public shouldExport: boolean = false;
     public isSimple: boolean = false;
     public isInterface: boolean = false;
 
+    private tab = "    ";
     private methods: MethodGen[] = [];
 
     constructor(public name: string = "", private indent = "") {
@@ -36,7 +38,7 @@ export class MethodGen {
     }
 
     public addMethod(name: string) {
-        this.methods.push(new MethodGen(name, `${this.indent}\t`));
+        this.methods.push(new MethodGen(name, `${this.indent}${this.tab}`));
         return this.methods[this.methods.length - 1];
     }
 
@@ -51,22 +53,23 @@ export class MethodGen {
 
     public appendContent(code: string) {
         const nl = this.content ? `\n` : "";
-        this.content = `${this.content}${nl}\t${this.indent}${code}`;
+        this.content = `${this.content}${nl}${this.tab}${this.indent}${code}`;
     }
 
     public generate(): string {
         let code = this.indent;
-        code += this.shoulExport ? "export " : "";
+        code += this.shouldExport ? "export " : "";
         code += this.accessType ? `${this.accessType} ` : "";
         code += this.isConstructor ? "constructor" : "";
         code += this.isArrow ? "const " : "";
-        code += !this.isArrow && !this.isConstructor ? "function " : "";
+        code += !this.isArrow && !this.isConstructor && !this.accessType ? "function " : "";
+        code += this.isAsync ? "async " : "";
         code += this.name;
         code += this.isArrow && this.methodType ? `: ${this.methodType}` : "";
         code += this.isArrow ? " = " : "";
         code += `(${this.getParameterCode()})`;
         code += this.returnType && !this.isArrow ? `: ${this.returnType}` : "";
-        code += this.isArrow ? " => {" : " {";
+        code += this.isArrow ? " => {\n" : " {\n";
         // content
         code += this.content;
         // inner functions
@@ -77,7 +80,7 @@ export class MethodGen {
         if (methods.length) {
             code += `\n\n${methods.join("\n\n")}`;
         }
-        code += `\n${this.indent}}`;
+        code += `\n${this.indent}}\n`;
         return code;
     }
 
