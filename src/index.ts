@@ -1,5 +1,6 @@
 #! /usr/bin/env node
 import { join } from "path";
+import { UpdateNotifier } from "update-notifier";
 import { Backup } from "./cmd/Backup";
 import { Create } from "./cmd/Create";
 import { Deploy } from "./cmd/Deploy";
@@ -16,7 +17,10 @@ import { Log } from "./util/Log";
 const argParser = ArgParser.getInstance();
 const command = argParser.get();
 
+// notifying user if new version is available
 const packageInfo = readJsonFile<any>(join(__dirname, "../package.json"));
+const notifier = new UpdateNotifier({ pkg: packageInfo });
+notifier.notify();
 
 if (!command) {
     if (argParser.has("--version", "-v")) {
@@ -88,6 +92,6 @@ switch (command) {
         Log.error(`vesta: ${error}See 'Vesta --help'`);
 }
 
-process.on("unhandledRejection", (error) => {
+process.on("unhandledRejection", (error: Error) => {
     Log.error(`\nAn unhandledRejection occurred:\n ${error.message}`);
 });

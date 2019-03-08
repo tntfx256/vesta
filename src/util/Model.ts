@@ -226,9 +226,14 @@ function compileModels() {
 
     if (!isModelGenerated) {
         writeFileSync(tsConfigPath, tsConfig, { encoding: "utf8" });
-        execSync(`npx tsc -p ${tsConfigPath}`);
-        isModelGenerated = true;
-        unlinkSync(tsConfigPath);
+        try {
+            isModelGenerated = true;
+            execSync(`npx tsc -p ${tsConfigPath}`, { cwd: process.cwd() });
+        } catch (error) {
+            Log.error(`${error.message}\n${error.stdout.toString()}`);
+        } finally {
+            unlinkSync(tsConfigPath);
+        }
     }
     return targetPath;
 }

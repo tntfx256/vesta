@@ -1,6 +1,6 @@
+.DS_Store
 .idea
-tsd-debug.*
-npm-debug.*
+.vscode
+npm-debug.log
 /node_modules
 /src
-/typings

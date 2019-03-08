@@ -6,7 +6,7 @@
     "outDir": "./bin",
     "newLine": "LF",
     "sourceMap": true,
-    "declaration": true
+    "declaration": false
   },
   "files": [
     "src/index.ts"

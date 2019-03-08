@@ -1,11 +1,6 @@
 .DS_Store
 .idea
-tsd-debug.*
-npm-debug.*
+.vscode
+npm-debug.log
 /bin
-/build
 /node_modules
-/bower_components
-/resources/tsd
-#/src/cmn
-/typings
