@@ -35,7 +35,7 @@
     "fs-extra": "^7.0.1",
     "inquirer": "^6.2.2",
     "is-root": "^2.0.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "speakeasy": "^2.0.0",
     "typescript": "^3.3.3333",
     "update-notifier": "^2.5.0",
