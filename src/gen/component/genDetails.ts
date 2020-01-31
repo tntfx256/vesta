@@ -28,17 +28,18 @@ export function genDetails(config: IComponentGenConfig) {
     // imports
     file.addImport(["React"], "react", true);
     file.addImport(["ComponentType", "useEffect", "useState"], "react");
-    file.addImport(["IRouteComponentProps"], "@vesta/components");
+    file.addImport(["RouteComponentProps"], "react-router");
+    file.addImport(["IComponentProps"], "@vesta/components");
     file.addImport([model.interfaceName], genRelativePath(config.path, `${Vesta.directories.model}/${model.className}`));
     file.addImport(["getCrud"], genRelativePath(config.path, `src/service/Crud`));
     file.addImport(["Culture"], "@vesta/culture");
     // params
     const params = file.addInterface(`I${model.className}Params`);
-    params.addProperty({ name: "id", type: "number" });
+    params.addProperty({ name: "id", type: "string" });
 
     // props
     const props = file.addInterface(`I${fileName}Props`);
-    props.setParentClass(`IRouteComponentProps<${params.name}>`);
+    props.setParentClass(`IComponentProps, RouteComponentProps<${params.name}>`);
     method.addParameter({ name: "props", type: props.name });
 
     // method.addMethod("componentDidMount").setContent(`service.fetch(+props.match.params.id)

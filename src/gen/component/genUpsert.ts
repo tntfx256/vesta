@@ -16,17 +16,18 @@ export function genUpsert(config: IComponentGenConfig, isEdit: boolean) {
     // imports
     file.addImport(["React"], "react", true);
     file.addImport(["ComponentType"], "react");
+    file.addImport(["RouteComponentProps"], "react-router");
     file.addImport(["Culture"], "@vesta/culture");
-    file.addImport(["Button", "IRouteComponentProps"], "@vesta/components");
+    file.addImport(["Button", "IComponentProps"], "@vesta/components");
     file.addImport([`${model.className}Form`], `./${model.className}Form`);
     // params
     const params = file.addInterface(`I${model.className}Params`);
     if (isEdit) {
-        params.addProperty({ name: "id", type: "number" });
+        params.addProperty({ name: "id", type: "string" });
     }
     // props
     const props = file.addInterface(`I${model.className}Props`);
-    props.setParentClass(`IRouteComponentProps<${params.name}>`);
+    props.setParentClass(`IComponentProps, RouteComponentProps<${params.name}>`);
     // method
     method.methodType = `ComponentType<I${model.className}Props>`;
     method.addParameter({ name: "props", type: `I${model.className}Props` });
