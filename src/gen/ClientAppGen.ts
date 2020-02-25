@@ -16,7 +16,6 @@ export class ClientAppGen {
     const templateRepo = PlatformConfig.getRepository();
     const templateProjectName = GitGen.getRepoName(templateRepo.client);
     const replacePattern = { [templateProjectName]: dir };
-    copySync(`${dir}/resources/gitignore/variantConfig.ts`, `${dir}/src/config/variantConfig.ts`);
     // for installing plugins this folder must exist
     mkdirpSync(`${dir}/vesta/cordova/www`);
     findInFileAndReplace(`${dir}/vesta/cordova/config.xml`, replacePattern);
