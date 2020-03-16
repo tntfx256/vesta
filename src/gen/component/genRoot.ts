@@ -7,54 +7,61 @@ import { TsFileGen } from "../core/TSFileGen";
 import { Vesta } from "../Vesta";
 
 export function genRoot(config: IComponentGenConfig) {
-    const model = parseModel(config.name);
-    if (!model) { return; }
-    const path = `${Vesta.directories.components}/${config.path}`;
-    const file = new TsFileGen(config.name);
-    // main method
-    const method = file.addMethod(model.className);
-    method.isArrow = true;
-    method.shouldExport = true;
+  const model = parseModel(config.name);
+  if (!model) {
+    return;
+  }
+  const path = `${Vesta.directories.components}/${config.path}`;
+  const file = new TsFileGen(config.name);
+  // main method
+  const method = file.addMethod(model.className);
+  method.isArrow = true;
+  method.shouldExport = true;
 
-    const componentFile = genComponentFile();
-    writeFileSync(`${path}/${model.className}.tsx`, componentFile.generate());
-    generateScss();
+  const componentFile = genComponentFile();
+  writeFileSync(`${path}/${model.className}.tsx`, componentFile.generate());
+  generateScss();
 
-    function generateScss() {
-        if (!config.hasStyle) { return; }
-        const stylePath = `${path}/${model.className}.scss`;
-        writeFileSync(stylePath, `.${kebabCase(model.className).toLowerCase()} {}`, { encoding: "utf8" });
+  function generateScss() {
+    if (!config.hasStyle) {
+      return;
+    }
+    const stylePath = `${path}/${model.className}.scss`;
+    writeFileSync(stylePath, `.${kebabCase(model.className).toLowerCase()} {}`, { encoding: "utf8" });
+  }
+
+  function genComponentFile(): TsFileGen {
+    file.addImport(["React"], "react", true);
+    file.addImport(["ComponentType"], "react");
+    file.addImport(["RouteComponentProps"], "react-router");
+    file.addImport(["Culture"], "@vesta/culture");
+    file.addImport(["AclAction"], "@vesta/services");
+    file.addImport(["Navbar", "PageTitle", "CrudMenu", "IComponentProps"], "@vesta/components");
+    file.addImport(["getAccountInstance"], genRelativePath(path, `${Vesta.directories.app}/service/Account`));
+    file.addImport(["Go"], genRelativePath(path, `${Vesta.directories.components}/general/Go`));
+    file.addImport(["useStore"], genRelativePath(path, `${Vesta.directories.app}/service/Store`));
+
+    for (const crud of [`Add`, `Edit`, `Detail`, `List`]) {
+      file.addImport([`${model.className}${crud}`], `./${model.instanceName}/${model.className}${crud}`);
     }
 
-    function genComponentFile(): TsFileGen {
-        file.addImport(["React"], "react", true);
-        file.addImport(["ComponentType"], "react");
-        file.addImport(["Culture"], "@vesta/culture");
-        file.addImport(["AclAction"], "@vesta/services");
-        file.addImport(["Navbar", "PageTitle", "CrudMenu", "IRouteComponentProps"], "@vesta/components");
-        file.addImport(["getAclInstance"], genRelativePath(path, `${Vesta.directories.app}/service/Acl`));
-        file.addImport(["Go"], genRelativePath(path, `${Vesta.directories.components}/general/Go`));
+    // params interface
+    const params = file.addInterface(`I${model.className}Params`);
 
-        for (const crud of [`Add`, `Edit`, `Detail`, `List`]) {
-            file.addImport([`${model.className}${crud}`], `./${model.instanceName}/${model.className}${crud}`);
-        }
+    // props
+    const props = file.addInterface(`I${model.className}Props`);
+    props.setParentClass(`IComponentProps, RouteComponentProps<${params.name}>`);
+    method.methodType = `ComponentType<${props.name}>`;
 
-        // params interface
-        const params = file.addInterface(`I${model.className}Params`);
-
-        // props
-        const props = file.addInterface(`I${model.className}Props`);
-        props.setParentClass(`IRouteComponentProps<${params.name}>`);
-        method.methodType = `ComponentType<${props.name}>`;
-
-        method.appendContent(`
-    const access = getAclInstance().getAccessList("${model.instanceName}");
+    method.appendContent(`
+    const { dispatch } = useStore();
+    const access = getAccountInstance().getAccessList("${model.instanceName}");
     const tr = Culture.getDictionary().translate;
 
     return (
         <div className="page ${kebabCase(model.instanceName).toLowerCase()}-page has-navbar">
             <PageTitle title={tr("mdl_${model.className.toLowerCase()}")} />
-            <Navbar title={tr("mdl_${model.className.toLowerCase()}")} />
+            <Navbar title={tr("mdl_${model.className.toLowerCase()}")} onBurgerClick={() => dispatch({ navbar: true })}  />
             <h1>{tr("mdl_${model.className.toLowerCase()}")}</h1>
             <CrudMenu path="${model.instanceName}" access={access} />
             <div className="crud-wrapper">
@@ -65,6 +72,6 @@ export function genRoot(config: IComponentGenConfig) {
             </div>
         </div>
     );`);
-        return file;
-    }
+    return file;
+  }
 }

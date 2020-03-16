@@ -1,7 +1,5 @@
-import { copySync, mkdirpSync } from "fs-extra";
 import { PlatformConfig } from "../PlatformConfig";
 import { Log } from "../util/Log";
-import { findInFileAndReplace } from "../util/Util";
 import { GitGen } from "./GitGen";
 import { IExtProjectConfig } from "./ProjectGen";
 
@@ -12,13 +10,6 @@ export class ClientAppGen {
 
   public generate() {
     this.cloneTemplate();
-    const dir = this.config.name;
-    const templateRepo = PlatformConfig.getRepository();
-    const templateProjectName = GitGen.getRepoName(templateRepo.client);
-    const replacePattern = { [templateProjectName]: dir };
-    // for installing plugins this folder must exist
-    mkdirpSync(`${dir}/vesta/cordova/www`);
-    findInFileAndReplace(`${dir}/vesta/cordova/config.xml`, replacePattern);
   }
 
   private cloneTemplate() {

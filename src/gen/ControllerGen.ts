@@ -6,7 +6,7 @@ import { ArgParser } from "../util/ArgParser";
 import { genRelativePath, mkdir, writeFile } from "../util/FsUtil";
 import { Log } from "../util/Log";
 import { getConfidentialFields, getFieldMeta, getFieldsByType, getOwnerVerifiedFields } from "../util/Model";
-import { pascalCase, plural } from "../util/StringUtil";
+import { pascalCase, plural, tab } from "../util/StringUtil";
 import { ClassGen } from "./core/ClassGen";
 import { MethodGen } from "./core/MethodGen";
 import { Placeholder } from "./core/Placeholder";
@@ -60,6 +60,8 @@ Examples:
       return;
     }
 
+    config.model = pascalCase(config.model);
+
     const controller = new ControllerGen(config);
     controller.generate();
   }
@@ -92,7 +94,7 @@ Examples:
     if (code.search(Placeholder.ExpressController)) {
       const relPath = genRelativePath(`src/api/${this.apiVersion}`, this.path);
       const importCode = `import {${this.controllerClass.name}} from "${relPath}/${this.controllerClass.name}";`;
-      if (code.indexOf(importCode) >= 0) {
+      if (code.search(importCode)) {
         return;
       }
       const embedCode = `${camelCase(this.config.name)}: ${this.controllerClass.name},`;
@@ -331,6 +333,14 @@ Examples:
     }
     const ownerCheckCode = ownerChecks.length ? `\n\t\tif (!isAdmin) {\n\t\t\t${ownerChecks.join("\n\t\t\t")}\n\t\t}` : "";
     const ownerCheckInlineCode = ownerInlineChecks.length ? ` || (!isAdmin && (${ownerInlineChecks.join(" || ")}))` : "";
+    const filesCode = [];
+    if (this.filesFields) {
+      for (let files = Object.keys(this.filesFields), i = 0, il = files.length; i < il; ++i) {
+        filesCode.push(`if ("string" === typeof ${modelInstanceName}.${files[i]}) {
+          ${modelInstanceName}.${files[i]} = result.items[0].${files[i]};
+        }`);
+      }
+    }
     return `${this.getAuthUserCode()}const ${modelInstanceName} = new ${modelName}(req.body);${ownerCheckCode}
         const validationError = ${modelInstanceName}.validate();
         if (validationError) {
@@ -340,6 +350,7 @@ Examples:
         if (!result.items.length${ownerCheckInlineCode}) {
             throw new DatabaseError(Err.Code.DBNoRecord, null);
         }
+        ${filesCode.join(`\n${tab(2)}`)}
         const uResult = await ${modelInstanceName}.update<I${modelName}>();${this.getConfFieldRemovingCode(true)}
         res.json(uResult);`;
   }

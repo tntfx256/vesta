@@ -58,6 +58,9 @@ export function getModelsList(): any {
 }
 
 export function getModel(modelName: string): IModel {
+  if (!modelName) {
+    return null;
+  }
   const relativePath = compileModels();
   // const pathToModel = `${modelName}.js`;
   modelName = pascalCase(modelName);
@@ -134,7 +137,7 @@ export function getFieldForFormSelect(modelName: string) {
   return null;
 }
 
-export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
+export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta | null {
   modelName = pascalCase(modelName);
   const model = getModel(modelName);
   if (!model) {
@@ -148,7 +151,9 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
   const tsModelFile = `${Vesta.directories.model}/${modelName}.ts`;
   const source = readFileSync(tsModelFile, "utf8");
   let meta: IFieldMeta = { form: true, list: true };
-  const fieldStartIndex = source.indexOf(`schema.addField("${fieldName}")`);
+  const fieldStartIndex = source.indexOf(`.addField("${fieldName}")`);
+
+  // field type based meta
   switch (field.properties.type) {
     case FieldType.Enum:
       const enumStartIndex = source.indexOf(".enum(", fieldStartIndex) + 6;
@@ -156,10 +161,10 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
       const options = source
         .substring(enumStartIndex, enumEndIndex)
         .split(",")
-        .map(str => str.replace(/\s+/g, ""));
-      meta.enum = { options };
+        .map((str: string) => str.replace(/\s+/g, ""));
       // find enum path
       const enumName = options[0].split(".")[0];
+      meta.enum = { name: enumName, options };
       const enumImportRegex = new RegExp(`import.+${enumName}.+"([^"]+)";`);
       const enumImportResult = enumImportRegex.exec(source);
       if (enumImportResult) {
@@ -180,12 +185,19 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta {
       }
       break;
   }
+
+  // code generator based meta
   const regExp = new RegExp(`@${fieldName}\\(([^\\)]+)\\)`, "i");
   const json = source.match(regExp);
   if (json) {
     try {
       const parsedMeta: IFieldMeta = JSON.parse(json[1]);
-      meta = Object.assign(meta, parsedMeta);
+      meta = {
+        ...meta,
+        ...parsedMeta,
+        enum: meta.enum ? { ...meta.enum, ...parsedMeta.enum } : undefined,
+        relation: meta.relation ? { ...meta.relation, ...parsedMeta.relation } : undefined,
+      };
     } catch (e) {
       Log.error(`Error parsing model meta for '${modelName}'\n${json[1]}\n`);
     }
