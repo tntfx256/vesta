@@ -40,9 +40,9 @@ Creating React component
     NAME        The name of the component
 
 Options:
-    --with-route    Create component with no params
+    --with-route    Generates page component with route params
     --no-style      Do not generate scss style file
-    --model         Create CRUD component for specified model
+    --model         Generates CRUD component for specified model
     --path          Where to save component [default: src/component]
 
 Example:
@@ -59,7 +59,7 @@ Example:
   public static init() {
     const argParser = ArgParser.getInstance();
     const config: IComponentGenConfig = {
-      hasRoute: !argParser.has("--with-route"),
+      hasRoute: argParser.has("--with-route"),
       hasStyle: !argParser.has("--no-style"),
       model: argParser.get("--model", ""),
       name: argParser.get(),
