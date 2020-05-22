@@ -1,4 +1,3 @@
-import { IModel } from "@vesta/core";
 import { Question } from "inquirer";
 import { camelCase } from "lodash";
 import { join } from "path";
@@ -11,7 +10,7 @@ import { ClassGen } from "./core/ClassGen";
 import { InterfaceGen } from "./core/InterfaceGen";
 import { IStructureProperty } from "./core/StructureGen";
 import { TsFileGen } from "./core/TSFileGen";
-import { FieldGen as IFieldGen, IFieldMeta } from "./FieldGen";
+import { FieldGen as IFieldGen } from "./FieldGen";
 import { Vesta } from "./Vesta";
 
 export interface IModelGenConfig {
@@ -35,10 +34,6 @@ export class ModelGen {
     model.generate();
   }
 
-  // private static isModelGenerated = false;
-  // private static modelsMeta: { [name: string]: IFieldMeta } = {};
-  // private static modelStorage: IModel[] = [];
-
   private fields: IFields = {};
   private modelClass: ClassGen;
   private modelFile: TsFileGen;
@@ -58,37 +53,28 @@ export class ModelGen {
   private initModel(modelName: string) {
     const modelClassName = pascalCase(modelName);
     this.modelFile = new TsFileGen(modelClassName);
-    this.modelFile.addImport(["Model", "Schema", "Database", "FieldType"], "@vesta/core");
+    this.modelFile.addImport(["Model", "Schema", "FieldType"], "@vesta/core");
     this.modelInterface = this.modelFile.addInterface(`I${this.modelFile.name}`);
     this.modelInterface.shouldExport(true);
     this.modelClass = this.modelFile.addClass();
-    this.modelClass.setParentClass("Model");
+    this.modelClass.setParentClass(`Model<${this.modelInterface.name}>`);
     this.modelClass.shouldExport(true);
     this.modelClass.addImplements(this.modelInterface.name);
 
     const cm = this.modelClass.setConstructor();
-    cm.addParameter({ name: "values", type: `I${modelClassName}`, isOptional: true });
-    cm.addParameter({ name: "database", type: `Database`, isOptional: true });
+    cm.addParameter({ name: "values", type: `Partial<I${modelClassName}>`, isOptional: true });
     cm.appendContent(`
-        super(${modelClassName}.schema, database || ${modelClassName}.database);
-        this.setValues(values as I${modelClassName});`);
+        super(${modelClassName}.schema);
+        this.set(values);`);
 
     this.modelClass.addProperty({
       access: ClassGen.Access.Public,
-      isStatic: true,
-      name: "database",
-      type: "Database",
-    });
-    this.modelClass.addProperty({
-      access: ClassGen.Access.Public,
-      defaultValue: `new Schema("${modelClassName}")`,
+      defaultValue: `new Schema<I${modelClassName}>("${modelClassName}")`,
       isStatic: true,
       name: "schema",
-      type: "Schema",
+      readonly: true,
     });
-    // if (!this.vesta.isApiServer) {
-    //     this.path = this.vesta.directories.model;
-    // }
+
     mkdir(this.path);
   }
 
@@ -98,7 +84,7 @@ export class ModelGen {
       name: "fieldName",
       type: "input",
     } as Question;
-    ask<{ fieldName: string }>(question).then(answer => {
+    ask<{ fieldName: string }>(question).then((answer) => {
       if (!answer.fieldName) {
         return this.write();
       }
@@ -111,7 +97,7 @@ export class ModelGen {
           Log.success("\n:: Press enter with empty fieldName when done\n");
           this.readField();
         })
-        .catch(err => Log.error(err.message));
+        .catch((err) => Log.error(err.message));
     });
   }
 
@@ -135,20 +121,23 @@ export class ModelGen {
       };
       this.modelClass.addProperty(property);
       const iProperty: IStructureProperty = Object.assign({}, property, {
-        isOptional: true,
+        isOptional: !this.fields[fieldNames[i]].field.required,
         type: interfaceFieldType,
       }) as IStructureProperty;
       this.modelInterface.addProperty(iProperty);
     }
     this.modelFile.addMixin(
       `${this.modelFile.name}.schema.freeze();
-/**
+
+/*
 Use the following pattern to add extra data for code generator. Check vesta documentation for more info.
 
 // @fieldName({"confidenatial":true,"form":true,"list":true,"verifyOwner":true,"wysiwyg":true})
-*/`,
+*/
+`,
       TsFileGen.CodeLocation.AfterClass
     );
+
     writeFile(join(this.path, `${this.modelFile.name}.ts`), this.modelFile.generate());
   }
 }

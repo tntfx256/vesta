@@ -1,5 +1,5 @@
-import { IModel } from "@vesta/core";
-import { camelCase, upperFirst } from "lodash";
+import { ModelConstructor } from "@vesta/core";
+import { join } from "path";
 import { ArgParser } from "../util/ArgParser";
 import { mkdir } from "../util/FsUtil";
 import { Log } from "../util/Log";
@@ -8,16 +8,15 @@ import { genDetails } from "./component/genDetails";
 import { genForm } from "./component/genForm";
 import { genList } from "./component/genList";
 import { genRoot } from "./component/genRoot";
-import { genSass } from "./component/genSass";
+import { genService } from "./component/genService";
 import { genSimple } from "./component/genSimple";
 import { genUpsert } from "./component/genUpsert";
 import { Vesta } from "./Vesta";
 
 export interface IComponentGenConfig {
-  hasStyle: boolean;
   model: string;
   name: string;
-  hasRoute: boolean;
+  isPage: boolean;
   path: string;
 }
 
@@ -26,8 +25,7 @@ export interface IModelConfig {
   file: string;
   instanceName: string;
   interfaceName: string;
-  module: IModel;
-  impPath: string;
+  module: ModelConstructor;
 }
 
 export class ComponentGen {
@@ -40,30 +38,24 @@ Creating React component
     NAME        The name of the component
 
 Options:
-    --with-route    Generates page component with route params
-    --no-style      Do not generate scss style file
-    --model         Generates CRUD component for specified model
-    --path          Where to save component [default: src/component]
+    --page      Generates page component with route params
+    --model     Generates CRUD component for specified model
+    --path      Where to save component [default: src/components(/pages)]
+                path are relative to src/components
 
 Example:
-    // in following command the final path will be src/components/general/form
-    vesta gen component test --no-style --path=general/form
-
-    // however, for next command it will be general/form
-    vesta gen component test --no-style --path=/general/form
-
     vesta gen component test --model=User
+    vesta gen component test --page --path=global
 `);
   }
 
   public static init() {
     const argParser = ArgParser.getInstance();
     const config: IComponentGenConfig = {
-      hasRoute: argParser.has("--with-route"),
-      hasStyle: !argParser.has("--no-style"),
-      model: argParser.get("--model", ""),
+      isPage: argParser.has("page"),
+      model: argParser.get("model", ""),
       name: argParser.get(),
-      path: argParser.get("--path", "."),
+      path: argParser.get("path", ""),
     } as IComponentGenConfig;
     if (!config.name) {
       Log.error("Missing/Invalid component name\nSee 'vesta gen component --help' for more information\n");
@@ -71,34 +63,34 @@ Example:
     }
     if (config.model) {
       config.model = pascalCase(config.model);
-      config.hasRoute = true;
+      config.isPage = true;
     }
+    if (!config.path) {
+      config.path = config.isPage ? join(Vesta.directories.components, "pages") : Vesta.directories.components;
+    } else {
+      config.path = join(Vesta.directories.components, config.path);
+    }
+
+    if (config.model) {
+      config.path = join(config.path, config.model);
+    }
+
     new ComponentGen(config).generate();
   }
 
   constructor(private config: IComponentGenConfig) {
-    const className = upperFirst(camelCase(config.name));
-    let path = config.path.startsWith("/") ? config.path : `${Vesta.directories.components}/${config.path}`;
-    mkdir(path);
-    if (this.config.hasStyle) {
-      genSass(className, path);
-    }
-
-    if (config.model) {
-      path = `${path}/${className}`;
-    }
+    mkdir(config.path);
   }
 
   public generate() {
     if (this.config.model) {
       genRoot(this.config);
-      const crudComponentPath = `${Vesta.directories.components}/${this.config.path}/${camelCase(this.config.model)}`;
-      const crudConfig = { ...this.config, path: crudComponentPath };
-      genForm(crudConfig);
-      genList(crudConfig);
-      genUpsert(crudConfig, false);
-      genUpsert(crudConfig, true);
-      genDetails(crudConfig);
+      genService(this.config);
+      genForm(this.config);
+      genList(this.config);
+      genUpsert(this.config, false);
+      genUpsert(this.config, true);
+      genDetails(this.config);
     } else {
       genSimple(this.config);
     }

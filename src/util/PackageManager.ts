@@ -1,5 +1,6 @@
 import { existsSync } from "fs-extra";
-import { execute } from "./CmdUtil";
+import { execute, getOutputOf } from "./CmdUtil";
+import { readJsonFile } from "./FsUtil";
 
 export type PackageManagerType = "npm" | "yarn";
 
@@ -7,13 +8,13 @@ export class PackageManager {
   public static getManager(): PackageManagerType {
     let pkgManager: PackageManagerType = "npm";
     try {
-      execute(`yarn --version`, { silent: true });
+      getOutputOf(`yarn --version`);
       pkgManager = "yarn";
     } catch {
       //
     }
     // check if package-lock.json exists
-    if (pkgManager === "yarn" && existsSync("package-lock.json")) {
+    if (pkgManager === "yarn" && existsSync("package-lock.json") && !existsSync("yarn.lock")) {
       pkgManager = "npm";
     }
     return pkgManager;
@@ -26,7 +27,11 @@ export class PackageManager {
     const manager = this.getManager();
     const command = PackageManager.commandMap.install[manager];
     const type = isDev ? PackageManager.commandMap.dev[manager] : "";
-    execute(`${command} ${type} ${packages.join(" ")}`);
+    try {
+      execute(`${command} ${type} ${packages.join(" ")}`);
+    } catch (err) {
+      //
+    }
   }
 
   public static uninstall(...packages: string[]) {
@@ -35,6 +40,18 @@ export class PackageManager {
     }
     const command = PackageManager.commandMap.uninstall[this.getManager()];
     execute(`${command} ${packages.join(" ")}`);
+  }
+
+  public static has(...packages: string[]): boolean {
+    if (!packages.length) {
+      return true;
+    }
+    const content = readJsonFile<any>(`package.json`);
+    return (
+      Object.keys(content.devDependencies || {})
+        .concat(Object.keys(content.dependencies))
+        .filter((pkg) => packages.indexOf(pkg) >= 0).length === packages.length
+    );
   }
 
   private static commandMap = {

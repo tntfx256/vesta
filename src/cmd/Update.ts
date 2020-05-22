@@ -15,11 +15,11 @@ export class Update {
       if (!content) {
         process.exit();
       }
-      const isDev = argParser.has("--dev");
+      const isDev = argParser.has("dev");
       const pkgKeyName = isDev ? "devDependencies" : "dependencies";
       const allPackages = Object.keys(content[pkgKeyName]);
-      const pkgs = isDev || argParser.has("--all") ? allPackages : allPackages.filter(pkg => pkg.search(/^@?vesta/i) >= 0);
-      pkgs.forEach(pkg => delete content[pkgKeyName][pkg]);
+      const pkgs = isDev || argParser.has("all") ? allPackages : allPackages.filter((pkg) => pkg.search(/^@?vesta/i) >= 0);
+      pkgs.forEach((pkg) => delete content[pkgKeyName][pkg]);
       writeFileSync(`package.json`, JSON.stringify(content, null, 2), {
         encoding: "utf8",
       });

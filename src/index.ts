@@ -23,10 +23,10 @@ const notifier = new UpdateNotifier({ pkg: packageInfo });
 notifier.notify();
 
 if (!command) {
-    if (argParser.has("--version", "-v")) {
-        Log.write(`Vesta Platform v${packageInfo.version}\n`);
-    } else if (argParser.hasHelp()) {
-        Log.write(`
+  if (argParser.has("version") || argParser.has("v")) {
+    Log.write(`Vesta Platform v${packageInfo.version}\n`);
+  } else if (argParser.hasHelp()) {
+    Log.write(`
 Vesta Platform v${packageInfo.version}
 
 Usage: vesta <COMMAND> [args...]
@@ -56,42 +56,42 @@ Attention:
     [arg]               Optional argument
     {default: value}    The default value if argument is not provided
 `);
-    }
-    process.exit(0);
+  }
+  process.exit(0);
 }
 // initiating platform configuration
 PlatformConfig.init(packageInfo.vesta);
 
 switch (command) {
-    case "backup":
-        Backup.init();
-        break;
-    case "create":
-        Create.init();
-        break;
-    case "deploy":
-        Deploy.init();
-        break;
-    case "docker":
-        Docker.init();
-        break;
-    case "gen":
-        Gen.init();
-        break;
-    case "init":
-        Init.init();
-        break;
-    case "module":
-        Module.init();
-        break;
-    case "update":
-        Update.init();
-        break;
-    default:
-        const error = command ? `'${command}' is not a vesta command` : "";
-        Log.error(`vesta: ${error}See 'Vesta --help'`);
+  case "backup":
+    Backup.init();
+    break;
+  case "create":
+    Create.init();
+    break;
+  case "deploy":
+    Deploy.init();
+    break;
+  case "docker":
+    Docker.init();
+    break;
+  case "gen":
+    Gen.init();
+    break;
+  case "init":
+    Init.init();
+    break;
+  case "module":
+    Module.init();
+    break;
+  case "update":
+    Update.init();
+    break;
+  default:
+    const error = command ? `'${command}' is not a vesta command` : "";
+    Log.error(`vesta: ${error}See 'Vesta --help'`);
 }
 
 process.on("unhandledRejection", (error: Error) => {
-    Log.error(`\nAn unhandledRejection occurred:\n ${error.message}`);
+  Log.error(`\nAn unhandledRejection occurred:\n ${error.message}`);
 });

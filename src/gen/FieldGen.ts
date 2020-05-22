@@ -1,7 +1,7 @@
-import { FieldType, IFieldProperties, Mime, RelationType } from "@vesta/core";
+import { Field, FieldType, Mime } from "@vesta/core";
 import { Question } from "inquirer";
 import { Log } from "../util/Log";
-import { getModelsList } from "../util/Model";
+import { getModelsList, getRelationModelName } from "../util/Model";
 import { pascalCase } from "../util/StringUtil";
 import { ask } from "../util/Util";
 import { TsFileGen } from "./core/TSFileGen";
@@ -26,17 +26,17 @@ export interface IFieldMeta {
 
 export class FieldGen {
   // private isMultilingual:boolean = false;
+  public metaInfo: IFieldMeta = {};
+  public field: Field = {} as Field;
   private enumName: string;
-  private metaInfo: IFieldMeta = {};
-  private properties: IFieldProperties = {} as IFieldProperties;
 
-  constructor(private modelFile: TsFileGen, private name: string) {
-    this.properties.enum = [];
-    this.properties.fileType = [];
+  constructor(public modelFile: TsFileGen, public name: string) {
+    this.field.enum = [];
+    this.field.fileType = [];
   }
 
   public addProperty(name, type) {
-    this.properties[name] = type;
+    this.field[name] = type;
   }
 
   public generate(): string {
@@ -47,49 +47,47 @@ export class FieldGen {
     if ("list" in this.metaInfo) {
       meta.list = this.metaInfo.list;
     }
-    let code = `${this.modelFile.name}.schema.addField("${this.name}").type(${this.getCodeForFieldType(this.properties.type)})`;
-    if (this.properties.type === FieldType.List) {
-      code += `.listOf(${this.getCodeForFieldType(this.properties.list)})`;
-    }
-    if (this.properties.required) {
+    let code = `${this.modelFile.name}.schema.addField("${this.name}").type(${this.getCodeForFieldType(this.field.type)})`;
+    // if (this.type === FieldType.List) {
+    //   code += `.listOf(${this.getCodeForFieldType(this.field.list)})`;
+    // }
+    if (this.field.required) {
       code += ".required()";
     }
-    if (this.properties.primary) {
+    if (this.field.primary) {
       code += ".primary()";
     }
-    if (this.properties.unique) {
+    if (this.field.unique) {
       code += ".unique()";
     }
-    if (this.properties.minLength) {
-      code += `.minLength(${this.properties.minLength})`;
+    if (this.field.minLength) {
+      code += `.minLength(${this.field.minLength})`;
     }
-    if (this.properties.maxLength) {
-      code += `.maxLength(${this.properties.maxLength})`;
+    if (this.field.maxLength) {
+      code += `.maxLength(${this.field.maxLength})`;
     }
-    if (this.properties.min) {
-      code += `.min(${this.properties.min})`;
+    if (this.field.min) {
+      code += `.min(${this.field.min})`;
     }
-    if (this.properties.max) {
-      code += `.max(${this.properties.max})`;
+    if (this.field.max) {
+      code += `.max(${this.field.max})`;
     }
-    if (this.properties.maxSize) {
-      code += `.maxSize(${this.properties.maxSize})`;
+    if (this.field.maxSize) {
+      code += `.maxSize(${this.field.maxSize})`;
     }
-    if (this.properties.fileType.length) {
-      code += `.fileType("${this.properties.fileType.join('", "')}")`;
+    if (this.field.fileType.length) {
+      code += `.fileType("${this.field.fileType.join('", "')}")`;
     }
-    if (this.properties.enum.length) {
+    if (this.field.enum.length) {
       code += this.genCodeForEnumField();
     }
-    if (this.properties.default) {
+    if (this.field.default) {
       code += this.getDefaultValueForSchemaCode();
     }
-    if (this.properties.relation) {
-      const { type, model } = this.properties.relation;
-      const modelName = model.toString();
-      // meta.relation = { model: modelName };
+    if (this.field.isOneOf || this.field.areManyOf) {
+      const modelName = getRelationModelName(this.field);
       this.modelFile.addImport([`I${modelName}`, modelName], `./${modelName}`);
-      code += this.getRelationCodeFromNumber(type, modelName);
+      code += this.getRelationCode(modelName);
     }
     if (Object.keys(meta).length) {
       code = `// @${this.name}(${JSON.stringify(meta)})\n${code}`;
@@ -98,7 +96,7 @@ export class FieldGen {
   }
 
   public getNameTypePair(): { defaultValue: string; fieldName: string; fieldType: string; interfaceFieldType: string } {
-    const fieldType = this.properties.type === FieldType.Enum ? this.enumName : this.getCodeForActualFieldType(this.properties.type);
+    const fieldType = this.field.type === FieldType.Enum ? this.enumName : this.getCodeForActualFieldType(this.field.type);
 
     return {
       defaultValue: this.getDefaultValueForClassProperty(),
@@ -117,23 +115,23 @@ export class FieldGen {
       type: "list",
     } as Question;
     return ask<{ fieldType: string }>(question)
-      .then(fieldTypeAnswer => {
-        this.properties.type = this.getFieldType(fieldTypeAnswer.fieldType);
-        const questions = this.getQuestionsBasedOnFieldType(this.properties.type, false);
+      .then((fieldTypeAnswer) => {
+        this.field.type = this.getFieldType(fieldTypeAnswer.fieldType);
+        const questions = this.getQuestionsBasedOnFieldType(this.field.type, false);
         return ask<any>(questions);
       })
-      .then(answers => {
+      .then((answers) => {
         this.setPropertiesFromAnswers(answers);
         // if field is of type list, a new series of questions should be answered based on the items type
-        if (this.properties.list) {
-          const listQuestions = this.getQuestionsBasedOnFieldType(this.properties.list, true);
-          return ask(listQuestions).then(listAnswers => this.setPropertiesFromAnswers(listAnswers));
-        }
+        // if (this.field.list) {
+        //   const listQuestions = this.getQuestionsBasedOnFieldType(this.field.list, true);
+        //   return ask(listQuestions).then((listAnswers) => this.setPropertiesFromAnswers(listAnswers));
+        // }
       });
   }
 
   public setAsPrimary() {
-    this.properties.primary = true;
+    this.field.primary = true;
   }
 
   private getFieldTypeChoices(isForList: boolean = false): string[] {
@@ -163,10 +161,10 @@ export class FieldGen {
           "Timestamp", // FieldType.Timestamp,
           "File", // FieldType.File,
           "Boolean", // FieldType.Boolean,
-          "Object", // FieldType.Object,
+          // "Object", // FieldType.Object,
           "Enum", // FieldType.Enum,
           "Relation", // FieldType.Relation,
-          "List", // FieldType.List,
+          // "List", // FieldType.List,
         ];
   }
 
@@ -178,9 +176,9 @@ export class FieldGen {
       File: FieldType.File,
       Float: FieldType.Float,
       Integer: FieldType.Integer,
-      List: FieldType.List,
+      // List: FieldType.List,
       Number: FieldType.Number,
-      Object: FieldType.Object,
+      // Object: FieldType.Object,
       Password: FieldType.Password,
       Relation: FieldType.Relation,
       String: FieldType.String,
@@ -195,22 +193,23 @@ export class FieldGen {
   private setPropertiesFromAnswers(answers: any) {
     for (let properties = Object.keys(answers), i = 0, il = properties.length; i < il; ++i) {
       const property = properties[i];
-      if (["relatedModel"].indexOf(property) >= 0) {
+      if (["relatedModel"].includes(property)) {
         continue;
       }
       switch (property) {
         case "enum":
-          this.properties.enum = answers.enum.split(",").map(item => item.trim());
+          this.field.enum = answers.enum.split(",").map((item) => item.trim());
           break;
         case "fileType":
-          this.properties.fileType = this.getFileTypes(answers.fileType);
+          this.field.fileType = this.getFileTypes(answers.fileType);
           break;
         case "relationType":
-          this.properties.relation = { type: answers.relationType, model: answers.relatedModel };
+          // this.field.relation = { type: answers.relationType, model: answers.relatedModel };
+          this.field[answers.relationType] = answers.relatedModel;
           break;
-        case "list":
-          this.properties.list = this.getFieldType(answers.list);
-          break;
+        // case "list":
+        //   this.field.list = this.getFieldType(answers.list);
+        //   break;
         case "showInList":
           if (!answers.showInList) {
             this.metaInfo.list = false;
@@ -222,7 +221,7 @@ export class FieldGen {
           }
           break;
         default:
-          this.properties[property] = answers[property];
+          this.field[property] = answers[property];
       }
     }
   }
@@ -253,12 +252,12 @@ export class FieldGen {
     return fileTypes;
   }
 
-  private getRelationCodeFromNumber(type: number, model: string): string {
-    switch (type) {
-      case RelationType.Many2Many:
-        return `.areManyOf(${model})`;
-      default:
-        return `.isOneOf(${model})`;
+  private getRelationCode(model: string): string {
+    if (this.field.isOneOf) {
+      return `.isOneOf(${model})`;
+    }
+    if (this.field.areManyOf) {
+      return `.areManyOf(${model})`;
     }
   }
 
@@ -308,26 +307,26 @@ export class FieldGen {
       case FieldType.Boolean:
         askForDefaultValue = true;
         break;
-      case FieldType.Object:
-        break;
+      // case FieldType.Object:
+      //   break;
       case FieldType.Enum:
         // askForDefaultValue = true;
         qs.push({ name: "enum", type: "input", message: "Valid Options: " } as Question);
         askForListnForm = true;
         break;
       case FieldType.Relation:
-        const types = ["One2Many", "Many2Many"];
+        const types = ["isOneOf", "areManyOf"];
         const models = Object.keys(getModelsList());
         qs.push({ name: "relationType", type: "list", choices: types, message: "Relation Type: " } as Question);
         qs.push({ name: "relatedModel", type: "list", choices: models, message: "Target Model: " } as Question);
         break;
-      case FieldType.List:
-        qs.push({
-          choices: this.getFieldTypeChoices(true),
-          message: "Type of list items: ",
-          name: "list",
-          type: "list",
-        } as Question);
+        // case FieldType.List:
+        //   qs.push({
+        //     choices: this.getFieldTypeChoices(true),
+        //     message: "Type of list items: ",
+        //     name: "list",
+        //     type: "list",
+        //   } as Question);
         break;
     }
     if (askForDefaultValue) {
@@ -361,25 +360,25 @@ export class FieldGen {
       case FieldType.Boolean:
         return "boolean";
       case FieldType.Relation:
-        const types = `number | I${this.properties.relation.model}`;
-        if (this.properties.relation.type === RelationType.Many2Many) {
+        const types = `number | I${getRelationModelName(this.field)}`;
+        if (this.field.areManyOf) {
           return `Array<${types}>`;
         }
         return types;
-      case FieldType.List:
-        return `Array<${this.getCodeForActualFieldType(this.properties.list)}>`;
+      // case FieldType.List:
+      //   return `Array<${this.getCodeForActualFieldType(this.field.list)}>`;
       // case FieldType.Object:
       // case FieldType.Enum:
       //    return 'any';
     }
-    if (this.properties.primary) {
+    if (this.field.primary) {
       return "number";
     }
     return "any";
   }
 
   private getCodeForFieldType(type: FieldType): string {
-    if (this.properties.primary) {
+    if (this.field.primary) {
       return "FieldType.Integer";
     }
     switch (type) {
@@ -411,71 +410,71 @@ export class FieldGen {
         return "FieldType.Timestamp";
       case FieldType.Boolean:
         return "FieldType.Boolean";
-      case FieldType.Object:
-        return "FieldType.Object";
+      // case FieldType.Object:
+      //   return "FieldType.Object";
       case FieldType.Enum:
         return "FieldType.Enum";
       case FieldType.Relation:
         return "FieldType.Relation";
-      case FieldType.List:
-        return "FieldType.List";
+      // case FieldType.List:
+      //   return "FieldType.List";
     }
     return "FieldType.String";
   }
 
   private genCodeForEnumField(): string {
     let enumArray = [];
-    let firstEnum: string = this.properties.enum[0];
+    let firstEnum: string = this.field.enum[0];
     if (firstEnum.indexOf(".") > 0) {
       this.enumName = firstEnum.substr(0, firstEnum.indexOf("."));
-      enumArray = this.properties.enum;
+      enumArray = this.field.enum;
       Log.warning(`Do not forget to import the (${this.enumName})`);
     } else {
       this.enumName = pascalCase(this.modelFile.name) + pascalCase(this.name);
       const enumField = this.modelFile.addEnum(this.enumName);
       enumField.shouldExport(true);
       firstEnum = `${this.enumName}.${firstEnum}`;
-      for (let i = 0, il = this.properties.enum.length; i < il; ++i) {
-        enumField.addProperty(this.properties.enum[i]);
-        const v = pascalCase(this.properties.enum[i]);
+      for (let i = 0, il = this.field.enum.length; i < il; ++i) {
+        enumField.addProperty(this.field.enum[i]);
+        const v = pascalCase(this.field.enum[i]);
         enumArray.push(`${this.enumName}.${v}`);
         if (i === 0) {
           firstEnum = enumArray[0];
         }
       }
     }
-    this.properties.default = enumArray[0];
+    this.field.default = enumArray[0];
     return `.enum(${enumArray.join(", ")})`;
   }
 
   private getDefaultValueForSchemaCode() {
-    let value = this.properties.default;
-    switch (this.properties.type) {
+    let value = this.field.default;
+    switch (this.field.type) {
       case FieldType.String:
       case FieldType.Text:
       case FieldType.Password:
       case FieldType.Tel:
       case FieldType.EMail:
       case FieldType.URL:
-        value = `'${this.properties.default}'`;
+        value = `'${this.field.default}'`;
         break;
       case FieldType.Number:
       case FieldType.Integer:
       case FieldType.Float:
-        value = +this.properties.default;
+        value = +this.field.default;
         break;
       // case FieldType.File:
       // case FieldType.Enum:
       // case FieldType.Object:
       // case FieldType.Timestamp:
       // case FieldType.Boolean:
-      //     value = this.properties.default;
+      //     value = this.field.default;
     }
     return `.default(${value})`;
   }
 
   private getDefaultValueForClassProperty(): string {
-    switch (this.properties.type) {
+    switch (this.field.type) {
       case FieldType.String:
       case FieldType.Text:
       case FieldType.Password:
@@ -489,19 +488,19 @@ export class FieldGen {
         return "0";
       case FieldType.File:
       case FieldType.Enum:
-      case FieldType.Object:
+        // case FieldType.Object:
         return "null";
       case FieldType.Timestamp:
         return "Date.now()";
       case FieldType.Boolean:
         return "false";
       case FieldType.Relation:
-        if (this.properties.relation.type === RelationType.Many2Many) {
+        if (this.field.areManyOf) {
           return "[]";
         }
         break;
-      case FieldType.List:
-        return "[]";
+      // case FieldType.List:
+      //   return "[]";
     }
     return undefined;
   }

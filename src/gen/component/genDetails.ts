@@ -1,10 +1,9 @@
-import { Field, FieldType, IFieldProperties, RelationType } from "@vesta/core";
+import { Field, FieldType } from "@vesta/core";
 import { writeFileSync } from "fs-extra";
-import { camelCase } from "lodash";
-import { genRelativePath, isRelative } from "../../util/FsUtil";
+import { genRelativePath, isRelative, saveCodeToFile } from "../../util/FsUtil";
 import { Log } from "../../util/Log";
 import { getFieldMeta, parseModel } from "../../util/Model";
-import { pascalCase, tab } from "../../util/StringUtil";
+import { pascalCase } from "../../util/StringUtil";
 import { IComponentGenConfig } from "../ComponentGen";
 import { TsFileGen } from "../core/TSFileGen";
 import { IFieldMeta } from "../FieldGen";
@@ -22,60 +21,66 @@ export function genDetails(config: IComponentGenConfig) {
   const file = new TsFileGen(fileName);
   const method = file.addMethod(fileName);
   const writtenOnce: any = {};
-  method.isArrow = true;
+
   method.shouldExport = true;
-  method.methodType = `ComponentType<I${fileName}Props>`;
+  method.returnType = "ReactElement";
   // imports
   file.addImport(["React"], "react", true);
-  file.addImport(["ComponentType", "useEffect", "useState"], "react");
-  file.addImport(["RouteComponentProps"], "react-router");
-  file.addImport(["IComponentProps"], "@vesta/components");
-  file.addImport([model.interfaceName], genRelativePath(config.path, `${Vesta.directories.model}/${model.className}`));
-  file.addImport(["getCrudInstance"], genRelativePath(config.path, `src/service/Crud`));
+  file.addImport(["ReactElement", "useEffect", "useState"], "react");
+  file.addImport(["RouteComponentProps"], "react-router-dom");
+  file.addImport(["ComponentProps", "StyledDataTableWrapper", "StyledDataTable"], "@vesta/components");
+  file.addImport([model.interfaceName, model.className], "cmn/models");
   file.addImport(["Culture"], "@vesta/culture");
+  file.addImport([`fetch${model.className}`], "./service");
   // params
-  const params = file.addInterface(`I${model.className}Params`);
+  const params = file.addInterface(`${model.className}Params`);
   params.addProperty({ name: "id", type: "string" });
 
   // props
-  const props = file.addInterface(`I${fileName}Props`);
-  props.setParentClass(`IComponentProps, RouteComponentProps<${params.name}>`);
+  const props = file.addInterface(`${fileName}Props`);
+  props.setParentClass(`ComponentProps, RouteComponentProps<${params.name}>`);
   method.addParameter({ name: "props", type: props.name });
 
   const { details: fields, code } = getDetailsData();
   // render method
   method.appendContent(`
-    const tr = Culture.getDictionary().translate;
-    const [${model.instanceName}, set${model.className}] = useState<${model.interfaceName}>(null);
+  const tr = Culture.getDictionary().translate;
+  const [${model.instanceName}, set${model.className}] = useState<${model.interfaceName}>(null);
 
-    useEffect(() => {
-        const id = +props.match.params.id;
-        if (!id) { return; }
-        getCrudInstance<${model.interfaceName}>("${model.instanceName}").fetch(id).then(set${model.className});
-    }, [props.match.params.id]);
+  useEffect(() => {
+    const id = +props.match.params.id;
+    if (!id) { return; }
+    fetch${model.className}(id).then(set${model.className});
+  }, [props.match.params.id]);
 
-    if (!${model.instanceName}) { return null; }${code}
+  if (!${model.instanceName}) { return null; }${code}
 
-    return (
-        <div className="crud-page">
-            <table className="details-table">
-                <tr>
-                    <th colSpan={2}>{tr("title_record_detail", tr("${model.className.toLowerCase()}"), ${model.instanceName}.id)}</th>
-                </tr>
-                ${fields}
-            </table>
-        </div>
-    );`);
+  return (
+    <StyledDataTableWrapper>
+      <StyledDataTable>
+        <table className="details-table">
+          <thead>
+            <tr>
+              <th colSpan={2}>{tr("title_record_detail", tr("${model.className.toLowerCase()}"), ${model.instanceName}.id)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${fields}
+            </tbody>
+        </table>
+      </StyledDataTable>
+    </StyledDataTableWrapper>
+  );`);
 
   // generate file
-  writeFileSync(`${config.path}/${fileName}.tsx`, file.generate());
+  saveCodeToFile(`${config.path}/${fileName}.tsx`, file.generate());
 
   function getDetailsData(): IDetailFieldData {
     const allFields = schema.getFields();
     const columns = [];
     const codes = [];
-    for (let fieldsName = Object.keys(allFields), i = 0, il = fieldsName.length; i < il; ++i) {
-      const fieldData = getFieldData(schema.name, allFields[fieldsName[i]]);
+    for (let i = 0, il = allFields.length; i < il; ++i) {
+      const fieldData = getFieldData(schema.name, allFields[i]);
       if (fieldData) {
         if (fieldData.details) {
           columns.push(fieldData.details);
@@ -92,11 +97,11 @@ export function genDetails(config: IComponentGenConfig) {
   }
 
   function getFieldData(modelName: string, field: Field): IDetailFieldData {
-    const fieldName = field.fieldName;
+    const fieldName = field.name;
     if (fieldName === "id") {
       return null as IDetailFieldData;
     }
-    const fieldProps: IFieldProperties = field.properties;
+
     const fieldMeta: IFieldMeta = getFieldMeta(modelName, fieldName);
     const appDir = Vesta.directories.app;
 
@@ -104,7 +109,7 @@ export function genDetails(config: IComponentGenConfig) {
     let fieldCode = "";
     let value = "";
 
-    switch (fieldProps.type) {
+    switch (field.type) {
       case FieldType.String:
       case FieldType.Text:
       case FieldType.Tel:
@@ -120,7 +125,7 @@ export function genDetails(config: IComponentGenConfig) {
       case FieldType.File:
         file.addImport(["getFileUrl"], genRelativePath(config.path, `${appDir}/util`));
         fieldCode = `const ${model.instanceName}${pascalCase(fieldName)} = getFileUrl(\`${model.instanceName}/\${${model.instanceName}.${fieldName}}\`);`;
-        value = `<img src={${model.instanceName}${pascalCase(fieldName)}} />`;
+        value = `<img src={${model.instanceName}${pascalCase(fieldName)}} alt="${model.instanceName}" />`;
         break;
       case FieldType.Timestamp:
         if (!writtenOnce.dateTime) {
@@ -137,9 +142,12 @@ export function genDetails(config: IComponentGenConfig) {
         value = `tr(${model.instanceName}.${fieldName} ? "yes" : "no")`;
         break;
       case FieldType.Enum:
-        if (fieldMeta.enum) {
+        if (!fieldMeta.enum) {
+          break;
+        }
+        const enumOptionsName = `${fieldName}Options`;
+        if (fieldMeta.enum.name) {
           const enumName = fieldMeta.enum.name;
-          const enumOptionsName = `${camelCase(enumName)}Options`;
           const options = fieldMeta.enum.options.map((option, index) => `[${option}]: tr("enum_${option.split(".")[1].toLowerCase()}")`);
           fieldCode = `const ${enumOptionsName} = { ${options.join(", ")} };`;
           value = `${enumOptionsName}[${model.instanceName}.${fieldName}]`;
@@ -153,29 +161,37 @@ export function genDetails(config: IComponentGenConfig) {
           } else {
             file.addImport([enumName], genRelativePath(config.path, `${Vesta.directories.model}/${model.className}`));
           }
+        } else {
+          file.addImport(["getReadableOptions"], "@vesta/components");
+          fieldCode = `const ${enumOptionsName} = getReadableOptions(${model.className}, "${fieldName}");`;
+          value = `${enumOptionsName}[${model.instanceName}.${fieldName}]`;
         }
         break;
       case FieldType.Relation:
-        if (fieldMeta.relation) {
-          switch (fieldProps.relation.type) {
-            case RelationType.One2Many:
-            case RelationType.Many2Many:
-              // const schema: Schema = props.relation.model.schema;
-              // console.log(schema);
-              break;
-          }
-        }
+        // if (fieldMeta.relation) {
+        //   switch (field.relation.type) {
+        //     case RelationType.One2Many:
+        //     case RelationType.Many2Many:
+        //       // const schema: Schema = props.relation.model.schema;
+        //       // console.log(schema);
+        //       break;
+        //   }
+        // }
         break;
-      case FieldType.List:
-        break;
-      case FieldType.Object:
-        Log.warning(`Unsupported field type for ${fieldName}`);
-        break;
+      // case FieldType.List:
+      //   break;
+      // case FieldType.Object:
+      //   Log.warning(`Unsupported field type for ${fieldName}`);
+      //   break;
       default:
-        Log.error(`Unknown field type for ${fieldName} of type ${fieldProps.type}`);
+        Log.error(`Unknown field type for ${fieldName} of type ${field.type}`);
     }
     if (value) {
-      details = `<tr>\n${tab(5)}<td>{tr("fld_${fieldName.toLowerCase()}")}</td>\n${tab(5)}<td>{${value}}</td>\n${tab(4)}</tr>`;
+      details = `
+      <tr>
+        <th>{tr("fld_${fieldName.toLowerCase()}")}</th>
+        <td>{${value}}</td>
+      </tr>`;
     }
     return { details, code: fieldCode };
   }

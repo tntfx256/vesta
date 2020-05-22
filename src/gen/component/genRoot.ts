@@ -1,76 +1,66 @@
-import { writeFileSync } from "fs";
-import { kebabCase } from "lodash";
-import { genRelativePath } from "../../util/FsUtil";
+import { saveCodeToFile } from "../../util/FsUtil";
 import { parseModel } from "../../util/Model";
 import { IComponentGenConfig } from "../ComponentGen";
 import { TsFileGen } from "../core/TSFileGen";
-import { Vesta } from "../Vesta";
 
 export function genRoot(config: IComponentGenConfig) {
-  const model = parseModel(config.name);
+  const model = parseModel(config.model);
   if (!model) {
     return;
   }
-  const path = `${Vesta.directories.components}/${config.path}`;
+  const { path } = config;
   const file = new TsFileGen(config.name);
   // main method
   const method = file.addMethod(model.className);
-  method.isArrow = true;
+  // method.isArrow = true;
   method.shouldExport = true;
 
   const componentFile = genComponentFile();
-  writeFileSync(`${path}/${model.className}.tsx`, componentFile.generate());
-  generateScss();
-
-  function generateScss() {
-    if (!config.hasStyle) {
-      return;
-    }
-    const stylePath = `${path}/${model.className}.scss`;
-    writeFileSync(stylePath, `.${kebabCase(model.className).toLowerCase()} {}`, { encoding: "utf8" });
-  }
+  saveCodeToFile(`${path}/index.tsx`, componentFile.generate());
 
   function genComponentFile(): TsFileGen {
     file.addImport(["React"], "react", true);
-    file.addImport(["ComponentType"], "react");
-    file.addImport(["RouteComponentProps"], "react-router");
+    file.addImport(["ReactElement", "useState"], "react");
+    file.addImport(["RouteComponentProps"], "react-router-dom");
     file.addImport(["Culture"], "@vesta/culture");
     file.addImport(["AclAction"], "@vesta/services");
-    file.addImport(["Navbar", "PageTitle", "CrudMenu", "IComponentProps"], "@vesta/components");
-    file.addImport(["getAccountInstance"], genRelativePath(path, `${Vesta.directories.app}/service/Account`));
-    file.addImport(["Go"], genRelativePath(path, `${Vesta.directories.components}/general/Go`));
-    file.addImport(["useStore"], genRelativePath(path, `${Vesta.directories.app}/service/Store`));
+    file.addImport(["QueryOption"], "@vesta/core");
+    file.addImport(["CrudMenu", "ComponentProps"], "@vesta/components");
+    file.addImport(["getAccount"], "services/Account");
+    file.addImport([model.interfaceName], "cmn/models");
+    file.addImport(["CrudPage"], "components/general/CrudPage");
+    file.addImport(["Go"], "components/general/Go");
 
-    for (const crud of [`Add`, `Edit`, `Detail`, `List`]) {
-      file.addImport([`${model.className}${crud}`], `./${model.instanceName}/${model.className}${crud}`);
+    for (const crud of ["Add", "Edit", "Detail", "List"]) {
+      file.addImport([`${model.className}${crud}`], `./${model.className}${crud}`);
     }
 
     // params interface
-    const params = file.addInterface(`I${model.className}Params`);
+    const params = file.addInterface(`${model.className}Params`);
 
     // props
-    const props = file.addInterface(`I${model.className}Props`);
-    props.setParentClass(`IComponentProps, RouteComponentProps<${params.name}>`);
-    method.methodType = `ComponentType<${props.name}>`;
+    const props = file.addInterface(`${model.className}Props`);
+    props.setParentClass(`ComponentProps, RouteComponentProps<${params.name}>`);
+    // method.methodType = `ComponentType<${props.name}>`;
+    method.returnType = "ReactElement";
+    method.addParameter({ name: "props", type: props.name });
 
     method.appendContent(`
-    const { dispatch } = useStore();
-    const access = getAccountInstance().getAccessList("${model.instanceName}");
+    const access = getAccount().getAccessList("${model.instanceName}");
     const tr = Culture.getDictionary().translate;
+    const [queryOption, setQueryOption] = useState<QueryOption<${model.interfaceName}>>({ page: 1, size: 20 });
 
     return (
-        <div className="page ${kebabCase(model.instanceName).toLowerCase()}-page has-navbar">
-            <PageTitle title={tr("mdl_${model.className.toLowerCase()}")} />
-            <Navbar title={tr("mdl_${model.className.toLowerCase()}")} onBurgerClick={() => dispatch({ navbar: true })}  />
-            <h1>{tr("mdl_${model.className.toLowerCase()}")}</h1>
+        <CrudPage title={tr("mdl_${model.className.toLowerCase()}")}>
             <CrudMenu path="${model.instanceName}" access={access} />
-            <div className="crud-wrapper">
-                <Go path="/${model.instanceName}/add" component={${model.className}Add} permissions={{ ${model.instanceName}: [AclAction.Add] }} />
-                <Go path="/${model.instanceName}/edit/:id" component={${model.className}Edit} permissions={{ ${model.instanceName}: [AclAction.Edit] }} />
-                <Go path="/${model.instanceName}/detail/:id" component={${model.className}Detail} />
-                <${model.className}List />
-            </div>
-        </div>
+            
+            <Go path="/${model.instanceName}/add" component={${model.className}Add} permissions={{ ${model.instanceName}: [AclAction.Add] }} />
+            <Go path="/${model.instanceName}/edit/:id" component={${model.className}Edit} permissions={{ ${model.instanceName}: [AclAction.Edit] }} />
+            <Go path="/${model.instanceName}/detail/:id" component={${model.className}Detail} />
+            <Go path="/${model.instanceName}" exact={true}>
+                <${model.className}List queryOption={queryOption} setQueryOption={setQueryOption} />
+            </Go>
+        </CrudPage>
     );`);
     return file;
   }

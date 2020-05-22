@@ -1,33 +1,37 @@
-import { Err, Field, FieldType, IModel, IModelFields, Schema } from "@vesta/core";
+import { Err, Field, FieldType, ModelConstructor, Schema } from "@vesta/core";
 import { execSync } from "child_process";
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync, unlinkSync } from "fs";
+import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "fs";
 import { camelCase } from "lodash";
 import { join } from "path";
 import { IModelConfig } from "../gen/ComponentGen";
 import { IFieldMeta } from "../gen/FieldGen";
 import { Vesta } from "../gen/Vesta";
-import { unixPath } from "./FsUtil";
+import { readJsonFile, unixPath } from "./FsUtil";
 import { Log } from "./Log";
+import { PackageManager } from "./PackageManager";
 import { pascalCase } from "./StringUtil";
 
 let isModelGenerated = false;
 
-export function parseModel(modelName: string): IModelConfig {
-  modelName = pascalCase(modelName);
-  const modelFilePath = `${Vesta.directories.model}/${modelName}.ts`;
+export function parseModel(modelName: string): IModelConfig | null {
+  const fileName = pascalCase(modelName);
+  const modelFilePath = `${Vesta.directories.model}/${fileName}.ts`;
   if (!existsSync(modelFilePath)) {
-    Log.error(`Specified model was not found: '${modelFilePath}'`);
+    Log.error(`${modelName} model was not found: '${modelFilePath}'`);
     return null;
   }
-  // todo: require model file
-  // const modelClassName = pascalCase(modelName.match(/([^\/]+)$/)[1]);
+  const module = getModel(fileName);
+  if (!module) {
+    // there might be an error, already logged
+    return null;
+  }
+
   return {
-    className: modelName,
+    className: module.schema.name,
     file: modelFilePath,
-    impPath: `${Vesta.directories.model}/${modelName}`,
-    instanceName: camelCase(modelName),
-    interfaceName: `I${modelName}`,
-    module: getModel(modelName),
+    instanceName: camelCase(module.schema.name),
+    interfaceName: `I${module.schema.name}`,
+    module,
   };
 }
 
@@ -37,7 +41,7 @@ export function getModelsList(): any {
   const models = {};
   try {
     const modelFiles = readdirSync(modelDirectory);
-    modelFiles.forEach(modelFile => {
+    modelFiles.forEach((modelFile) => {
       const status = statSync(join(modelDirectory, modelFile));
       if (status.isFile()) {
         models[modelFile.substr(0, modelFile.length - 3)] = join(modelDirectory, modelFile);
@@ -45,7 +49,7 @@ export function getModelsList(): any {
         const dir = modelFile;
         const subModelDirectory = join(modelDirectory, modelFile);
         const subModelFile = readdirSync(subModelDirectory);
-        subModelFile.forEach(mFile => {
+        subModelFile.forEach((mFile) => {
           const modelKey = `${dir}/${mFile.substr(0, mFile.length - 3)}`;
           models[modelKey] = unixPath(join(subModelDirectory, mFile));
         });
@@ -57,81 +61,62 @@ export function getModelsList(): any {
   return models;
 }
 
-export function getModel(modelName: string): IModel {
-  if (!modelName) {
-    return null;
+export function getRelationModelName(field: Field) {
+  if (field.isOneOf) {
+    return field.isOneOf.schema.name;
   }
-  const relativePath = compileModels();
-  // const pathToModel = `${modelName}.js`;
-  modelName = pascalCase(modelName);
-  let modelFile = join(process.cwd(), relativePath, `${modelName}.js`);
-  if (!existsSync(modelFile)) {
-    modelFile = join(process.cwd(), relativePath, `models/${modelName}.js`);
-    if (!existsSync(modelFile)) {
-      Log.error(`${modelName} was not found at: ${modelFile}`);
-      return null;
-    }
-  }
-  const module = require(modelFile);
-  if (module[modelName]) {
-    // caching model
-    // modelStorage[modelName] = module[className];
-    return module[modelName];
+  if (field.areManyOf) {
+    return field.areManyOf.schema.name;
   }
 }
 
-export function getFieldsByType(modelName: string, fieldType: FieldType): IModelFields {
-  const model = getModel(pascalCase(modelName));
-  let fieldsOfType: IModelFields = null;
+export function getFieldsByType(modelName: string, fieldType: FieldType): Field[] {
+  const model = parseModel(pascalCase(modelName));
   if (!model) {
-    return fieldsOfType;
+    return [];
   }
-  const fields: IModelFields = (model.schema as Schema).getFields();
-  for (let names = Object.keys(fields), i = 0, il = names.length; i < il; ++i) {
-    const field = fields[names[i]];
-    if (field.properties.type === fieldType) {
-      if (!fieldsOfType) {
-        fieldsOfType = {};
-      }
-      fieldsOfType[names[i]] = field;
-    } else if (field.properties.type === FieldType.List && field.properties.list === fieldType) {
-      fieldsOfType[names[i]] = field;
+  let fieldsOfType: Field[] = [];
+  const fields: Field[] = (model.module.schema as Schema).getFields();
+  for (const field of fields) {
+    if (field.type === fieldType) {
+      fieldsOfType.push(field);
     }
+    // else if (field.type === FieldType.List && field.list === fieldType) {
+    //   fieldsOfType[names[i]] = field;
+    // }
   }
   return fieldsOfType;
 }
 
+export function hasFieldOfType(modelName: string, type: FieldType) {
+  return getFieldsByType(modelName, type).length > 0;
+}
+
 export function getUniqueFieldNameOfRelatedModel(field: Field): string {
-  if (!field.properties.relation) {
-    throw new Err(Err.Code.NotAllowed, `${field.fieldName} is not of type Relationship`);
+  if (field.type !== FieldType.Relation) {
+    throw new Err(Err.Type.NotAllowed, `${field.name as string} is not of type Relationship`);
   }
-  const targetFields = field.properties.relation.model.schema.getFields();
-  const names = Object.keys(targetFields);
+  const targetFields = field.isOneOf ? field.isOneOf.schema.getFields() : field.areManyOf.schema.getFields();
   let candidate = "name";
-  for (let i = names.length; i--; ) {
-    if (targetFields[names[i]].properties.type === FieldType.String) {
-      if (targetFields[names[i]].properties.unique) {
-        return names[i];
+  for (let i = 0, il = targetFields.length; i < il; i += 1) {
+    if (targetFields[i].type === FieldType.String) {
+      if (targetFields[i].unique) {
+        return targetFields[i].name as string;
       }
-      candidate = names[i];
+      candidate = targetFields[i].name as string;
     }
   }
   return candidate;
 }
 
-export function getFieldForFormSelect(modelName: string) {
-  const model = getModel(modelName);
+export function getFieldForFormSelect(modelName: string): string | null {
+  const model = parseModel(modelName);
   if (!model) {
     return null;
   }
-  const fields = model.schema.getFields();
-  if ("title" in fields) {
-    return "title";
-  }
-  for (let i = 0, fieldNames = Object.keys(fields), il = fieldNames.length; i < il; ++i) {
-    const field = fields[fieldNames[i]];
-    if (field.properties.type === FieldType.String) {
-      return fieldNames[i];
+  for (const field of model.module.schema.getFields()) {
+    if (field.type === FieldType.String) {
+      return field.name;
     }
   }
   return null;
@@ -139,41 +124,48 @@ export function getFieldForFormSelect(modelName: string) {
 
 export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta | null {
   modelName = pascalCase(modelName);
-  const model = getModel(modelName);
+  const model = parseModel(modelName);
   if (!model) {
     return null;
   }
-  // const source = readFileSync(`${Vesta.directories.model}/${modelName}`, { encoding: "utf8" });
-  const field = model.schema.getField(fieldName);
+  const field = model.module.schema.getField(fieldName);
   if (!field) {
     return null;
   }
   const tsModelFile = `${Vesta.directories.model}/${modelName}.ts`;
   const source = readFileSync(tsModelFile, "utf8");
   let meta: IFieldMeta = { form: true, list: true };
-  const fieldStartIndex = source.indexOf(`.addField("${fieldName}")`);
+  const enumRegex = new RegExp(`${fieldName}:.+enum:.+\\[([^\\]]+)\\]`, "im");
 
   // field type based meta
-  switch (field.properties.type) {
+  switch (field.type) {
     case FieldType.Enum:
-      const enumStartIndex = source.indexOf(".enum(", fieldStartIndex) + 6;
-      const enumEndIndex = source.indexOf(")", enumStartIndex);
-      const options = source
-        .substring(enumStartIndex, enumEndIndex)
-        .split(",")
-        .map((str: string) => str.replace(/\s+/g, ""));
-      // find enum path
-      const enumName = options[0].split(".")[0];
-      meta.enum = { name: enumName, options };
-      const enumImportRegex = new RegExp(`import.+${enumName}.+"([^"]+)";`);
-      const enumImportResult = enumImportRegex.exec(source);
-      if (enumImportResult) {
-        // todo check
-        meta.enum.path = enumImportResult[1];
+      const enumResult = enumRegex.exec(source);
+      if (!enumResult) {
+        Log.warning(`Failed to extract enum options for ${fieldName}`);
+        break;
+      }
+      const options = enumResult[1].replace(/\s*,\s*/, ",").split(",");
+
+      const isType = options[0].length !== options[0].replace(/["']/g, "").length;
+      if (isType) {
+        // .enum("ACTIVE", "INACTIVE")
+        meta.enum = { name: "", options: options.map((o) => o.replace(/["']/g, "")) };
+      } else {
+        // .enum(Status.Active, Status.Inactive)
+        const enumName = options[0].split(".")[0];
+        meta.enum = { name: enumName, options };
+        const enumImportRegex = new RegExp(`import.+${enumName}.+"([^"]+)";`);
+        const enumImportResult = enumImportRegex.exec(source);
+        // find enum path
+        if (enumImportResult) {
+          // todo check
+          meta.enum.path = enumImportResult[1];
+        }
       }
       break;
     case FieldType.Relation:
-      meta.relation = { model: field.properties.relation.model.schema.name };
+      meta.relation = { model: getRelationModelName(field) };
       // find path
       const relImportRegex = new RegExp(`import.+${meta.relation.model}.+"([^"]+)";`, "i");
       const relImportResult = relImportRegex.exec(source);
@@ -195,7 +187,7 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta |
       meta = {
         ...meta,
         ...parsedMeta,
-        enum: meta.enum ? { ...meta.enum, ...parsedMeta.enum } : undefined,
+        enum: meta.enum,
         relation: meta.relation ? { ...meta.relation, ...parsedMeta.relation } : undefined,
       };
     } catch (e) {
@@ -206,65 +198,112 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta |
 }
 
 export function getConfidentialFields(modelName: string): string[] {
-  const model = getModel(modelName);
+  const model = parseModel(modelName);
   if (!model) {
     return [];
   }
   const confidentials = [];
-  const fields = model.schema.getFields();
-  const fieldsNames = Object.keys(fields);
-  for (let i = fieldsNames.length; i--; ) {
-    const meta: IFieldMeta = getFieldMeta(modelName, fieldsNames[i]);
+  for (const field of model.module.schema.getFields()) {
+    const meta: IFieldMeta = getFieldMeta(modelName, field.name);
     if (meta.confidential) {
-      confidentials.push(fieldsNames[i]);
+      confidentials.push(field.name);
     }
   }
   return confidentials;
 }
 
 export function getOwnerVerifiedFields(modelName: string): string[] {
-  const model = getModel(modelName);
+  const model = parseModel(modelName);
   if (!model) {
     return [];
   }
   const confidentials = [];
-  const fields = model.schema.getFields();
-  const fieldsNames = Object.keys(fields);
-  for (let i = fieldsNames.length; i--; ) {
-    const meta: IFieldMeta = getFieldMeta(modelName, fieldsNames[i]);
+  for (const field of model.module.schema.getFields()) {
+    const meta: IFieldMeta = getFieldMeta(modelName, field.name);
     if (meta.verifyOwner) {
-      confidentials.push(fieldsNames[i]);
+      confidentials.push(field.name);
     }
   }
   return confidentials;
 }
 
-function compileModels() {
-  const targetPath = `${Vesta.directories.temp}/models`;
-  const tsConfigPath = `tsconfig.model.json`;
-  const tsConfig = `
-{
-    "compilerOptions": {
-        "module": "commonjs",
-        "target": "es6",
-        "outDir": "${Vesta.directories.temp}/models",
-    },
-    "include": [
-        "${Vesta.directories.model}/**/*.ts"
-    ],
-}
-    `;
-
-  if (!isModelGenerated) {
-    writeFileSync(tsConfigPath, tsConfig, { encoding: "utf8" });
-    try {
-      isModelGenerated = true;
-      execSync(`npx tsc -p ${tsConfigPath}`, { cwd: process.cwd() });
-    } catch (error) {
-      Log.error(`${error.message}\n${error.stdout.toString()}`);
-    } finally {
-      unlinkSync(tsConfigPath);
+function getModel(modelName: string): ModelConstructor {
+  if (!modelName) {
+    return null;
+  }
+  const relativePath = compileModels();
+  if (!relativePath) {
+    return null;
+  }
+  // const pathToModel = `${modelName}.js`;
+  modelName = pascalCase(modelName);
+  let modelFile = join(process.cwd(), relativePath, `${modelName}.js`);
+  if (!existsSync(modelFile)) {
+    modelFile = join(process.cwd(), relativePath, `models/${modelName}.js`);
+    if (!existsSync(modelFile)) {
+      Log.error(`${modelName} was not found at: ${modelFile}`);
+      return null;
     }
   }
+  const module = require(modelFile);
+  if (module[modelName]) {
+    // caching model
+    // modelStorage[modelName] = module[className];
+    return module[modelName];
+  }
+}
+
+function compileModels() {
+  const targetPath = `${Vesta.directories.temp}/vesta`;
+  if (isModelGenerated) {
+    return targetPath;
+  }
+  const tsConfigPath = `ts-${Date.now()}-config.json`;
+  const targetTsConfig: any = readJsonFile(`${process.cwd()}/tsconfig.json`);
+
+  if (targetTsConfig.extends) {
+    const extConfig: any = readJsonFile(join(process.cwd(), targetTsConfig.extends));
+
+    targetTsConfig.compilerOptions = {
+      ...extConfig.compilerOptions,
+      ...targetTsConfig.compilerOptions,
+    };
+  }
+  const tsConfig = {
+    compilerOptions: {
+      ...targetTsConfig.compilerOptions,
+      module: "commonjs",
+      target: "es6",
+      outDir: targetPath,
+      noEmit: false,
+    },
+    include: [`${Vesta.directories.model}/**/*.ts`],
+  };
+
+  const command = targetTsConfig.compilerOptions.paths ? "ttsc" : "tsc";
+  if (command === "ttsc") {
+    // ttypescript, typescript-transform-paths
+    if (!PackageManager.has("ttypescript", "typescript-transform-paths")) {
+      Log.error(`to suuport alias install the following packages: ttypescript, typescript-transform-paths`, true);
+    }
+    tsConfig.compilerOptions.plugins = (tsConfig.compilerOptions.plugins || []).concat([
+      {
+        transform: "typescript-transform-paths",
+      },
+    ]);
+  }
+
+  writeFileSync(tsConfigPath, JSON.stringify(tsConfig), { encoding: "utf8" });
+
+  try {
+    execSync(`npx ${command} -p ${tsConfigPath}`, { cwd: process.cwd() });
+    isModelGenerated = true;
+  } catch (error) {
+    Log.error(`${error.message}\n${error.stdout.toString()}`);
+    return null;
+  } finally {
+    unlinkSync(tsConfigPath);
+  }
+
   return targetPath;
 }

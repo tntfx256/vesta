@@ -1,5 +1,4 @@
 import { Log } from "../../util/Log";
-import { tab } from "../../util/StringUtil";
 import { Access } from "./StructureGen";
 
 export interface IMethodParameter {
@@ -24,6 +23,7 @@ export class MethodGen {
   public shouldExport: boolean = false;
   public isSimple: boolean = false;
   public isInterface: boolean = false;
+  public sort: boolean = true;
 
   private methods: MethodGen[] = [];
 
@@ -31,10 +31,6 @@ export class MethodGen {
     if (!name) {
       this.isConstructor = true;
     }
-  }
-
-  public getAccessType() {
-    return this.accessType;
   }
 
   public addMethod(name: string): MethodGen {
@@ -52,23 +48,26 @@ export class MethodGen {
   }
 
   public appendContent(code: string) {
-    const nl = this.content ? `\n` : "";
-    this.content = `${this.content}${nl}${tab(this.indent + 1)}${code}`;
+    this.content = `${this.content}\n${code}`;
+  }
+
+  public doNotSort() {
+    this.sort = false;
   }
 
   public generate(): string {
-    let code = tab(this.indent);
+    let code = "";
     code += this.shouldExport ? "export " : "";
     code += this.accessType ? `${this.accessType} ` : "";
     code += this.isConstructor ? "constructor" : "";
     code += this.isArrow ? "const " : "";
-    code += !this.isArrow && !this.isConstructor && !this.accessType ? "function " : "";
     code += this.isAsync ? "async " : "";
+    code += !this.isArrow && !this.isConstructor && !this.accessType ? "function " : "";
     code += this.name;
     code += this.isArrow && this.methodType ? `: ${this.methodType}` : "";
     code += this.isArrow ? " = " : "";
     code += `(${this.getParameterCode()})`;
-    code += this.returnType && !this.isArrow ? `: ${this.returnType}` : "";
+    code += this.returnType ? `: ${this.returnType}` : "";
     code += this.isArrow ? " => {\n" : " {\n";
     // content
     code += this.content;
@@ -80,7 +79,7 @@ export class MethodGen {
     if (methods.length) {
       code += `\n\n${methods.join("\n\n")}`;
     }
-    code += `\n${tab(this.indent)}}${this.isArrow ? ";" : ""}`;
+    code += `\n}`;
     return code;
   }
 

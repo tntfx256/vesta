@@ -1,0 +1,18 @@
+export enum FieldType {
+  String = 1,
+  Text,
+  Password,
+  Tel,
+  EMail,
+  URL,
+  Number,
+  Integer,
+  Float,
+  File,
+  Timestamp,
+  Boolean,
+  Enum,
+  Relation,
+  // Object,
+  // List,
+}

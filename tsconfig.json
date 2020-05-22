@@ -2,17 +2,16 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
-    "noEmitHelpers": true,
+    "noEmitHelpers": false,
     "outDir": "./bin",
-    "newLine": "LF",
-    "sourceMap": true,
-    "declaration": false
+    "sourceMap": false,
+    "declaration": false,
+    "baseUrl": ".",
+    "paths": {
+      "@vesta/core": ["src/core"]
+    },
+    "plugins": [{ "transform": "typescript-transform-paths" }]
   },
-  "files": [
-    "src/index.ts"
-  ],
-  "exclude": [
-    "bin",
-    "node_modules"
-  ]
+  "files": ["src/index.ts"],
+  "exclude": ["bin", "node_modules"]
 }
