@@ -51,10 +51,6 @@ export class MethodGen {
     this.content = `${this.content}\n${code}`;
   }
 
-  public doNotSort() {
-    this.sort = false;
-  }
-
   public generate(): string {
     let code = "";
     code += this.shouldExport ? "export " : "";

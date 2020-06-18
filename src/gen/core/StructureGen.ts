@@ -10,6 +10,7 @@ export interface IMethodProperties {
   isAsync?: boolean;
   isStatic?: boolean;
   name: string;
+  sort?: boolean;
 }
 
 export enum Access {
@@ -31,6 +32,7 @@ export interface IStructureProperty {
   defaultValue?: string;
   isStatic?: boolean;
   readonly?: boolean;
+  sort?: boolean;
 }
 
 export abstract class StructureGen {
@@ -69,7 +71,9 @@ export abstract class StructureGen {
     method.isStatic = config.isStatic;
     method.isAbstract = config.isAbstract;
     method.isAsync = config.isAsync;
+    method.sort = "sort" in config ? config.sort : true;
     this.methods.push(method);
+    this.sortMethods();
     return method;
   }
 
@@ -105,7 +109,40 @@ export abstract class StructureGen {
         return;
       }
     }
-    this.properties.push(property);
+    this.properties.push({ ...property, sort: "sort" in property ? property.sort : true });
+    this.properties.sort(this.sortByName);
+  }
+
+  private sortMethods() {
+    const publicStatics = [];
+    const privatestatics = [];
+    const publicMethods = [];
+    const privateMethods = [];
+    for (let i = this.methods.length; i--; ) {
+      const method = this.methods[i];
+      if (method.accessType === "public") {
+        method.isStatic ? publicStatics.push(method) : publicMethods.push(method);
+      } else {
+        method.isStatic ? privatestatics.push(method) : privateMethods.push(method);
+      }
+    }
+    publicStatics.sort(this.sortByName);
+    privatestatics.sort(this.sortByName);
+    publicMethods.sort(this.sortByName);
+    privateMethods.sort(this.sortByName);
+    this.methods = this.constructorMethod
+      ? [...publicStatics, ...privatestatics, this.constructorMethod, ...publicMethods, ...privateMethods]
+      : [...publicStatics, ...privatestatics, ...publicMethods, ...privateMethods];
+  }
+
+  private sortByName(a: IStructureProperty | MethodGen, b: IStructureProperty | MethodGen): number {
+    if (!a.sort) {
+      return -1;
+    }
+    if (!b.sort) {
+      return 1;
+    }
+    return a.name > b.name ? 1 : -1;
   }
 
   public abstract generate(): string;

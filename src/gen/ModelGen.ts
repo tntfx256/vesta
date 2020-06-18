@@ -2,7 +2,7 @@ import { Question } from "inquirer";
 import { camelCase } from "lodash";
 import { join } from "path";
 import { ArgParser } from "../util/ArgParser";
-import { mkdir, writeFile } from "../util/FsUtil";
+import { mkdir, saveCodeToFile } from "../util/FsUtil";
 import { Log } from "../util/Log";
 import { pascalCase } from "../util/StringUtil";
 import { ask } from "../util/Util";
@@ -10,7 +10,7 @@ import { ClassGen } from "./core/ClassGen";
 import { InterfaceGen } from "./core/InterfaceGen";
 import { IStructureProperty } from "./core/StructureGen";
 import { TsFileGen } from "./core/TSFileGen";
-import { FieldGen as IFieldGen } from "./FieldGen";
+import { FieldGen } from "./FieldGen";
 import { Vesta } from "./Vesta";
 
 export interface IModelGenConfig {
@@ -18,7 +18,7 @@ export interface IModelGenConfig {
 }
 
 interface IFields {
-  [name: string]: IFieldGen;
+  [name: string]: FieldGen;
 }
 
 export class ModelGen {
@@ -40,12 +40,11 @@ export class ModelGen {
   private modelInterface: InterfaceGen;
   private path: string = Vesta.directories.model;
 
-  constructor(private config: IModelGenConfig) {
+  constructor(config: IModelGenConfig) {
     const modelName = pascalCase(config.name);
     this.initModel(modelName);
   }
 
-  // todo import from existing database
   public generate() {
     this.readField();
   }
@@ -65,7 +64,7 @@ export class ModelGen {
     cm.addParameter({ name: "values", type: `Partial<I${modelClassName}>`, isOptional: true });
     cm.appendContent(`
         super(${modelClassName}.schema);
-        this.set(values);`);
+        this.setValues(values);`);
 
     this.modelClass.addProperty({
       access: ClassGen.Access.Public,
@@ -83,13 +82,17 @@ export class ModelGen {
       message: "Field Name: ",
       name: "fieldName",
       type: "input",
-    } as Question;
+    };
     ask<{ fieldName: string }>(question).then((answer) => {
       if (!answer.fieldName) {
         return this.write();
       }
+      if (answer.fieldName.toLocaleUpperCase() === "id") {
+        Log.warning("\n:id is a reserved field name. It will be added by default\n");
+        this.readField();
+      }
       const fieldName = camelCase(answer.fieldName as string);
-      const field = new IFieldGen(this.modelFile, fieldName);
+      const field = new FieldGen(this.modelFile, fieldName);
       this.fields[fieldName] = field;
       field
         .readFieldProperties()
@@ -102,42 +105,41 @@ export class ModelGen {
   }
 
   private write() {
-    const fieldNames = Object.keys(this.fields);
+    const fieldNames = Object.keys(this.fields)
+      .filter((n) => n.toLowerCase() !== "id")
+      .sort();
     // adding the id field
-    if (fieldNames.indexOf("id") < 0) {
-      const idField = new IFieldGen(this.modelFile, "id");
-      idField.setAsPrimary();
-      this.fields.id = idField;
-      fieldNames.splice(0, 0, "id");
-    }
-    for (let i = 0, il = fieldNames.length; i < il; ++i) {
-      this.modelFile.addMixin(this.fields[fieldNames[i]].generate(), TsFileGen.CodeLocation.AfterClass);
-      const { fieldName, fieldType, interfaceFieldType, defaultValue } = this.fields[fieldNames[i]].getNameTypePair();
+    const idField = new FieldGen(this.modelFile, "id");
+    idField.setAsPrimary();
+    this.fields.id = idField;
+    fieldNames.unshift("id");
+    const schemaCode: string[] = [];
+
+    for (const fieldName of fieldNames) {
+      const fieldGen = this.fields[fieldName];
+      schemaCode.push(fieldGen.generate());
+      // adding Interface & Class properties
+      const defaultValue = fieldGen.getDefaultValue();
+      const fieldType = fieldGen.getCodeForActualFieldType(fieldGen.field.type);
       const property: IStructureProperty = {
         access: ClassGen.Access.Public,
         defaultValue,
+        isOptional: !fieldGen.field.required,
         name: fieldName,
         type: fieldType,
       };
+      this.modelInterface.addProperty(property);
       this.modelClass.addProperty(property);
-      const iProperty: IStructureProperty = Object.assign({}, property, {
-        isOptional: !this.fields[fieldNames[i]].field.required,
-        type: interfaceFieldType,
-      }) as IStructureProperty;
-      this.modelInterface.addProperty(iProperty);
     }
     this.modelFile.addMixin(
-      `${this.modelFile.name}.schema.freeze();
-
-/*
-Use the following pattern to add extra data for code generator. Check vesta documentation for more info.
-
-// @fieldName({"confidenatial":true,"form":true,"list":true,"verifyOwner":true,"wysiwyg":true})
-*/
-`,
+      `
+      ${this.modelFile.name}.schema.setFields({
+        ${schemaCode.join(",\n")}
+      });
+      `,
       TsFileGen.CodeLocation.AfterClass
     );
 
-    writeFile(join(this.path, `${this.modelFile.name}.ts`), this.modelFile.generate());
+    saveCodeToFile(join(this.path, `${this.modelFile.name}.ts`), this.modelFile.generate());
   }
 }

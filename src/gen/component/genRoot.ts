@@ -1,3 +1,4 @@
+import { pascalCase } from "src/util/StringUtil";
 import { saveCodeToFile } from "../../util/FsUtil";
 import { parseModel } from "../../util/Model";
 import { IComponentGenConfig } from "../ComponentGen";
@@ -8,10 +9,13 @@ export function genRoot(config: IComponentGenConfig) {
   if (!model) {
     return;
   }
-  const { path } = config;
-  const file = new TsFileGen(config.name);
+  const { path, name } = config;
+  const componentName = pascalCase(name);
+  const className = componentName === model.className ? `${model.className}Model` : model.className;
+  const file = new TsFileGen(componentName);
+
   // main method
-  const method = file.addMethod(model.className);
+  const method = file.addMethod(componentName);
   // method.isArrow = true;
   method.shouldExport = true;
 
@@ -24,10 +28,11 @@ export function genRoot(config: IComponentGenConfig) {
     file.addImport(["RouteComponentProps"], "react-router-dom");
     file.addImport(["Culture"], "@vesta/culture");
     file.addImport(["AclAction"], "@vesta/services");
-    file.addImport(["QueryOption"], "@vesta/core");
-    file.addImport(["CrudMenu", "ComponentProps"], "@vesta/components");
+    file.addImport(["Query", "Filter"], "@vesta/core");
+    file.addImport(["CrudMenu", "ComponentProps", "FilterBuilder", "Icon"], "@vesta/components");
     file.addImport(["getAccount"], "services/Account");
     file.addImport([model.interfaceName], "cmn/models");
+    file.addImport([className === model.className ? model.className : `${model.className} as ${className}`], "cmn/models");
     file.addImport(["CrudPage"], "components/general/CrudPage");
     file.addImport(["Go"], "components/general/Go");
 
@@ -35,30 +40,46 @@ export function genRoot(config: IComponentGenConfig) {
       file.addImport([`${model.className}${crud}`], `./${model.className}${crud}`);
     }
 
-    // params interface
-    const params = file.addInterface(`${model.className}Params`);
-
     // props
-    const props = file.addInterface(`${model.className}Props`);
-    props.setParentClass(`ComponentProps, RouteComponentProps<${params.name}>`);
+    const props = file.addInterface(`${componentName}Props`);
+    props.setParentClass(`ComponentProps, RouteComponentProps`);
     // method.methodType = `ComponentType<${props.name}>`;
     method.returnType = "ReactElement";
     method.addParameter({ name: "props", type: props.name });
 
     method.appendContent(`
-    const access = getAccount().getAccessList("${model.instanceName}");
     const tr = Culture.getDictionary().translate;
-    const [queryOption, setQueryOption] = useState<QueryOption<${model.interfaceName}>>({ page: 1, size: 20 });
+    const access = getAccount().getAccessList("${model.instanceName}");
+    const isRoot = props.location.pathname === "/${model.instanceName}";
+
+    const [showFilter, setShowFilter] = useState(false);
+    const [query, setQuery] = useState<Query<${model.interfaceName}>>({ page: 1, size: 20, filter: {} });
+
+    function onApply(filter: Filter<${model.interfaceName}>) {
+      setQuery({ ...query, page: 1, filter });
+    }
+  
+    function onReset() {
+      setQuery({ ...query, page: 1, filter: {} });
+    }
 
     return (
         <CrudPage title={tr("mdl_${model.className.toLowerCase()}")}>
-            <CrudMenu path="${model.instanceName}" access={access} />
+            <CrudMenu path="${model.instanceName}" access={access}>
+            {isRoot ? (
+              <li onClick={() => setShowFilter((show) => !show)}>
+                <Icon name="search" />
+              </li>
+            ) : null}
+            </CrudMenu>
+
+            {showFilter && isRoot ? <FilterBuilder onApply={onApply} onReset={onReset} model={${className}} /> : null}
             
             <Go path="/${model.instanceName}/add" component={${model.className}Add} permissions={{ ${model.instanceName}: [AclAction.Add] }} />
             <Go path="/${model.instanceName}/edit/:id" component={${model.className}Edit} permissions={{ ${model.instanceName}: [AclAction.Edit] }} />
             <Go path="/${model.instanceName}/detail/:id" component={${model.className}Detail} />
             <Go path="/${model.instanceName}" exact={true}>
-                <${model.className}List queryOption={queryOption} setQueryOption={setQueryOption} />
+                <${model.className}List query={query} setQuery={setQuery} />
             </Go>
         </CrudPage>
     );`);

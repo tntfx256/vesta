@@ -118,18 +118,19 @@ export class TsFileGen {
     return null;
   }
 
-  public addEnum(name: string): EnumGen {
+  public addEnum(name: string, asType?: boolean): EnumGen {
     name = pascalCase(name);
     let enm = this.getEnum(name);
     if (enm) {
       return enm;
     }
     enm = new EnumGen(name);
+    enm.convertToType(true);
     this.enums.push(enm);
     return enm;
   }
 
-  public getEnum(name: string): EnumGen {
+  public getEnum(name: string): EnumGen | null {
     name = pascalCase(name);
     for (let i = this.enums.length; i--; ) {
       if (this.enums[i].name === name) {

@@ -11,7 +11,7 @@ export class Init {
       message: "Choose one of the following operations",
       name: "initType",
       type: "list",
-    } as Question).then((answer) => {
+    }).then((answer) => {
       switch (answer.initType) {
         case "Install Docker":
           DockerUtil.installEngine();

@@ -113,11 +113,9 @@ export class Validator {
 
     maxSize<T>(field: Field, values: Partial<T>): boolean {
       const value = values[field.name];
+      // only validate if it's of type file
       if (typeof value === "string" || !value || !value.size) {
-        return false;
-      }
-      if ("number" === typeof field.maxSize) {
-        return value.size <= field.maxSize;
+        return true;
       }
       const result = /^(\d+)(KB|MB)$/i.exec(field.maxSize);
       if (!result) {

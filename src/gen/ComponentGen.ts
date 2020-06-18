@@ -1,4 +1,5 @@
 import { ModelConstructor } from "@vesta/core";
+import { camelCase } from "lodash";
 import { join } from "path";
 import { ArgParser } from "../util/ArgParser";
 import { mkdir } from "../util/FsUtil";
@@ -61,6 +62,7 @@ Example:
       Log.error("Missing/Invalid component name\nSee 'vesta gen component --help' for more information\n");
       return;
     }
+    config.name = pascalCase(config.name);
     if (config.model) {
       config.model = pascalCase(config.model);
       config.isPage = true;
@@ -72,7 +74,7 @@ Example:
     }
 
     if (config.model) {
-      config.path = join(config.path, config.model);
+      config.path = join(config.path, config.name);
     }
 
     new ComponentGen(config).generate();

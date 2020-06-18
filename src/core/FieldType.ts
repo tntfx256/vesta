@@ -13,6 +13,6 @@ export enum FieldType {
   Boolean,
   Enum,
   Relation,
-  // Object,
-  // List,
+  Object,
+  List,
 }

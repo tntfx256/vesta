@@ -70,26 +70,44 @@ export function getRelationModelName(field: Field) {
   }
 }
 
-export function getFieldsByType(modelName: string, fieldType: FieldType): Field[] {
+export function getFieldsByType(modelName: string, ...fieldTypes: FieldType[]): Field[] {
   const model = parseModel(pascalCase(modelName));
   if (!model) {
     return [];
   }
-  let fieldsOfType: Field[] = [];
-  const fields: Field[] = (model.module.schema as Schema).getFields();
-  for (const field of fields) {
-    if (field.type === fieldType) {
-      fieldsOfType.push(field);
-    }
-    // else if (field.type === FieldType.List && field.list === fieldType) {
-    //   fieldsOfType[names[i]] = field;
-    // }
-  }
-  return fieldsOfType;
+  return (model.module.schema as Schema).getFields().filter((f) => (fieldTypes.length ? fieldTypes.includes(f.type) : true));
 }
 
-export function hasFieldOfType(modelName: string, type: FieldType) {
+export function hasFieldOfType(modelName: string, type: FieldType): boolean {
   return getFieldsByType(modelName, type).length > 0;
+}
+
+export function reduceFieldsByType(modelName: string, ...fieldTypes: FieldType[]) {
+  return function (reducer: (acc: string[], fieldName: string, field: Field) => string): string[] {
+    return getFieldsByType(modelName, ...fieldTypes).reduce((acc: string[], field: Field) => {
+      const result = reducer(acc, String(field.name), field);
+      return result ? [...acc, result] : [...acc];
+    }, []);
+  };
+}
+
+export function getFieldsByListType(modelName: string, ...fieldTypes: FieldType[]): Field[] {
+  return getFieldsByType(modelName, FieldType.List).filter((f) =>
+    fieldTypes.length ? fieldTypes.includes(f.listOf) : true
+  );
+}
+
+export function hasListOfType(modelName: string, type: FieldType): boolean {
+  return getFieldsByListType(modelName, type).length > 0;
+}
+
+export function reduceFieldsByListType(modelName: string, ...fieldTypes: FieldType[]) {
+  return function (reducer: (acc: string[], fieldName: string, field: Field) => string): string[] {
+    return getFieldsByListType(modelName, ...fieldTypes).reduce((acc: string[], field: Field) => {
+      const result = reducer(acc, String(field.name), field);
+      return result ? [...acc, result] : [...acc];
+    }, []);
+  };
 }
 
 export function getUniqueFieldNameOfRelatedModel(field: Field): string {
@@ -116,7 +134,7 @@ export function getFieldForFormSelect(modelName: string): string | null {
   }
   for (const field of model.module.schema.getFields()) {
     if (field.type === FieldType.String) {
-      return field.name;
+      return field.name as string;
     }
   }
   return null;
@@ -139,6 +157,10 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta |
 
   // field type based meta
   switch (field.type) {
+    case FieldType.List:
+      if (field.listOf !== FieldType.Enum) {
+        break;
+      }
     case FieldType.Enum:
       const enumResult = enumRegex.exec(source);
       if (!enumResult) {
@@ -204,7 +226,8 @@ export function getConfidentialFields(modelName: string): string[] {
   }
   const confidentials = [];
   for (const field of model.module.schema.getFields()) {
-    const meta: IFieldMeta = getFieldMeta(modelName, field.name);
+    const fieldName = String(field.name);
+    const meta: IFieldMeta = getFieldMeta(modelName, fieldName);
     if (meta.confidential) {
       confidentials.push(field.name);
     }
@@ -219,7 +242,8 @@ export function getOwnerVerifiedFields(modelName: string): string[] {
   }
   const confidentials = [];
   for (const field of model.module.schema.getFields()) {
-    const meta: IFieldMeta = getFieldMeta(modelName, field.name);
+    const fieldName = String(field.name);
+    const meta: IFieldMeta = getFieldMeta(modelName, fieldName);
     if (meta.verifyOwner) {
       confidentials.push(field.name);
     }

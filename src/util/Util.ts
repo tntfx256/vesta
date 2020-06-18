@@ -8,8 +8,8 @@ import { Log } from "./Log";
 import { pascalCase } from "./StringUtil";
 
 export function ask<T>(questions: Question | Question[]): Promise<T> {
-  return new Promise<T>(resolve => {
-    iPrompt(questions).then(answer => {
+  return new Promise<T>((resolve) => {
+    iPrompt(questions).then((answer) => {
       resolve((answer as any) as T);
     });
   });
@@ -86,10 +86,10 @@ export function getKernelVersion() {
 
 export function debug(...data) {
   // tslint:disable-next-line:no-console
-  console.log("\n\t\tSTART\n");
+  console.log("\nSTART\n");
   // tslint:disable-next-line:no-console
   console.log(...data);
   // tslint:disable-next-line:no-console
-  console.log("\n\t\tEND\n");
+  console.log("\nEND\n");
   process.exit();
 }

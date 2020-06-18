@@ -36,3 +36,25 @@ export enum LogLevel {
   Warning,
   Info,
 }
+
+export type Enumerable<T> = T | T[];
+
+export type PrimaryTypes = number | string | boolean | Date | File;
+
+export type Type<T, K extends keyof T> = T[K] extends (infer R)[] ? R : T[K];
+
+export type PickByType<T, U> = Pick<T, { [key in keyof T]: Type<T, key> extends U ? key : never }[keyof T]>;
+
+export type OmitByType<T, U> = Pick<T, { [key in keyof T]: Type<T, key> extends U ? never : key }[keyof T]>;
+
+export type OwnFields<T> = PickByType<T, PrimaryTypes>;
+
+export type RelationalFields<T> = OmitByType<T, PrimaryTypes>;
+
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
+};
+
+export type DeepPartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
+};

@@ -8,6 +8,7 @@ export * from "./Dispatcher";
 export * from "./Err";
 export * from "./Field";
 export * from "./FieldType";
+export * from "./Filter";
 export * from "./Mime";
 export * from "./Model";
 export * from "./Platform";

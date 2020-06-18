@@ -14,8 +14,13 @@ export type ValidatorFn<T = any> = (field: Field<T>, values: Partial<T>) => bool
 // TYPE DEFINITIONS ARE HERE TO PREVENT DEPENDENCY LOOP
 // ///////////////////////////////////////////////////////////
 
+// export interface FieldMeta {
+//   verifyOwner?: boolean;
+//   confidential?: boolean;
+// }
+
 export type Field<T = any> = {
-  name: Extract<keyof T, string>;
+  name: keyof T; // Extract<keyof T, string>;
   type: FieldType;
   areManyOf?: ModelConstructor; // many to many
   assert?: ValidatorFn<T>;
@@ -23,9 +28,11 @@ export type Field<T = any> = {
   enum?: any[];
   fileType?: string[];
   isOneOf?: ModelConstructor; // one to many
+  listOf?: FieldType;
   max?: number;
   maxLength?: number;
-  maxSize?: number | string;
+  maxSize?: string;
+  // meta?: FieldMeta;
   min?: number;
   minLength?: number;
   pattern?: RegExp;
