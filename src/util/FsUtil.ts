@@ -79,7 +79,11 @@ export function isRelative(path: string) {
 
 export function formatFile(file: string) {
   // prettier --config ./my/.prettierrc --write ./my/file.js
-  execute(`npx prettier --config ./.prettierrc --write ${file}`, { silent: true, showCommand: false });
+  let configFile = ".prettierrc";
+  if (existsSync(".prettierrc.js")) {
+    configFile = ".prettierrc.js";
+  }
+  execute(`npx prettier --config ./${configFile} --write ${file}`, { silent: true, showCommand: false });
 }
 
 export function saveCodeToFile(path: string, code: string) {

@@ -1,4 +1,3 @@
-import { MethodGen } from "./MethodGen";
 import { StructureGen } from "./StructureGen";
 import { IMixin } from "./TSFileGen";
 

@@ -6,46 +6,69 @@ import { TsFileGen } from "../core/TSFileGen";
 import { Vesta } from "../Vesta";
 
 export function genSimple(config: IComponentGenConfig) {
+  const isNative = Vesta.isNative;
   const className = upperFirst(camelCase(config.name));
 
   const file = new TsFileGen(className);
   file.addImport(["React"], "react", true);
   file.addImport(["ReactElement"], "react");
-  file.addImport(["ComponentProps"], "@vesta/components");
+  if (isNative) {
+    file.addImport(["Text", "View"], "react-native");
+  } else {
+    file.addImport(["ComponentProps"], "@vesta/components");
+  }
 
   if (config.isPage) {
-    file.addImport(["Page"], `components/general/Page`);
     file.addImport(["Culture"], "@vesta/culture");
-    file.addImport(["ComponentProps"], "@vesta/components");
-    file.addImport(["RouteComponentProps"], "react-router-dom");
-    file.addInterface(`I${className}Params`);
+    if (isNative) {
+      file.addImport(["StackScreenProps"], "@react-navigation/stack");
+      file.addImport(["Screen"], "components/Screen", true);
+    } else {
+      file.addImport(["Page"], `components/general/Page`);
+      file.addImport(["ComponentProps"], "@vesta/components");
+      file.addImport(["RouteComponentProps"], "react-router-dom");
+      file.addInterface(`${className}Params`);
+    }
   }
   const translationKey = config.name.toLowerCase();
   // props
   const propsInterface = file.addInterface(`${className}Props`);
   if (config.isPage) {
-    propsInterface.setParentClass(`ComponentProps, RouteComponentProps<I${className}Params>`);
+    if (isNative) {
+      propsInterface.setParentClass(`StackScreenProps<any, any>`);
+    } else {
+      propsInterface.setParentClass(`ComponentProps, RouteComponentProps<${className}Params>`);
+    }
   } else {
-    propsInterface.setParentClass("ComponentProps");
+    if (!isNative) {
+      propsInterface.setParentClass("ComponentProps");
+    }
   }
   // component class
+  const wrapper = isNative ? "Screen" : "Page";
+  const innerWrapper = isNative ? "View" : "div";
+  const text = isNative ? "Text" : "h1";
   file.addMixin(
     config.isPage
       ? `
-export function ${className}(props: ${className}Props): ReactElement {
+export default function ${className}(props: ${className}Props): ReactElement {
     const tr = Culture.getDictionary().translate;
 
     return (
-        <Page title={tr("${translationKey}")}>
-            <h1>${className} Page</h1>
-        </Page>
+        <${wrapper} title={tr("${translationKey}")}>
+          <${innerWrapper}>
+            <${text}>${className} Page</${text}>
+          </${innerWrapper}>
+        </${wrapper}>
     );
 }`
       : `
-export function ${className}(props: ${className}Props): ReactElement {
+export default function ${className}(props: ${className}Props): ReactElement {
 
     return (
-        <h1>${className} Component</h1>
+      <${innerWrapper}>
+        <${text}>${className} Component</${text}>
+      </${innerWrapper}>
     );
 }`,
     TsFileGen.CodeLocation.AfterInterface

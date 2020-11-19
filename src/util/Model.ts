@@ -1,4 +1,4 @@
-import { Err, Field, FieldType, ModelConstructor, Schema } from "@vesta/core";
+import { Err, ErrorType, Field, FieldType, ModelConstructor, Schema } from "@vesta/core";
 import { execSync } from "child_process";
 import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "fs";
 import { camelCase } from "lodash";
@@ -112,7 +112,7 @@ export function reduceFieldsByListType(modelName: string, ...fieldTypes: FieldTy
 
 export function getUniqueFieldNameOfRelatedModel(field: Field): string {
   if (field.type !== FieldType.Relation) {
-    throw new Err(Err.Type.NotAllowed, `${field.name as string} is not of type Relationship`);
+    throw new Err(ErrorType.NotAllowed, `${field.name as string} is not of type Relationship`);
   }
   const targetFields = field.isOneOf ? field.isOneOf.schema.getFields() : field.areManyOf.schema.getFields();
   let candidate = "name";
@@ -153,7 +153,7 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta |
   const tsModelFile = `${Vesta.directories.model}/${modelName}.ts`;
   const source = readFileSync(tsModelFile, "utf8");
   let meta: IFieldMeta = { form: true, list: true };
-  const enumRegex = new RegExp(`${fieldName}:.+enum:.+\\[([^\\]]+)\\]`, "im");
+  const enumRegex = new RegExp(`${fieldName}:.+enum:.+(?:\\[([^\\]]+)\\]|Object.keys\\(([^\\)]+)\\))`, "im");
 
   // field type based meta
   switch (field.type) {
@@ -163,26 +163,41 @@ export function getFieldMeta(modelName: string, fieldName: string): IFieldMeta |
       }
     case FieldType.Enum:
       const enumResult = enumRegex.exec(source);
+
       if (!enumResult) {
         Log.warning(`Failed to extract enum options for ${fieldName}`);
         break;
       }
-      const options = enumResult[1].replace(/\s*,\s*/, ",").split(",");
-
-      const isType = options[0].length !== options[0].replace(/["']/g, "").length;
-      if (isType) {
-        // .enum("ACTIVE", "INACTIVE")
-        meta.enum = { name: "", options: options.map((o) => o.replace(/["']/g, "")) };
-      } else {
-        // .enum(Status.Active, Status.Inactive)
-        const enumName = options[0].split(".")[0];
-        meta.enum = { name: enumName, options };
+      if (enumResult[2]) {
+        // enum: Object.keys(Status)
+        const enumName = enumResult[2];
+        // for option we need the parsed model
+        meta.enum = { name: enumName, options: model.module.schema.getField(fieldName).enum };
         const enumImportRegex = new RegExp(`import.+${enumName}.+"([^"]+)";`);
         const enumImportResult = enumImportRegex.exec(source);
         // find enum path
         if (enumImportResult) {
           // todo check
           meta.enum.path = enumImportResult[1];
+        }
+      } else {
+        const options = enumResult[1].replace(/\s*,\s*/, ",").split(",");
+
+        const isType = options[0].length !== options[0].replace(/["']/g, "").length;
+        if (isType) {
+          // .enum("ACTIVE", "INACTIVE")
+          meta.enum = { name: "", options: options.map((o) => o.replace(/["']/g, "")) };
+        } else {
+          // .enum(Status.Active, Status.Inactive)
+          const enumName = options[0].split(".")[0];
+          meta.enum = { name: enumName, options };
+          const enumImportRegex = new RegExp(`import.+${enumName}.+"([^"]+)";`);
+          const enumImportResult = enumImportRegex.exec(source);
+          // find enum path
+          if (enumImportResult) {
+            // todo check
+            meta.enum.path = enumImportResult[1];
+          }
         }
       }
       break;

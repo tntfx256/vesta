@@ -1,3 +1,4 @@
+import { FieldType } from "@vesta/core";
 import { Question } from "inquirer";
 import { camelCase } from "lodash";
 import { join } from "path";
@@ -77,31 +78,39 @@ export class ModelGen {
     mkdir(this.path);
   }
 
-  private readField() {
+  private async readField() {
     const question: Question = {
       message: "Field Name: ",
       name: "fieldName",
       type: "input",
     };
-    ask<{ fieldName: string }>(question).then((answer) => {
-      if (!answer.fieldName) {
-        return this.write();
-      }
-      if (answer.fieldName.toLocaleUpperCase() === "id") {
-        Log.warning("\n:id is a reserved field name. It will be added by default\n");
-        this.readField();
-      }
-      const fieldName = camelCase(answer.fieldName as string);
-      const field = new FieldGen(this.modelFile, fieldName);
-      this.fields[fieldName] = field;
-      field
-        .readFieldProperties()
-        .then(() => {
-          Log.success("\n:: Press enter with empty fieldName when done\n");
-          this.readField();
-        })
-        .catch((err) => Log.error(err.message));
-    });
+    const answer = await ask<{ fieldName: string }>(question);
+    if (!answer.fieldName) {
+      return this.write();
+    }
+    if (answer.fieldName.toLocaleUpperCase() === "id") {
+      Log.warning("\n:id is a reserved field name. It will be added by default\n");
+      this.readField();
+    }
+    const fieldName = camelCase(answer.fieldName as string);
+    const field = new FieldGen(this.modelFile, fieldName);
+    this.fields[fieldName] = field;
+    try {
+      await field.readFieldProperties();
+      // if (field.field.isOneOf) {
+      //   // create another field
+      //   const relField = new FieldGen(this.modelFile, `${fieldName}Id`);
+      //   relField.addProperty("type", FieldType.RelationIndex);
+      //   if (field.field.required) {
+      //     relField.addProperty("required", true);
+      //   }
+      //   this.fields[relField.name] = relField;
+      // }
+      Log.success("\n:: Press enter with empty fieldName when done\n");
+      this.readField();
+    } catch (err) {
+      Log.error(err.message);
+    }
   }
 
   private write() {
@@ -127,6 +136,7 @@ export class ModelGen {
         isOptional: !fieldGen.field.required,
         name: fieldName,
         type: fieldType,
+        sort: fieldName !== "id",
       };
       this.modelInterface.addProperty(property);
       this.modelClass.addProperty(property);

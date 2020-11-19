@@ -56,7 +56,7 @@ Examples:
       version: argParser.get("version", "v1"),
     };
 
-    if (!config.name || !/^[a-z]+$/i.exec(config.name)) {
+    if (!config.name || !/^[a-z][a-z0-9]+$/i.exec(config.name)) {
       Log.error("Missing/Invalid controller name\nSee 'vesta gen controller --help' for more information\n");
       return;
     }
@@ -132,21 +132,21 @@ Examples:
     this.ownerVerifiedFields = getOwnerVerifiedFields(this.config.model);
     this.confidentialFields = getConfidentialFields(this.config.model);
 
-    this.controllerFile.addImport(["Err", "DatabaseError", "ValidationError"], "@vesta/core");
-    this.controllerFile.addImport([className], genRelativePath(this.path, `src/cmn/models`));
+    this.controllerFile.addImport(["Err", "ErrorType", "ValidationError"], "@vesta/core");
+    this.controllerFile.addImport([className, interfaceName], genRelativePath(this.path, `src/cmn/models`));
     this.controllerFile.addImport(["AclAction"], "@vesta/services");
     let acl = this.routingPath.replace(/\/+/g, ".");
     acl = acl[0] === "." ? acl.slice(1) : acl;
     const middleWares = ` this.checkAcl("${acl}", __ACTION__),`;
     // count operation
-    let methodName = `get${className}Count`;
+    let methodName = `get${plural(className)}Count`;
     let methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Read");
     this.addResponseMethod(methodName).appendContent(this.getCountCode());
     // tslint:disable-next-line:max-line-length
     this.routeMethod.appendContent(
       `router.get("${this.routingPath}/count",${methodBasedMiddleWares} this.wrap(this.${methodName}));`
     );
-    //
+    // find one
     methodName = "get" + className;
     methodBasedMiddleWares = middleWares.replace("__ACTION__", "AclAction.Read");
     this.addResponseMethod(methodName).appendContent(this.getQueryCode(true));
@@ -154,7 +154,7 @@ Examples:
     this.routeMethod.appendContent(
       `router.get("${this.routingPath}/:id",${methodBasedMiddleWares} this.wrap(this.${methodName}));`
     );
-    //
+    // find many
     methodName = "get" + plural(className);
     this.addResponseMethod(methodName).appendContent(this.getQueryCode(false));
     // tslint:disable-next-line:max-line-length
@@ -274,13 +274,8 @@ Examples:
     for (let i = this.ownerVerifiedFields.length; i--; ) {
       const meta = getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
       if (meta.relation) {
-        const extPath = meta.relation.path ? `/${meta.relation.path}` : "";
-        this.controllerFile.addImport(
-          [`I${meta.relation.model}`],
-          genRelativePath(this.path, `src/cmn/models${extPath}/${meta.relation.model}`)
-        );
-        // tslint:disable-next-line:max-line-length
-        ownerChecks.push(`(result.${this.ownerVerifiedFields} as I${meta.relation.model}).id !== authUser.id`);
+        this.controllerFile.addImport([`I${meta.relation.model}`], genRelativePath(this.path, `src/cmn/models`));
+        ownerChecks.push(`result.${this.ownerVerifiedFields}.id !== authUser.id`);
       } else {
         ownerChecks.push(`result.${this.ownerVerifiedFields} !== authUser.id`);
       }
@@ -295,32 +290,37 @@ Examples:
     return `${this.getAuthUserCode()}const id = this.retrieveId(req);
         const result = await this.db.${instanceName}.findOne({ where: { id }${relationFields} });
         if (!result${ownerCheckCode}) {
-            throw new DatabaseError(Err.Type.DBNoRecord, null);
+            throw new Err(ErrorType.NoRecord);
         }${this.transFormResult(true)}
         res.json({ items: [result] });`;
   }
 
   private getQueryCodeForMultiInstance(): string {
-    const { instanceName } = this.model;
+    const { instanceName, interfaceName } = this.model;
     const ownerQueries = [];
     for (let i = this.ownerVerifiedFields.length; i--; ) {
-      ownerQueries.push(`${this.ownerVerifiedFields[i]}: authUser.id`);
+      const meta = getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
+      if (meta.relation) {
+        ownerQueries.push(`${this.ownerVerifiedFields[i]}: {id: authUser.id}`);
+      } else {
+        ownerQueries.push(`${this.ownerVerifiedFields[i]}: authUser.id`);
+      }
     }
     const ownerQueriesCode = ownerQueries.length
       ? `if (!isAdmin) {
-            query.filter = {AND: [{${ownerQueries.join(", ")}}, query.filter];
+            query.where = {AND: [{${ownerQueries.join(", ")}}, query.where]};
         }`
       : "";
     // this.controllerFile.addImport([`FindMany${className}Args`], "@prisma/client");
-    return `${this.getAuthUserCode()}const query = this.parseQuery(req.query);${ownerQueriesCode}
-        const result = await this.db.${instanceName}.findMany(query);${this.transFormResult()}
+    return `${this.getAuthUserCode()}const query = this.parseQuery<${interfaceName}>(req.query);${ownerQueriesCode}
+        const result = await this.db.${instanceName}.findMany(query as any);${this.transFormResult()}
         res.json({ items: result });`;
   }
 
   private getCountCode(): string {
-    const { instanceName } = this.model;
-    return `const query = this.parseQuery(req.query, true);
-        const result = await this.db.${instanceName}.count(query);
+    const { instanceName, interfaceName } = this.model;
+    return `const query = this.parseQuery<${interfaceName}>(req.query, true);
+        const result = await this.db.${instanceName}.count(query as any);
         res.json({ items: [], total: result });`;
   }
 
@@ -350,17 +350,23 @@ Examples:
     const relationCode = this.relationsFields
       .map((field: Field) => {
         const fieldName = String(field.name);
-        const checkVal = field.required ? "" : `${instanceName}.${fieldName}?`;
-        const noVal = field.required ? "" : field.isOneOf ? `: null` : `: []`;
-        return field.isOneOf
-          ? `${fieldName}: { connect: ${checkVal}{ id: ${instanceName}.${fieldName} as number }${noVal} }`
-          : `${fieldName}: { connect: ${checkVal}(${instanceName}.${fieldName} as number[]).map(id=> ({ id }))${noVal} }`;
+        // const checkVal = field.required ? "" : `${instanceName}.${fieldName}?`;
+        // const noVal = field.required ? "" : field.isOneOf ? `: null` : `: []`;
+        return `${fieldName}: this.parseRelation(${instanceName}.${fieldName})`;
+        // field.isOneOf
+        //   ? `${fieldName}: { connect: ${checkVal}{ id: ${instanceName}.${fieldName} as number }${noVal} }`
+        //   : `${fieldName}: { connect: ${checkVal}(${instanceName}.${fieldName} as number[]).map(id=> ({ id }))${noVal} }`;
       })
       .join(", ");
 
     const ownerAssigns = [];
     for (let i = this.ownerVerifiedFields.length; i--; ) {
-      ownerAssigns.push(`${instanceName}.${this.ownerVerifiedFields[i]} = authUser.id;`);
+      const meta = getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
+      if (meta.relation) {
+        ownerAssigns.push(`${instanceName}.${this.ownerVerifiedFields[i]}.id = authUser.id;`);
+      } else {
+        ownerAssigns.push(`${instanceName}.${this.ownerVerifiedFields[i]} = authUser.id;`);
+      }
     }
     const ownerAssignCode = ownerAssigns.length
       ? `\nif (!isAdmin) {
@@ -389,9 +395,16 @@ Examples:
     const ownerChecks = [];
     const ownerInlineChecks = [];
     for (let i = this.ownerVerifiedFields.length; i--; ) {
-      ownerChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]} = authUser.id;`);
-      // check owner of record after finding the record based on recordId
-      ownerInlineChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]} !== authUser.id`);
+      const meta = getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
+      if (meta.relation) {
+        ownerChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]}.id = authUser.id;`);
+        // check owner of record after finding the record based on recordId
+        ownerInlineChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]}.id !== authUser.id`);
+      } else {
+        ownerChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]} = authUser.id;`);
+        // check owner of record after finding the record based on recordId
+        ownerInlineChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]} !== authUser.id`);
+      }
     }
     const ownerCheckCode = ownerChecks.length
       ? `
@@ -404,15 +417,16 @@ Examples:
 
     for (const field of this.relationsFields) {
       const fieldName = String(field.name);
-      if (field.isOneOf) {
-        relationCode.push(
-          `${fieldName}: ${instanceName}.${fieldName} ? { connect: { id: ${instanceName}.${fieldName} as number } }: undefined`
-        );
-      } else if (field.areManyOf) {
-        relationCode.push(
-          `${fieldName}: ${instanceName}.${fieldName} ? { set: (${instanceName}.${fieldName} as number[]).map(id=> ({ id })) }: undefined`
-        );
-      }
+      relationCode.push(`${fieldName}: this.parseRelation(${instanceName}.${fieldName}, true)`);
+      // if (field.isOneOf) {
+      //   relationCode.push(
+      //     `${fieldName}: ${instanceName}.${fieldName} ? { connect: { id: ${instanceName}.${fieldName} as number } }: undefined`
+      //   );
+      // } else if (field.areManyOf) {
+      //   relationCode.push(
+      //     `${fieldName}: ${instanceName}.${fieldName} ? { set: (${instanceName}.${fieldName} as number[]).map(id=> ({ id })) }: undefined`
+      //   );
+      // }
     }
 
     const dataCode = [simpleFields, relationCode].filter(Boolean).join(",");
@@ -423,7 +437,7 @@ Examples:
         }
         const result = await this.db.${instanceName}.findOne({ where: { id: ${instanceName}.id } });
         if (!result${ownerCheckInlineCode}) {
-            throw new DatabaseError(Err.Type.DBNoRecord, null);
+            throw new Err(ErrorType.NoRecord);
         }
         
         const uResult = await this.db.${instanceName}.update({ where: { id: ${instanceName}.id }, data: { ${dataCode} } });
@@ -436,7 +450,12 @@ Examples:
     const ownerChecks = [];
     if (this.ownerVerifiedFields.length) {
       for (let i = this.ownerVerifiedFields.length; i--; ) {
-        ownerChecks.push(`result.${this.ownerVerifiedFields} !== authUser.id`);
+        const meta = getFieldMeta(this.config.model, this.ownerVerifiedFields[i]);
+        if (meta.relation) {
+          ownerChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]}.id !== authUser.id`);
+        } else {
+          ownerChecks.push(`${instanceName}.${this.ownerVerifiedFields[i]} !== authUser.id`);
+        }
       }
     }
 
@@ -460,11 +479,11 @@ Examples:
     const ownerCheckCode = ownerChecks.length
       ? `
         if (!isAdmin && (!${instanceName} || ${ownerChecks.join(" || ")})) {
-            throw new DatabaseError(Err.Type.DBNoRecord, null);
+            throw new Err(ErrorType.NoRecord);
         }`
       : `
         if (!${instanceName}) {
-            throw new DatabaseError(Err.Type.DBNoRecord, null);
+            throw new Err(ErrorType.NoRecord);
         }`;
     return `${this.getAuthUserCode()}const id = this.retrieveId(req);
         const ${instanceName} = await this.db.${instanceName}.findOne({ where: { id } });${ownerCheckCode}
@@ -511,7 +530,7 @@ Examples:
     return `const id = this.retrieveId(req);${ownerCheckCode}
         const result = await this.db.${instanceName}.findOne({ where: { id }, select: {${selectCode}} });
         if (!result${ownerCheckInlineCode}) {
-            throw new Err(Err.Type.DBNoRecord, null);
+            throw new Err(ErrorType.NoRecord);
         }
         const files = await saveFiles(req, new ${className}({${fromDB.join(
       ","
@@ -524,6 +543,7 @@ Examples:
 
   private getSimpleFields(): Field[] {
     const { module } = this.model;
+    // FieldType.RelationIndex
     return module.schema
       .getFields()
       .filter((f) => ![FieldType.File, FieldType.List, FieldType.Object, FieldType.Relation].includes(f.type));

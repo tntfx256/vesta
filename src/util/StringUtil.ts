@@ -29,10 +29,7 @@ export function fix(text: string, length: number, align: string = "left") {
 }
 
 export function pascalCase(str: string) {
-  if (!str.length) {
-    return str;
-  }
-  return upperFirst(camelCase(str));
+  return str ? upperFirst(camelCase(str)) : str;
 }
 
 export function kebabCase(str: string) {
@@ -40,8 +37,8 @@ export function kebabCase(str: string) {
 }
 
 export function plural(name: string): string {
-  const lastChar = name.charAt(name.length - 1).toLocaleLowerCase();
-  if (["a", "i", "u", "s"].indexOf(lastChar) >= 0) {
+  const lastChar = name.charAt(name.length - 1).toLowerCase();
+  if (["a", "i", "u", "s", "h"].indexOf(lastChar) >= 0) {
     return name + "es";
   }
   if (["y"].indexOf(name.charAt(name.length - 1)) >= 0) {

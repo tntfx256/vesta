@@ -1,8 +1,9 @@
-import { Err } from "../Err";
-import { Violation } from "../types";
+import {Err, ErrorType} from "../Err";
+import {Violation} from "../types";
 
 export class ValidationError<T = any> extends Err {
-  constructor(public violations?: Violation<T>, message?: string) {
-    super(Err.Type.Validation, message);
+  constructor(violations?: Violation<T>, message?: string) {
+    super(ErrorType.Validation, message);
+    this.violations = violations || null;
   }
 }

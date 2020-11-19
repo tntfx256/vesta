@@ -14,40 +14,42 @@ export abstract class Model<T = any> {
     if (!values) {
       return;
     }
-    const fieldsNames = this.schema.getFieldsName();
-    let fieldName;
-    for (let i = fieldsNames.length; i--; ) {
-      fieldName = fieldsNames[i];
+    const fields = this.schema.getFieldsName();
+    for (let i = fields.length; i--; ) {
+      const fieldName = fields[i];
       if (values[fieldName] !== undefined) {
-        this[fieldName] = values[fieldName];
+        this[String(fieldName)] = values[fieldName];
       }
     }
   }
 
-  public getValues(...fields: (keyof T)[]): T {
-    // tslint:disable-next-line: no-object-literal-type-assertion
-    const values: T = {} as T;
-    const validFieldNames = this.schema.getFieldsName();
-    // checking if invalid field names has been passed as ...fields
-    const fieldsNames = fields.length ? fields.filter((f) => validFieldNames.includes(f)) : validFieldNames;
-    let fieldName;
-    for (let i = fieldsNames.length; i--; ) {
-      fieldName = fieldsNames[i];
-      values[fieldName] = this[fieldName];
-    }
-    return values;
+  public getValues(): T;
+  public getValues<K extends keyof T>(...fields: K[]): Pick<T, K>;
+  public getValues<K extends keyof T>(...fields: K[]): T | Pick<T, K> {
+    const allFields = this.schema.getFieldsName();
+    return (fields && fields.length ? fields.filter((f) => allFields.includes(f)) : allFields).reduce(
+      (values: any, field: keyof T) => {
+        const value = this[String(field)];
+        return value === undefined ? values : { ...values, [field]: value };
+        // return { ...values, [field]: value };
+      },
+      {}
+    );
   }
 
   public toJSON(): T {
     return this.getValues();
   }
 
-  public validate(...fieldNames: Extract<keyof T, string>[]): Violation<T> | null {
-    const violations = Validator.validate<T>(this.getValues(...fieldNames), this.schema.getFields());
-    if (!violations || !fieldNames.length) {
+  public validate(): Violation<T> | null;
+  public validate<K extends keyof T>(...fields: K[]): Violation<Pick<T, K>> | null;
+  public validate(...fields: (keyof T)[]): Violation<T> | null {
+    const violations = Validator.validate<T>(this.getValues(...fields), this.schema.getFields());
+    if (!violations || !fields.length) {
       return violations;
     }
-    return fieldNames.reduce(
+    // removing violations for fields that are not mentioned in fields
+    return fields.reduce(
       (acc: Violation<T>, fieldName) => (violations[fieldName] ? { ...acc, [fieldName]: violations[fieldName] } : acc),
       null
     );

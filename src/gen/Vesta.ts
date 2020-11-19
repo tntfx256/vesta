@@ -21,6 +21,10 @@ export class Vesta {
     return existsSync(`${process.cwd()}/src/api`);
   }
 
+  public static get isNative(): boolean {
+    return existsSync(`${process.cwd()}/android`) && existsSync(`${process.cwd()}/ios`);
+  }
+
   public static get directories(): IStructure {
     if (!Vesta.dirs) {
       Vesta.setStructures();

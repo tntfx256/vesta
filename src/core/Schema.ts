@@ -1,6 +1,6 @@
 import { Field, ModelFields } from "./Field";
 
-export class Schema<T = {}> {
+export class Schema<T = Record<string, unknown>> {
   private fields: Field<T>[] = [];
 
   constructor(private modelName: string) {}

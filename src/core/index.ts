@@ -1,16 +1,13 @@
-export * from "./error/DatabaseError";
-export * from "./error/ValidationError";
-
-export * from "./models/Permission";
-export * from "./models/Role";
-
 export * from "./Dispatcher";
 export * from "./Err";
+export * from "./error/ValidationError";
 export * from "./Field";
 export * from "./FieldType";
 export * from "./Filter";
 export * from "./Mime";
 export * from "./Model";
+export * from "./models/Permission";
+export * from "./models/Role";
 export * from "./Platform";
 export * from "./Registry";
 export * from "./Request";

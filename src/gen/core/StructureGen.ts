@@ -110,7 +110,7 @@ export abstract class StructureGen {
       }
     }
     this.properties.push({ ...property, sort: "sort" in property ? property.sort : true });
-    this.properties.sort(this.sortByName);
+    this.sortProperties();
   }
 
   private sortMethods() {
@@ -133,6 +133,26 @@ export abstract class StructureGen {
     this.methods = this.constructorMethod
       ? [...publicStatics, ...privatestatics, this.constructorMethod, ...publicMethods, ...privateMethods]
       : [...publicStatics, ...privatestatics, ...publicMethods, ...privateMethods];
+  }
+
+  private sortProperties() {
+    const publicStatics = [];
+    const privatestatics = [];
+    const publicProps = [];
+    const privateProps = [];
+    for (let i = this.properties.length; i--; ) {
+      const prop = this.properties[i];
+      if (prop.type === "public") {
+        prop.isStatic ? publicStatics.push(prop) : publicProps.push(prop);
+      } else {
+        prop.isStatic ? privatestatics.push(prop) : privateProps.push(prop);
+      }
+    }
+    publicStatics.sort(this.sortByName);
+    privatestatics.sort(this.sortByName);
+    publicProps.sort(this.sortByName);
+    privateProps.sort(this.sortByName);
+    this.properties = [...publicStatics, ...privatestatics, ...publicProps, ...privateProps];
   }
 
   private sortByName(a: IStructureProperty | MethodGen, b: IStructureProperty | MethodGen): number {

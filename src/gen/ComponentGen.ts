@@ -41,7 +41,7 @@ Creating React component
 Options:
     --page      Generates page component with route params
     --model     Generates CRUD component for specified model
-    --path      Where to save component [default: src/components(/pages)]
+    --path      Where to save component [default: src/components]
                 path are relative to src/components
 
 Example:
@@ -62,15 +62,24 @@ Example:
       Log.error("Missing/Invalid component name\nSee 'vesta gen component --help' for more information\n");
       return;
     }
+    const isNative = Vesta.isNative;
     config.name = pascalCase(config.name);
     if (config.model) {
       config.model = pascalCase(config.model);
       config.isPage = true;
     }
-    if (!config.path) {
-      config.path = config.isPage ? join(Vesta.directories.components, "pages") : Vesta.directories.components;
+    if (config.path) {
+      if (isNative) {
+        config.path = join(Vesta.directories.app, config.path);
+      } else {
+        config.path = join(Vesta.directories.components, config.path);
+      }
     } else {
-      config.path = join(Vesta.directories.components, config.path);
+      if (isNative) {
+        config.path = config.isPage ? join(Vesta.directories.app, "screens") : Vesta.directories.components;
+      } else {
+        config.path = config.isPage ? join(Vesta.directories.components, "pages") : Vesta.directories.components;
+      }
     }
 
     if (config.model) {
@@ -86,6 +95,9 @@ Example:
 
   public generate() {
     if (this.config.model) {
+      if (Vesta.isNative) {
+        Log.error("model option is not supported for native platform", true);
+      }
       genRoot(this.config);
       genService(this.config);
       genForm(this.config);

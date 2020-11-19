@@ -30,6 +30,10 @@ export class Validator {
    * Returns the name of the rule that has failed
    */
   public static validateField<T = any>(field: Field<T>, values: Partial<T>): keyof Field | null {
+    // for list, every item should be validated
+    if (field.type === FieldType.List) {
+      return Validator.listValidator(field, values);
+    }
     const rules = Object.keys(field) as (keyof Field)[];
     // making sure that "required" is the first rule to be checked
     const index = rules.indexOf("required");
@@ -235,4 +239,24 @@ export class Validator {
       return !!Validator.regex.url.exec(url);
     },
   };
+
+  private static listValidator<T>(field: Field, values: Partial<T>): keyof Field | null {
+    const list = values[field.name];
+    const singularField = {
+      ...field,
+      type: field.listOf,
+    };
+    delete singularField.listOf;
+    delete singularField.required;
+    if (field.required && (!list || !list.length)) {
+      return "required";
+    }
+    for (let i = 0; i < list.length; i += 1) {
+      const violation = Validator.validateField(singularField, { [field.name]: list[i] });
+      if (violation) {
+        return violation;
+      }
+    }
+    return null;
+  }
 }

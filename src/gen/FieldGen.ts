@@ -106,7 +106,7 @@ export class FieldGen {
     return defValue;
   }
 
-  public readFieldProperties(): Promise<any> {
+  public async readFieldProperties(): Promise<void> {
     const question: Question = {
       choices: this.getFieldTypeChoices(),
       default: "String",
@@ -114,24 +114,24 @@ export class FieldGen {
       name: "fieldType",
       type: "list",
     };
-    return ask<{ fieldType: string }>(question)
-      .then((fieldTypeAnswer) => {
-        this.field.type = this.getFieldType(fieldTypeAnswer.fieldType);
-        const questions = this.getQuestionsBasedOnFieldType(this.field.type, false);
-        return ask<any>(questions);
-      })
-      .then((answers) => {
-        this.setPropertiesFromAnswers(answers);
-        // if field is of type list, a new series of questions should be answered based on the items type
-        if (this.field.listOf) {
-          const listQuestions = this.getQuestionsBasedOnFieldType(this.field.listOf, true);
-          return ask(listQuestions).then((listAnswers) => this.setPropertiesFromAnswers(listAnswers));
-        }
-      });
+    const fieldTypeAnswer = await ask<{ fieldType: string }>(question);
+
+    this.field.type = this.getFieldType(fieldTypeAnswer.fieldType);
+    const questions = this.getQuestionsBasedOnFieldType(this.field.type, false);
+    const answers = await ask<any>(questions);
+
+    this.setPropertiesFromAnswers(answers);
+    // if field is of type list, a new series of questions should be answered based on the items type
+    if (this.field.listOf) {
+      const listQuestions = this.getQuestionsBasedOnFieldType(this.field.listOf, true);
+      const listAnswers = await ask(listQuestions);
+      this.setPropertiesFromAnswers(listAnswers);
+    }
   }
 
   public setAsPrimary() {
     this.field.primary = true;
+    this.field.required = true;
   }
 
   private getFieldTypeChoices(isForList: boolean = false): string[] {
@@ -199,7 +199,10 @@ export class FieldGen {
       }
       switch (property) {
         case "enum":
-          this.field.enum = answers.enum.split(",").map((item) => item.trim());
+          this.field.enum = answers.enum
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean);
           break;
         case "fileType":
           this.field.fileType = this.getFileTypes(answers.fileType);
@@ -368,6 +371,8 @@ export class FieldGen {
         return "boolean";
       case FieldType.Enum:
         return this.enumName;
+      // case FieldType.RelationIndex:
+      //   return "number";
       case FieldType.Relation:
         const types = `number | I${getRelationModelName(this.field)}`;
         if (this.field.areManyOf) {
@@ -424,23 +429,21 @@ export class FieldGen {
   }
 
   private genCodeForEnumField(): string {
-    let enumArray = [];
-    let firstEnum: string = this.field.enum[0].toUpperCase();
+    let [firstEnum] = this.field.enum;
     if (firstEnum.indexOf(".") > 0) {
       this.enumName = firstEnum.substr(0, firstEnum.indexOf("."));
-      enumArray = this.field.enum;
+      this.field.default = firstEnum;
       Log.warning(`Do not forget to import the (${this.enumName})`);
     } else {
       this.enumName = pascalCase(this.modelFile.name) + pascalCase(this.name);
-      const enumField = this.modelFile.addEnum(this.enumName, true);
+      const enumField = this.modelFile.addEnum(this.enumName);
       enumField.shouldExport(true);
       for (let i = 0, il = this.field.enum.length; i < il; ++i) {
-        enumField.addProperty(this.field.enum[i]);
-        enumArray.push(`"${this.field.enum[i].toUpperCase()}"`);
+        enumField.addEnum(this.field.enum[i]);
       }
+      this.field.default = `${this.enumName}.${enumField.first}`;
     }
-    this.field.default = enumArray[0];
-    return `,enum: [${enumArray.join(", ")}]`;
+    return `,enum: Object.keys(${this.enumName})`;
   }
 
   private getDefaultValueForSchemaCode() {
